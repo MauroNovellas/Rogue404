@@ -199,7 +199,7 @@ test('el frío impide curarse al descansar salvo con equipo polar', () => {
     }
 });
 
-test('un resbalón mueve varias casillas pero consume una sola acción', () => {
+test('un resbalón dibuja cada casilla intermedia y consume una sola acción', async () => {
     freshGame(1306);
     GameState.floor = { type: 'FROZEN' };
     GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
@@ -212,18 +212,28 @@ test('un resbalón mueve varias casillas pero consume una sola acción', () => {
 
     const originalRandom = Utils.random;
     const originalEndTurn = GameLogic.endTurn;
+    const originalWaitSlipFrame = FloorSystem.waitSlipFrame;
     let turns = 0;
-    const rolls = [0, 0.5, 0];
+    const frames = [];
+    const rolls = [0, 0.5, 0.99];
     Utils.random = () => rolls.length ? rolls.shift() : 0.5;
     GameLogic.endTurn = () => { turns++; };
+    FloorSystem.waitSlipFrame = async () => {
+        frames.push([GameState.player.x, GameState.player.y]);
+    };
     try {
-        GameLogic.movePlayer(1, 0);
-        assert.equal(GameState.player.x, 12);
+        const movement = GameLogic.movePlayer(1, 0);
+        assert.equal(GameState.ui.movementLocked, true);
+        await movement;
+        assert.deepEqual(frames, [[11, 10], [12, 10], [13, 10]]);
+        assert.equal(GameState.player.x, 13);
         assert.equal(GameState.player.y, 10);
         assert.equal(turns, 1);
+        assert.equal(GameState.ui.movementLocked, false);
     } finally {
         Utils.random = originalRandom;
         GameLogic.endTurn = originalEndTurn;
+        FloorSystem.waitSlipFrame = originalWaitSlipFrame;
     }
 });
 

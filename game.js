@@ -18,6 +18,7 @@ const CONFIG = {
             driftChance: 0.25,
             extraStepsMin: 1,
             extraStepsMax: 2,
+            animationMs: 90,
             colors: { wall: '#25465f', wallVisible: '#6e9fb8', floor: '#bdefff', fog: '#17303f' },
             warningTitle: '⚠ PROFUNDIDAD HELADA',
             warningText: 'EL FRÍO DOMINA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• El hielo puede hacerte resbalar y desviarte.<br>• El equipo polar con crampones reduce ambos peligros.'
@@ -109,6 +110,7 @@ const GameState = {
         currentActions: [],
         shopStock: [],
         floorWarningOpen: false,
+        movementLocked: false,
     }
 };
 
@@ -255,6 +257,13 @@ const FloorSystem = {
         const config = CONFIG.FLOORS.FROZEN;
         const span = config.extraStepsMax - config.extraStepsMin + 1;
         return config.extraStepsMin + Math.floor(Utils.random() * span);
+    },
+    waitSlipFrame: () => new Promise(resolve => window.setTimeout(resolve, CONFIG.FLOORS.FROZEN.animationMs)),
+    renderSlipFrame: async () => {
+        MapSystem.updateFog();
+        Renderer.draw();
+        UISystem.updateHUD();
+        await FloorSystem.waitSlipFrame();
     },
     canSlideTo: (x, y) => {
         if (MapSystem.isBlocked(x, y)) return false;
@@ -583,6 +592,7 @@ const GameLogic = {
         GameState.ui.currentActions = [];
         GameState.ui.shopStock = [];
         GameState.ui.floorWarningOpen = false;
+        GameState.ui.movementLocked = false;
         FloorSystem.closeWarning();
         Network.isSaving = false;
 
@@ -624,7 +634,9 @@ const GameLogic = {
         Renderer.draw();
         UISystem.updateHUD();
     },
-    movePlayer: (dx, dy) => {
+    movePlayer: async (dx, dy) => {
+        if (GameState.ui.movementLocked) return false;
+
         const nx = GameState.player.x + dx;
         const ny = GameState.player.y + dy;
 
@@ -648,24 +660,34 @@ const GameLogic = {
         GameLogic.enterPlayerTile(nx, ny);
 
         if (FloorSystem.shouldSlip()) {
-            const [slideDx, slideDy] = FloorSystem.resolveSlipDirection(dx, dy);
-            const extraSteps = FloorSystem.extraSlipSteps();
-            let movedExtra = 0;
+            GameState.ui.movementLocked = true;
+            try {
+                const [slideDx, slideDy] = FloorSystem.resolveSlipDirection(dx, dy);
+                const extraSteps = FloorSystem.extraSlipSteps();
+                let movedExtra = 0;
 
-            for (let step = 0; step < extraSteps; step++) {
-                const sx = GameState.player.x + slideDx;
-                const sy = GameState.player.y + slideDy;
-                if (!FloorSystem.canSlideTo(sx, sy)) break;
-                GameLogic.enterPlayerTile(sx, sy);
-                movedExtra++;
-            }
+                // Dibuja primero la casilla elegida por el jugador y después cada
+                // casilla extra: el resbalón se percibe como movimiento, no teleportación.
+                await FloorSystem.renderSlipFrame();
 
-            if (movedExtra > 0) {
-                const deviated = slideDx !== dx || slideDy !== dy;
-                Utils.log(deviated ? '¡El hielo te hace resbalar y te desvía!' : '¡Resbalas sobre el hielo!', '#8adfff');
-                VisualFX.floatText(GameState.player.x, GameState.player.y, deviated ? '¡DESVÍO!' : '¡RESBALA!', '#8adfff');
-            } else {
-                Utils.log('Pierdes pie, pero algo detiene el resbalón.', '#8adfff');
+                for (let step = 0; step < extraSteps; step++) {
+                    const sx = GameState.player.x + slideDx;
+                    const sy = GameState.player.y + slideDy;
+                    if (!FloorSystem.canSlideTo(sx, sy)) break;
+                    GameLogic.enterPlayerTile(sx, sy);
+                    movedExtra++;
+                    await FloorSystem.renderSlipFrame();
+                }
+
+                if (movedExtra > 0) {
+                    const deviated = slideDx !== dx || slideDy !== dy;
+                    Utils.log(deviated ? '¡El hielo te hace resbalar y te desvía!' : '¡Resbalas sobre el hielo!', '#8adfff');
+                    VisualFX.floatText(GameState.player.x, GameState.player.y, deviated ? '¡DESVÍO!' : '¡RESBALA!', '#8adfff');
+                } else {
+                    Utils.log('Pierdes pie, pero algo detiene el resbalón.', '#8adfff');
+                }
+            } finally {
+                GameState.ui.movementLocked = false;
             }
         }
 
@@ -1406,6 +1428,7 @@ const StateController = {
 
 document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
+    if (GameState.ui.movementLocked) return;
 
     const key = e.key.toLowerCase();
 
