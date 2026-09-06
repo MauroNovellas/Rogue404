@@ -372,6 +372,15 @@ const EntityFactory = {
 // ============================================================================
 const GameLogic = {
     init: (seedInput = null) => {
+        GameState.entryMethod = 'start';
+        GameState.deathCause = 'Desconocido';
+        GameState.ui.inventoryIndex = 0;
+        GameState.ui.actionMenuOpen = false;
+        GameState.ui.actionIndex = 0;
+        GameState.ui.currentActions = [];
+        GameState.ui.shopStock = [];
+        Network.isSaving = false;
+
         GameState.seed = seedInput !== null ? seedInput : Math.floor(Math.random() * 999999);
         GameState.level = 1; GameState.score = 0; GameState.moves = 0; GameState.maxLevel = 1;
         const pConf = CONFIG.PLAYER;
@@ -382,16 +391,30 @@ const GameLogic = {
             combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
         };
         GameState.persistence = {}; GameState.discoveredTypes.clear(); Renderer.resetLegend();
-        MapSystem.initLevel(); StateController.change(STATE_ENUM.CONTROLS);
+        MapSystem.initLevel();
+
+        // Una partida nueva entra por las escaleras que comunican con la superficie.
+        GameState.player.x = GameState.stairs.up.x;
+        GameState.player.y = GameState.stairs.up.y;
+        GameState.seen.forEach(row => row.fill(false));
+        GameState.visible.forEach(row => row.fill(false));
+        MapSystem.updateFog();
+        Renderer.draw();
+
+        StateController.change(STATE_ENUM.CONTROLS);
     },
     endTurn: (didAction = true) => {
-        if (!didAction) return;
-        if (!GameState.player.combat.isDefending) GameState.player.combat.isDefending = false;
+        if (!didAction || GameState.current === STATE_ENUM.GAMEOVER) return;
         if (GameState.player.combat.cooldowns.area > 0) GameState.player.combat.cooldowns.area--;
 
         GameLogic.updateEnemies();
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+
+        // Defender cubre únicamente la respuesta enemiga del turno actual.
+        GameState.player.combat.isDefending = false;
         GameLogic.processSurvival();
-        
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+
         MapSystem.updateFog();
         Renderer.draw();
         UISystem.updateHUD();
@@ -520,11 +543,30 @@ const GameLogic = {
         return true;
     },
     processSurvival: () => {
-        const s = CONFIG.PLAYER.survival; GameState.moves++;
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+
+        const s = CONFIG.PLAYER.survival;
+        GameState.moves++;
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
         if (GameState.moves % s.thirstRate === 0) GameState.player.water--;
-        if (GameState.player.food <= 0) { GameState.player.food = 0; GameState.player.hp -= s.starvationDmg; if(GameState.player.hp <= 0) GameLogic.die("Hambre"); }
-        if (GameState.player.water <= 0) { GameState.player.water = 0; GameState.player.hp -= s.dehydrationDmg; if(GameState.player.hp <= 0) GameLogic.die("Sed"); }
+
+        if (GameState.player.food <= 0) {
+            GameState.player.food = 0;
+            GameState.player.hp -= s.starvationDmg;
+            if (GameState.player.hp <= 0) {
+                GameLogic.die('Hambre');
+                return;
+            }
+        }
+
+        if (GameState.player.water <= 0) {
+            GameState.player.water = 0;
+            GameState.player.hp -= s.dehydrationDmg;
+            if (GameState.player.hp <= 0) {
+                GameLogic.die('Sed');
+                return;
+            }
+        }
     },
     interactAction: () => {
         const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
@@ -558,13 +600,30 @@ const GameLogic = {
         }
     },
     die: (cause) => {
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
         GameState.deathCause = cause;
         StateController.change(STATE_ENUM.GAMEOVER);
-        UISystem.fillEndGameStats('death'); 
+        UISystem.fillEndGameStats('death');
         Network.fetchScores('leaderboard');
     },
     win: () => {
-        GameState.deathCause = "Vio la luz"; GameState.score += (GameState.maxLevel * 100);
+        const atSurfaceExit =
+            GameState.level === 1 &&
+            GameState.player.x === GameState.stairs.up.x &&
+            GameState.player.y === GameState.stairs.up.y;
+
+        if (atSurfaceExit) {
+            const confirmed = window.confirm(
+                'SALIR A LA SUPERFICIE?\n\n' +
+                'Si abandonas la mazmorra, la partida termina y se calculará tu puntuación final.'
+            );
+            if (!confirmed) {
+                Utils.log('Decides continuar explorando la mazmorra.', '#aaa');
+                return;
+            }
+        }
+
+        GameState.deathCause = 'Vio la luz'; GameState.score += (GameState.maxLevel * 100);
         StateController.change(STATE_ENUM.GAMEOVER); DOM.menus.gameOver.classList.add('hidden'); DOM.menus.victory.classList.remove('hidden');
         UISystem.fillEndGameStats('win');
         Network.fetchScores('victory-leaderboard');
@@ -1255,63 +1314,11 @@ GameLogic.init();
         if (target) target.innerHTML = h;
     };
 
-    // Una muerte solo se registra una vez; así la causa no puede ser sobrescrita después.
-    const originalDie = GameLogic.die.bind(GameLogic);
-    GameLogic.die = (cause) => {
-        if (GameState.current === STATE_ENUM.GAMEOVER) return;
-        originalDie(cause);
-    };
-
     // Ningún enemigo puede seguir atacando después de que la partida haya terminado.
     const originalEnemyAttack = CombatSystem.enemyAttack.bind(CombatSystem);
     CombatSystem.enemyAttack = (enemy) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
         originalEnemyAttack(enemy);
-    };
-
-    // Defender protege únicamente durante la respuesta enemiga del turno en que se usa.
-    GameLogic.endTurn = (didAction = true) => {
-        if (!didAction || GameState.current === STATE_ENUM.GAMEOVER) return;
-        if (GameState.player.combat.cooldowns.area > 0) GameState.player.combat.cooldowns.area--;
-
-        GameLogic.updateEnemies();
-        if (GameState.current === STATE_ENUM.GAMEOVER) return;
-
-        GameState.player.combat.isDefending = false;
-        GameLogic.processSurvival();
-        if (GameState.current === STATE_ENUM.GAMEOVER) return;
-
-        MapSystem.updateFog();
-        Renderer.draw();
-        UISystem.updateHUD();
-    };
-
-    // Hambre y sed no pueden causar dos muertes en el mismo turno.
-    GameLogic.processSurvival = () => {
-        if (GameState.current === STATE_ENUM.GAMEOVER) return;
-
-        const s = CONFIG.PLAYER.survival;
-        GameState.moves++;
-        if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
-        if (GameState.moves % s.thirstRate === 0) GameState.player.water--;
-
-        if (GameState.player.food <= 0) {
-            GameState.player.food = 0;
-            GameState.player.hp -= s.starvationDmg;
-            if (GameState.player.hp <= 0) {
-                GameLogic.die('Hambre');
-                return;
-            }
-        }
-
-        if (GameState.player.water <= 0) {
-            GameState.player.water = 0;
-            GameState.player.hp -= s.dehydrationDmg;
-            if (GameState.player.hp <= 0) {
-                GameLogic.die('Sed');
-                return;
-            }
-        }
     };
 
     // Tirar un objeto no debe borrar el registro de un objeto ya recogido en esa casilla.
@@ -1445,20 +1452,6 @@ GameLogic.init();
             GameState.score += 50;
             Utils.log('¡Encuentras oro!', '#ffd700');
         }
-    };
-
-    // Toda partida nueva debe empezar desde el estado inicial, no desde la dirección del último cambio de piso.
-    const originalInit = GameLogic.init.bind(GameLogic);
-    GameLogic.init = (seedInput = null) => {
-        GameState.entryMethod = 'start';
-        GameState.deathCause = 'Desconocido';
-        GameState.ui.inventoryIndex = 0;
-        GameState.ui.actionMenuOpen = false;
-        GameState.ui.actionIndex = 0;
-        GameState.ui.currentActions = [];
-        GameState.ui.shopStock = [];
-        Network.isSaving = false;
-        return originalInit(seedInput);
     };
 
     // Captura antes de los listeners antiguos: T queda como barrido instantáneo y Enter hace lo correcto según el input.
@@ -1690,48 +1683,5 @@ GameLogic.init();
         return result;
     };
 
-    // Salir por las escaleras de superficie termina la partida: pedimos confirmación explícita.
-    const stabilizedWin = GameLogic.win.bind(GameLogic);
-    GameLogic.win = () => {
-        const atSurfaceExit =
-            GameState.level === 1 &&
-            GameState.player.x === GameState.stairs.up.x &&
-            GameState.player.y === GameState.stairs.up.y;
-
-        if (atSurfaceExit) {
-            const confirmed = window.confirm(
-                'SALIR A LA SUPERFICIE?\n\n' +
-                'Si abandonas la mazmorra, la partida termina y se calculará tu puntuación final.'
-            );
-            if (!confirmed) {
-                Utils.log('Decides continuar explorando la mazmorra.', '#aaa');
-                return;
-            }
-        }
-
-        return stabilizedWin();
-    };
-
-    const placeAtSurfaceEntrance = () => {
-        if (GameState.level !== 1 || GameState.entryMethod !== 'start') return;
-
-        GameState.player.x = GameState.stairs.up.x;
-        GameState.player.y = GameState.stairs.up.y;
-
-        GameState.seen.forEach(row => row.fill(false));
-        GameState.visible.forEach(row => row.fill(false));
-        MapSystem.updateFog();
-        Renderer.draw();
-        UISystem.updateHUD();
-    };
-
-    const stabilizedInit = GameLogic.init.bind(GameLogic);
-    GameLogic.init = (seedInput = null) => {
-        const result = stabilizedInit(seedInput);
-        placeAtSurfaceEntrance();
-        return result;
-    };
-
-    placeAtSurfaceEntrance();
     UISystem.updateHUD();
 })();
