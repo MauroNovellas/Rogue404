@@ -440,6 +440,22 @@ test('los objetos dispersados por una caída persisten hasta recuperarlos', () =
     assert.equal((GameState.recoveryDrops[10] || []).some(item => item.recoveryDropId === saved.recoveryDropId), false);
 });
 
+test('los enemigos tratan las grietas inestables como paredes', () => {
+    freshGame(1909);
+    GameState.level = 9;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+
+    const x = GameState.player.x + 1;
+    const y = GameState.player.y;
+    if (MapSystem.isBlocked(x, y)) return;
+
+    FloorSystem.markCracked(x, y);
+    assert.equal(FloorSystem.isCracked(x, y), true);
+    assert.equal(GameLogic.isValidEnemyMove(x, y), false);
+});
+
 test('I/H alternan la ayuda sin duplicar acciones', () => {
     freshGame(101);
     keydown('i');

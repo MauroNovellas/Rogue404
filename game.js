@@ -978,6 +978,9 @@ const GameLogic = {
     },
     isValidEnemyMove: (x, y) => {
         if (MapSystem.isBlocked(x, y)) return false;
+        // En el estrato inestable los enemigos tratan las grietas como paredes:
+        // no pisan suelo debilitado y nunca provocan una caída de nivel.
+        if (FloorSystem.isCracked(x, y)) return false;
         if (x === GameState.player.x && y === GameState.player.y) return false;
         if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
         if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
