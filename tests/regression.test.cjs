@@ -1117,6 +1117,95 @@ test('el cofre de escarcha permanece abierto al volver a la planta', () => {
     assert.equal(restored.isOpen, true);
 });
 
+
+test('Magma genera una Cámara de Fumarola opcional con cofre especial', () => {
+    freshGame(2601);
+    GameState.level = 6;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+
+    const zone = GameState.floor.riskZone;
+    assert.ok(zone);
+    assert.equal(zone.type, 'MAGMA_FUMAROLE');
+    assert.equal(FloorSystem.isMagmaFumaroleTile(GameState.stairs.up.x, GameState.stairs.up.y), false);
+    assert.equal(FloorSystem.isMagmaFumaroleTile(GameState.stairs.down.x, GameState.stairs.down.y), false);
+
+    const chest = GameState.entities.chests.find(entry => entry.specialId === 'MAGMA_FUMAROLE_CHEST');
+    assert.ok(chest);
+    assert.equal(FloorSystem.isMagmaFumaroleTile(chest.x, chest.y), true);
+});
+
+test('la Cámara de Fumarola cuesta 2 de agua por turno y la malla térmica lo reduce a 1', () => {
+    freshGame(2602);
+    GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 10, y1: 10, x2: 15, y2: 15 } };
+    GameState.player.x = 12;
+    GameState.player.y = 12;
+    GameState.player.equipment.armor = null;
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 2);
+
+    GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 1);
+
+    GameState.player.x = 5;
+    GameState.player.y = 5;
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 0);
+});
+
+test('la supervivencia cobra el agua extra de la Fumarola en cada acción', () => {
+    freshGame(2603);
+    GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 10, y1: 10, x2: 15, y2: 15 } };
+    GameState.player.x = 12;
+    GameState.player.y = 12;
+    GameState.player.water = 20;
+    GameState.player.food = 20;
+    GameState.moves = 1;
+    GameState.player.equipment.armor = null;
+    GameLogic.processSurvival();
+    assert.equal(GameState.player.water, 18);
+
+    GameState.player.water = 20;
+    GameState.moves = 1;
+    GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
+    GameLogic.processSurvival();
+    assert.equal(GameState.player.water, 19);
+});
+
+test('el cofre de brasa evita trampas, da equipo mejorado y persiste abierto', () => {
+    freshGame(2604);
+    GameState.level = 6;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.hp = 80;
+    GameState.player.inventory = [];
+
+    let chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'MAGMA_FUMAROLE_CHEST');
+    assert.ok(chestIndex >= 0);
+    const chest = GameState.entities.chests[chestIndex];
+    const coords = [chest.x, chest.y];
+    const originalRandom = Utils.random;
+    Utils.random = () => 0;
+    try {
+        GameLogic.openChest(chestIndex);
+        assert.equal(GameState.player.hp, 80);
+        assert.equal(chest.isOpen, true);
+        assert.equal(GameState.player.inventory.length, 1);
+        assert.ok(GameState.player.inventory[0].name.includes('obsidiana'));
+        assert.equal(GameState.player.inventory[0].type, 'weapon');
+    } finally {
+        Utils.random = originalRandom;
+    }
+
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    const restored = GameState.entities.chests.find(entry => entry.specialId === 'MAGMA_FUMAROLE_CHEST');
+    assert.ok(restored);
+    assert.deepEqual([restored.x, restored.y], coords);
+    assert.equal(restored.isOpen, true);
+});
+
 (async () => {
     let passed = 0;
     for (const { name, fn } of tests) {

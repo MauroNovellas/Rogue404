@@ -39,9 +39,18 @@ const CONFIG = {
             enabled: true,
             label: 'MAGMA',
             thirstMultiplier: 2,
+            fumarole: {
+                enabled: true,
+                waterCostPerTurn: 2,
+                rewardBonus: 3,
+                tileColor: '#ffd29a',
+                tileBackground: '#5a180c',
+                fogColor: '#6f2b19',
+                chestColor: '#ff5a2b'
+            },
             colors: { wall: '#42130d', wallVisible: '#9c3520', floor: '#d56832', fog: '#210b08' },
             warningTitle: '⚠ CÁMARA MAGMÁTICA',
-            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• La malla térmica reduce la presión del calor y permite descansar.'
+            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• Las cámaras de fumarola consumen agua cada turno, pero esconden botín superior.<br>• La malla térmica reduce la presión del calor y permite descansar.'
         },
         UNSTABLE: {
             enabled: true,
@@ -265,9 +274,18 @@ const FloorSystem = {
     },
     prepareRiskZone: () => {
         GameState.floor.riskZone = null;
-        const vault = CONFIG.FLOORS.FROZEN.vault;
-        if (!FloorSystem.is('FROZEN') || !vault || !vault.enabled || GameState.rooms.length < 3) return;
+        let zoneConfig = null;
+        let zoneType = null;
 
+        if (FloorSystem.is('FROZEN')) {
+            zoneConfig = CONFIG.FLOORS.FROZEN.vault;
+            zoneType = 'FROZEN_VAULT';
+        } else if (FloorSystem.is('MAGMA')) {
+            zoneConfig = CONFIG.FLOORS.MAGMA.fumarole;
+            zoneType = 'MAGMA_FUMAROLE';
+        }
+
+        if (!zoneConfig || !zoneConfig.enabled || GameState.rooms.length < 3) return;
         const candidates = GameState.rooms.filter((room, index) => index > 0 && index < GameState.rooms.length - 1);
         if (candidates.length === 0) return;
 
@@ -281,7 +299,7 @@ const FloorSystem = {
         const insetX = room.w >= 5 ? 1 : 0;
         const insetY = room.h >= 5 ? 1 : 0;
         GameState.floor.riskZone = {
-            type: 'FROZEN_VAULT',
+            type: zoneType,
             x1: room.x + insetX,
             y1: room.y + insetY,
             x2: room.x + room.w - 1 - insetX,
@@ -294,6 +312,7 @@ const FloorSystem = {
         return x >= zone.x1 && x <= zone.x2 && y >= zone.y1 && y <= zone.y2;
     },
     isFrozenVaultTile: (x, y) => FloorSystem.is('FROZEN') && FloorSystem.isRiskZoneTile(x, y, 'FROZEN_VAULT'),
+    isMagmaFumaroleTile: (x, y) => FloorSystem.is('MAGMA') && FloorSystem.isRiskZoneTile(x, y, 'MAGMA_FUMAROLE'),
     armorTraits: () => {
         const armor = GameState.player.equipment.armor;
         return armor && armor.traits ? armor.traits : {};
@@ -346,6 +365,12 @@ const FloorSystem = {
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().thirstResist) || 0));
         const pressure = 1 + (config.thirstMultiplier - 1) * (1 - resist);
         return Math.max(1, Math.round(baseRate / pressure));
+    },
+    magmaRiskWaterCost: () => {
+        if (!FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y)) return 0;
+        const config = CONFIG.FLOORS.MAGMA.fumarole;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().heatResist) || 0));
+        return Math.max(0, Math.ceil(config.waterCostPerTurn * (1 - resist)));
     },
     restHealing: () => {
         if (FloorSystem.is('FROZEN')) return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
@@ -700,7 +725,19 @@ const EntityFactory = {
     },
     spawnRiskReward: () => {
         const zone = GameState.floor.riskZone;
-        if (!FloorSystem.is('FROZEN') || !zone || zone.type !== 'FROZEN_VAULT') return;
+        if (!zone) return;
+
+        let chestName = null;
+        let specialId = null;
+        if (FloorSystem.is('FROZEN') && zone.type === 'FROZEN_VAULT') {
+            chestName = 'Cofre de escarcha';
+            specialId = 'FROZEN_VAULT_CHEST';
+        } else if (FloorSystem.is('MAGMA') && zone.type === 'MAGMA_FUMAROLE') {
+            chestName = 'Cofre de brasa';
+            specialId = 'MAGMA_FUMAROLE_CHEST';
+        } else {
+            return;
+        }
 
         const candidates = [];
         for (let y = zone.y1; y <= zone.y2; y++) {
@@ -717,8 +754,8 @@ const EntityFactory = {
         GameState.entities.chests.push({
             x: pos.x,
             y: pos.y,
-            name: 'Cofre de escarcha',
-            specialId: 'FROZEN_VAULT_CHEST',
+            name: chestName,
+            specialId,
             isOpen: MapSystem.isTaken(chestKey)
         });
     },
@@ -968,15 +1005,21 @@ const GameLogic = {
     },
     enterPlayerTile: (x, y) => {
         const wasFrozenVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+        const wasMagmaFumarole = FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y);
         GameState.player.x = x;
         GameState.player.y = y;
         GameState.player.combat.waitBonus = 0;
         GameState.player.combat.isDefending = false;
         GameLogic.collectItemsAt(x, y);
         const inFrozenVault = FloorSystem.isFrozenVaultTile(x, y);
+        const inMagmaFumarole = FloorSystem.isMagmaFumaroleTile(x, y);
         if (!wasFrozenVault && inFrozenVault) {
             Utils.log('Entras en una Cámara de Escarcha. El hielo aquí es mucho más traicionero.', '#8df3ff');
             VisualFX.floatText(x, y, '¡RIESGO!', '#8df3ff');
+        }
+        if (!wasMagmaFumarole && inMagmaFumarole) {
+            Utils.log('Entras en una Cámara de Fumarola. Cada turno quema parte de tu reserva de agua.', '#ff7a3d');
+            VisualFX.floatText(x, y, '¡SED!', '#ff7a3d');
         }
     },
     collectItemsAt: (x, y) => {
@@ -1303,6 +1346,11 @@ const GameLogic = {
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
         const thirstRate = FloorSystem.thirstRate();
         if (GameState.moves % thirstRate === 0) GameState.player.water--;
+        const magmaRiskCost = FloorSystem.magmaRiskWaterCost();
+        if (magmaRiskCost > 0) {
+            GameState.player.water -= magmaRiskCost;
+            VisualFX.floatText(GameState.player.x, GameState.player.y, `-${magmaRiskCost} AGUA`, '#57d7ff', 'incoming');
+        }
 
         if (GameState.player.food <= 0) {
             GameState.player.food = 0;
@@ -1367,6 +1415,20 @@ const GameLogic = {
             }
             const reward = GameState.entities.items.pop();
             Utils.log('El cofre de escarcha se abre sin trampa. Dentro hay equipo excepcional.', vault.chestColor);
+            InventorySystem.pickup(reward, -1, -1, -1, true);
+            return;
+        }
+
+        if (chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
+            const fumarole = CONFIG.FLOORS.MAGMA.fumarole;
+            const weaponReward = Utils.random() < 0.5;
+            if (weaponReward) {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + fumarole.rewardBonus, 'Arma de obsidiana', '!', fumarole.chestColor);
+            } else {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + fumarole.rewardBonus, 'Malla volcánica', ']', fumarole.chestColor);
+            }
+            const reward = GameState.entities.items.pop();
+            Utils.log('El cofre de brasa cede al calor. Dentro hay equipo excepcional.', fumarole.chestColor);
             InventorySystem.pickup(reward, -1, -1, -1, true);
             return;
         }
@@ -1889,8 +1951,12 @@ const Renderer = {
                             let chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
                             if (chest) {
                                 const frozenVaultChest = chest.specialId === 'FROZEN_VAULT_CHEST';
-                                char = chest.isOpen ? "_" : (frozenVaultChest ? "*" : "=");
-                                const closedColor = frozenVaultChest ? CONFIG.FLOORS.FROZEN.vault.chestColor : CONFIG.ENTITIES.chests.colors.closed;
+                                const magmaFumaroleChest = chest.specialId === 'MAGMA_FUMAROLE_CHEST';
+                                const specialRiskChest = frozenVaultChest || magmaFumaroleChest;
+                                char = chest.isOpen ? "_" : (specialRiskChest ? "*" : "=");
+                                const closedColor = frozenVaultChest
+                                    ? CONFIG.FLOORS.FROZEN.vault.chestColor
+                                    : (magmaFumaroleChest ? CONFIG.FLOORS.MAGMA.fumarole.chestColor : CONFIG.ENTITIES.chests.colors.closed);
                                 color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
                             }
                             else {
@@ -1910,6 +1976,11 @@ const Renderer = {
                         const vault = CONFIG.FLOORS.FROZEN.vault;
                         char = "·";
                         color = isVis ? `color:${vault.tileColor}; background:${vault.tileBackground}` : `color:${vault.fogColor}`;
+                    }
+                    else if (FloorSystem.isMagmaFumaroleTile(x, y)) {
+                        const fumarole = CONFIG.FLOORS.MAGMA.fumarole;
+                        char = "·";
+                        color = isVis ? `color:${fumarole.tileColor}; background:${fumarole.tileBackground}` : `color:${fumarole.fogColor}`;
                     }
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
@@ -1942,6 +2013,8 @@ const Renderer = {
             const chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
             if (chest && chest.specialId === 'FROZEN_VAULT_CHEST') {
                 id = 'FROZEN_VAULT_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.FROZEN.vault.chestColor, name:'Cofre de escarcha', stats:'Botín excepcional'};
+            } else if (chest && chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
+                id = 'MAGMA_FUMAROLE_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.MAGMA.fumarole.chestColor, name:'Cofre de brasa', stats:'Botín excepcional'};
             } else {
                 id = 'CHEST'; data = {symbol:'=', color:CONFIG.ENTITIES.chests.colors.closed, name:'Cofre', stats:'Botín'};
             }
@@ -1993,8 +2066,13 @@ const UISystem = {
             parts.push(`<span style="color:#8adfff">${inVault ? 'HIELO · CÁMARA DE ESCARCHA' : 'HIELO'}</span>`);
         }
         if (FloorSystem.is('MAGMA')) {
-            const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
-            parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+            const inFumarole = FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y);
+            if (inFumarole) {
+                parts.push(`<span style="color:#ff6b35">MAGMA · FUMAROLA · -${FloorSystem.magmaRiskWaterCost()} AGUA/T</span>`);
+            } else {
+                const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
+                parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+            }
         }
         if (FloorSystem.is('UNSTABLE')) parts.push('<span style="color:#d7a56d">INESTABLE · NO RETROCEDAS</span>');
         const primedTroll = GameState.entities.enemies.find(e =>
