@@ -293,3 +293,5 @@ test('el calor impide curarse al descansar salvo con malla térmica', () => {
 """ + marker
 tests = replace_once(tests, marker, insert, 'magma tests insertion')
 path.write_text(tests)
+
+# Trigger marker for the guarded workflow.
