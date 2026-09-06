@@ -57,6 +57,16 @@
     };
     window.saveScore = Network.saveScore;
 
+    // Repara acciones de botones del menú que habían quedado desconectadas del controlador de estado.
+    window.toggleMenu = () => StateController.change(STATE_ENUM.PLAYING);
+    window.showMenuScores = () => {
+        const container = document.getElementById('menu-scores-container');
+        if (!container) return;
+        const willShow = container.style.display !== 'block';
+        container.style.display = willShow ? 'block' : 'none';
+        if (willShow) Network.fetchScores('menu-leaderboard');
+    };
+
     // El ranking recibe datos de una API pública: escapamos todo lo que acaba en HTML/atributos.
     Network.renderLeaderboard = (data, targetId) => {
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -204,6 +214,15 @@
             e.preventDefault();
             e.stopImmediatePropagation();
             if (!e.repeat) CombatSystem.performAreaAttack();
+            return;
+        }
+
+        if ((GameState.current === STATE_ENUM.PLAYING || GameState.current === STATE_ENUM.CONTROLS) && ['i', 'h'].includes(key)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (!e.repeat) {
+                StateController.change(GameState.current === STATE_ENUM.CONTROLS ? STATE_ENUM.PLAYING : STATE_ENUM.CONTROLS);
+            }
             return;
         }
 
