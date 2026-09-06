@@ -24,6 +24,18 @@ jobs:
       - name: Apply Frozen risk-reward migration
         run: python3 .github/scripts/add_frozen_risk_zone.py
 
+      - name: Normalize generated chest block
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('game.js')
+          source = path.read_text(encoding='utf-8')
+          old = "                                color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;\n                            } \n"
+          new = "                                color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;\n                            }\n"
+          assert old in source, 'generated chest whitespace anchor missing'
+          path.write_text(source.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: JavaScript syntax
         run: |
           node --check game.js
