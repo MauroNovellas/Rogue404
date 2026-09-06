@@ -1,0 +1,45 @@
+name: Refactor persistence into core
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Integrate validated persistence fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/refactor_persistence.py
+          node --check game.js
+          git diff --check
+          ! grep -q 'InventorySystem.dropItem = ' game.js
+          ! grep -q 'EntityFactory.isOccupied = ' game.js
+          ! grep -q 'EntityFactory.getEmptyPos = ' game.js
+          ! grep -q 'EntityFactory.getRoomPos = ' game.js
+          ! grep -q 'EntityFactory.getChestPos = ' game.js
+          ! grep -q 'EntityFactory.spawnAll = ' game.js
+          ! grep -q 'GameLogic.openChest = ' game.js
+          ! grep -q 'const bootSeed = GameState.seed' game.js
+
+      - name: Commit persistence cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js
+          git commit -m "Integrate validated persistence fixes into core"
+          git push origin HEAD:dev
