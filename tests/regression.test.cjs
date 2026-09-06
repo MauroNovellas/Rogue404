@@ -91,7 +91,7 @@ context.window.confirm = () => confirmAnswer;
 
 vm.createContext(context);
 vm.runInContext(
-    `${source}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, UISystem, StateController };`,
+    `${source}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, UISystem, StateController };`,
     context,
     { filename: 'game.js' }
 );
@@ -102,6 +102,7 @@ const {
     GameState,
     DOM,
     Utils,
+    FloorSystem,
     Network,
     MapSystem,
     EntityFactory,
@@ -156,6 +157,89 @@ test('una partida nueva empieza en las escaleras de superficie', () => {
     assert.equal(GameState.player.x, GameState.stairs.up.x);
     assert.equal(GameState.player.y, GameState.stairs.up.y);
     assert.equal(GameState.current, STATE_ENUM.CONTROLS);
+});
+
+test('el nivel 3 activa Frozen Depths, el aviso y el equipo polar', () => {
+    freshGame(1304);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+
+    assert.equal(GameState.floor.type, 'FROZEN');
+    assert.equal(DOM.container.classList.contains('floor-frozen'), true);
+    assert.equal(GameState.ui.floorWarningOpen, true);
+    assert.equal(GameState.entities.items.some(item => item.specialId === 'FROZEN_CRAMPONS'), true);
+    FloorSystem.closeWarning();
+});
+
+test('el frío impide curarse al descansar salvo con equipo polar', () => {
+    freshGame(1305);
+    GameState.floor = { type: 'FROZEN' };
+    GameState.entities.chests = [];
+    GameState.stairs.up = { x: 60, y: 20 };
+    GameState.stairs.down = { x: 61, y: 20 };
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.food = 100;
+    GameState.player.water = 100;
+    GameState.player.hp = 50;
+
+    const originalEndTurn = GameLogic.endTurn;
+    GameLogic.endTurn = () => {};
+    try {
+        GameState.player.equipment.armor = null;
+        GameLogic.interactAction();
+        assert.equal(GameState.player.hp, 50);
+
+        GameState.player.equipment.armor = { value: 1, traits: { slipResist: 0.75, frozenRestHeal: 1 } };
+        GameLogic.interactAction();
+        assert.equal(GameState.player.hp, 51);
+    } finally {
+        GameLogic.endTurn = originalEndTurn;
+    }
+});
+
+test('un resbalón mueve varias casillas pero consume una sola acción', () => {
+    freshGame(1306);
+    GameState.floor = { type: 'FROZEN' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.stairs.up = { x: 60, y: 20 };
+    GameState.stairs.down = { x: 61, y: 20 };
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.equipment.armor = null;
+
+    const originalRandom = Utils.random;
+    const originalEndTurn = GameLogic.endTurn;
+    let turns = 0;
+    const rolls = [0, 0.5, 0];
+    Utils.random = () => rolls.length ? rolls.shift() : 0.5;
+    GameLogic.endTurn = () => { turns++; };
+    try {
+        GameLogic.movePlayer(1, 0);
+        assert.equal(GameState.player.x, 12);
+        assert.equal(GameState.player.y, 10);
+        assert.equal(turns, 1);
+    } finally {
+        Utils.random = originalRandom;
+        GameLogic.endTurn = originalEndTurn;
+    }
+});
+
+test('los crampones reducen un 75% la probabilidad de resbalón', () => {
+    freshGame(1307);
+    GameState.floor = { type: 'FROZEN' };
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.2;
+    try {
+        GameState.player.equipment.armor = null;
+        assert.equal(FloorSystem.shouldSlip(), true);
+        GameState.player.equipment.armor = { traits: { slipResist: 0.75 } };
+        assert.equal(FloorSystem.shouldSlip(), false);
+    } finally {
+        Utils.random = originalRandom;
+    }
 });
 
 test('I/H alternan la ayuda sin duplicar acciones', () => {
