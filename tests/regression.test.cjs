@@ -456,6 +456,59 @@ test('los enemigos tratan las grietas inestables como paredes', () => {
     assert.equal(GameLogic.isValidEnemyMove(x, y), false);
 });
 
+test('el Murciélago puede hacer un picado desde dos casillas en una sola acción', () => {
+    freshGame(2101);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    GameState.player.equipment.armor = null;
+
+    const bat = {
+        x: 12, y: 10, typeId: 'BAT', behavior: 'DIVER', diveChance: 1,
+        name: 'Murciélago', symbol: 'M', color: '#a64dff',
+        hp: 5, maxHp: 5, atk: 4, xp: 10, speed: 1, energy: 0,
+        isSleeping: false, tookDamage: false
+    };
+    GameState.entities.enemies = [bat];
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        assert.equal(GameLogic.performBatDive(bat), true);
+        assert.equal(Math.max(Math.abs(GameState.player.x - bat.x), Math.abs(GameState.player.y - bat.y)), 1);
+        assert.equal(GameState.player.hp, 96);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('Rápido corta el turno de picado del Murciélago', () => {
+    freshGame(2102);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    GameState.player.equipment.armor = null;
+
+    const bat = {
+        x: 12, y: 10, typeId: 'BAT', behavior: 'DIVER', diveChance: 1,
+        name: 'Murciélago', symbol: 'M', color: '#a64dff',
+        hp: 5, maxHp: 5, atk: 4, xp: 10, speed: 1, energy: 0,
+        isSleeping: false, tookDamage: false, _rogueQuickStaggerPending: true
+    };
+    GameState.entities.enemies = [bat];
+
+    GameLogic.updateEnemies();
+    assert.equal(GameState.player.hp, 100);
+    assert.equal(bat.x, 12);
+    assert.equal(bat.y, 10);
+});
+
 test('I/H alternan la ayuda sin duplicar acciones', () => {
     freshGame(101);
     keydown('i');

@@ -69,8 +69,8 @@ const CONFIG = {
     },
     ENTITIES: {
         enemies: [
-            // Behavior: 'ERRATIC' (Murciélago), 'COWARD' (Goblin), 'REGEN' (Trasgo/Troll)
-            { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'ERRATIC' },
+            // Cada criatura tendrá una regla reconocible y una pista táctica en la leyenda.
+            { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'DIVER', diveChance: 0.35, role: 'Acechador de grietas', lore: 'Caza por eco entre las fisuras y se deja caer cuando percibe una abertura.', tactic: 'PICADO: a 2 casillas puede acercarse y atacar en la misma acción. RÁPIDO rompe su ritmo.' },
             { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'COWARD' },
             { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'REGEN' }
         ],
@@ -704,6 +704,7 @@ const EntityFactory = {
             x: pos.x, y: pos.y,
             typeId: type.id,
             behavior: type.behavior,
+            diveChance: Number(type.diveChance) || 0,
             name: name, symbol: type.symbol,
             color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
             hp: hpVar.value, maxHp: hpVar.value,
@@ -934,13 +935,35 @@ const GameLogic = {
                 }
 
                 if (dist < 10) {
-                    if (e.behavior === 'ERRATIC' && Utils.random() < 0.5) { GameLogic.moveEnemyRandom(e); } 
-                    else if (e.behavior === 'COWARD' && e.hp < e.maxHp * 0.3) { GameLogic.moveEnemyAway(e); }
-                    else { GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y); }
+                    if (e.behavior === 'DIVER' && dist === 2 && Utils.random() < e.diveChance) {
+                        GameLogic.performBatDive(e);
+                    } else if (e.behavior === 'DIVER' && Utils.random() < 0.45) {
+                        GameLogic.moveEnemyRandom(e);
+                    } else if (e.behavior === 'COWARD' && e.hp < e.maxHp * 0.3) {
+                        GameLogic.moveEnemyAway(e);
+                    } else {
+                        GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y);
+                    }
                 }
             }
             if (e.behavior === 'REGEN' && !e.tookDamage && e.hp < e.maxHp) { e.hp += 1; }
         });
+    },
+    performBatDive: (e) => {
+        if (!e) return false;
+        const beforeX = e.x;
+        const beforeY = e.y;
+        GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y);
+        if (e.x === beforeX && e.y === beforeY) return false;
+
+        const dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+        if (dist <= 1) {
+            Utils.log(`${e.name} se descuelga en picado!`, e.color || '#a64dff');
+            VisualFX.floatText(e.x, e.y, '¡PICADO!', e.color || '#a64dff');
+            CombatSystem.enemyAttack(e);
+            return true;
+        }
+        return false;
     },
     moveEnemyTowards: (e, targetX, targetY) => {
         let bestMove = null; let minD = 999; 
@@ -1499,7 +1522,18 @@ const Renderer = {
         let e = GameState.entities.enemies.find(e => e.x === x && e.y === y);
         if (e) {
             let def = CONFIG.ENTITIES.enemies.find(def => def.id === e.typeId);
-            if(def) { id = def.id; data = {symbol:def.symbol, color:def.color, name:def.name, stats:`HP:${def.hp}`}; type = 'monster'; }
+            if(def) {
+                id = def.id;
+                data = {
+                    symbol: def.symbol,
+                    color: def.color,
+                    name: def.name,
+                    stats: def.role ? `HP:${def.hp} · ${def.role}` : `HP:${def.hp}`,
+                    lore: def.lore || '',
+                    tactic: def.tactic || ''
+                };
+                type = 'monster';
+            }
         }
         else if (GameState.entities.shops.some(s => s.x === x && s.y === y)) { 
             id = 'SHOP'; data = {symbol:'S', color:'#ffd700', name:'Tienda', stats:'Comercio'}; 
@@ -1531,7 +1565,7 @@ const Renderer = {
     addToLegend: (type, data) => {
         const panel = document.getElementById(type === 'monster' ? 'legend-monsters' : 'legend-items');
         const div = document.createElement('div'); div.className = 'legend-item';
-        div.innerHTML = `<div class="legend-symbol" style="color: ${data.color}">${data.symbol}</div><div class="legend-desc"><span class="legend-name">${data.name}</span><span class="legend-stats">${data.stats}</span></div>`;
+        div.innerHTML = `<div class="legend-symbol" style="color: ${data.color}">${data.symbol}</div><div class="legend-desc"><span class="legend-name">${data.name}</span><span class="legend-stats">${data.stats}</span>${data.lore ? `<span class="legend-lore">${data.lore}</span>` : ''}${data.tactic ? `<span class="legend-tactic">${data.tactic}</span>` : ''}</div>`;
         panel.appendChild(div);
     },
     resetLegend: () => { document.getElementById('legend-monsters').innerHTML = '<div class="legend-title">Amenazas</div>'; document.getElementById('legend-items').innerHTML = '<div class="legend-title">Entorno</div>'; }

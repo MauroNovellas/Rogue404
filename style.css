@@ -98,6 +98,20 @@ body {
     font-size: 0.9rem; 
     color: #aaa; 
 }
+.legend-lore {
+    margin-top: 3px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: #777;
+    white-space: normal;
+}
+.legend-tactic {
+    margin-top: 3px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: #c7a6e8;
+    white-space: normal;
+}
 
 /* --- ÁREA DE JUEGO --- */
 #game-wrapper {
