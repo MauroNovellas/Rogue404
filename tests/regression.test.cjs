@@ -91,7 +91,7 @@ context.window.confirm = () => confirmAnswer;
 
 vm.createContext(context);
 vm.runInContext(
-    `${source}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, UISystem, StateController };`,
+    `${source}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, ShopSystem, UISystem, StateController };`,
     context,
     { filename: 'game.js' }
 );
@@ -109,6 +109,7 @@ const {
     GameLogic,
     CombatSystem,
     InventorySystem,
+    ShopSystem,
     UISystem,
     StateController
 } = context.__ROGUE__;
@@ -953,6 +954,77 @@ test('salir por la superficie pide confirmación y cancelar mantiene la partida'
     confirmAnswer = true;
     GameLogic.win();
     assert.equal(GameState.current, STATE_ENUM.GAMEOVER);
+});
+
+
+test('el stock del mercader queda congelado tras la primera apertura', () => {
+    freshGame(2401);
+    GameState.level = 3;
+    GameState.shopStocks = {};
+    ShopSystem.open();
+    const first = JSON.stringify(GameState.ui.shopStock.map(item => ({ name: item.name, value: item.value, price: item.price })));
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.999;
+    try {
+        ShopSystem.open();
+        const second = JSON.stringify(GameState.ui.shopStock.map(item => ({ name: item.name, value: item.value, price: item.price })));
+        assert.equal(second, first);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('comprar elimina el objeto del stock persistente de esa planta', () => {
+    freshGame(2402);
+    GameState.level = 3;
+    GameState.shopStocks = {};
+    GameState.score = 99999;
+    GameState.player.inventory = [];
+    ShopSystem.open();
+
+    const stock = ShopSystem.getStock();
+    const before = stock.length;
+    const bought = { ...stock[0] };
+    ShopSystem.buy(0);
+
+    assert.equal(ShopSystem.getStock().length, before - 1);
+    assert.equal(GameState.player.inventory.length, 1);
+    assert.equal(GameState.player.inventory[0].buyPrice, bought.price);
+    ShopSystem.open();
+    assert.equal(GameState.ui.shopStock.some(item => item.name === bought.name && item.price === bought.price), false);
+});
+
+test('vender devuelve el 50% del precio pagado y retira el objeto de la mochila', () => {
+    freshGame(2403);
+    GameState.level = 3;
+    GameState.shopStocks = {};
+    GameState.score = 10;
+    GameState.player.inventory = [{
+        type: 'weapon', name: 'Espada comprada', value: 3, symbol: '!', color: '#ff00ff', buyPrice: 200
+    }];
+
+    assert.equal(ShopSystem.sellPrice(GameState.player.inventory[0]), 100);
+    ShopSystem.sell(0);
+    assert.equal(GameState.score, 110);
+    assert.equal(GameState.player.inventory.length, 0);
+});
+
+test('los objetos encontrados se valoran por tipo y potencia, no por profundidad actual', () => {
+    freshGame(2404);
+    GameState.level = 9;
+    const found = { type: 'weapon', name: 'Arma encontrada', value: 3, symbol: '!', color: '#ff00ff' };
+    assert.equal(ShopSystem.estimateValue(found), 200);
+    assert.equal(ShopSystem.sellPrice(found), 100);
+});
+
+test('una partida nueva limpia todos los stocks persistentes de mercader', () => {
+    freshGame(2405);
+    GameState.level = 3;
+    ShopSystem.open();
+    assert.ok(Object.keys(GameState.shopStocks).length > 0);
+    GameLogic.init(2406);
+    assert.equal(Object.keys(GameState.shopStocks).length, 0);
 });
 
 (async () => {
