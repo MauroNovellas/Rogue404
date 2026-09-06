@@ -30,5 +30,8 @@ jobs:
       - name: Score JSON validity
         run: python3 -m json.tool rogue_scores.json >/dev/null
 
+      - name: Structural regression guards
+        run: node tests/structure.test.cjs
+
       - name: Gameplay regression tests
         run: node tests/regression.test.cjs
