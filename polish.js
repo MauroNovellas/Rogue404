@@ -124,18 +124,44 @@
         combatStatus.innerHTML = parts.join('');
     };
 
-    // Un ataque Salvaje ya incluye un contraataque inmediato. Ese golpe consume la acción
-    // normal del enemigo para evitar que el mismo enemigo ataque dos veces en el mismo turno.
+    // Rápido sacrifica daño a cambio de tempo: si el objetivo sobrevive, pierde una acción.
+    // Para que no pueda bloquearse indefinidamente al mismo enemigo, no se puede descolocar
+    // en dos turnos consecutivos.
     const stabilizedApplyDamage = CombatSystem.applyDamage.bind(CombatSystem);
     CombatSystem.applyDamage = (enemyIdx, type, bonus) => {
         const enemy = GameState.entities.enemies[enemyIdx];
         const result = stabilizedApplyDamage(enemyIdx, type, bonus);
-        if (type === 'savage' && enemy && enemy.hp > 0 && GameState.entities.enemies.includes(enemy)) {
+        const enemySurvives = enemy && enemy.hp > 0 && GameState.entities.enemies.includes(enemy);
+
+        if (type === 'quick' && enemySurvives && !enemy._rogueQuickStaggerImmune) {
+            enemy._rogueQuickStaggerPending = true;
+            Utils.log(`${enemy.name} queda descolocado.`, '#00ffff');
+        }
+
+        if (type === 'savage' && enemySurvives) {
             enemy._rogueSavageCounterPending = true;
         }
         return result;
     };
 
+    // Aplicamos el descoloque justo antes de que se actualicen los enemigos. Restar una unidad
+    // de energía elimina una acción con la velocidad actual (1.0). La inmunidad dura un turno.
+    const stabilizedUpdateEnemies = GameLogic.updateEnemies.bind(GameLogic);
+    GameLogic.updateEnemies = () => {
+        GameState.entities.enemies.forEach(enemy => {
+            if (enemy._rogueQuickStaggerPending) {
+                enemy.energy = (enemy.energy || 0) - 1;
+                enemy._rogueQuickStaggerPending = false;
+                enemy._rogueQuickStaggerImmune = true;
+            } else if (enemy._rogueQuickStaggerImmune) {
+                enemy._rogueQuickStaggerImmune = false;
+            }
+        });
+        return stabilizedUpdateEnemies();
+    };
+
+    // Un ataque Salvaje ya incluye un contraataque inmediato. Ese golpe consume la acción
+    // normal del enemigo para evitar que el mismo enemigo ataque dos veces en el mismo turno.
     const stabilizedEnemyAttack = CombatSystem.enemyAttack.bind(CombatSystem);
     CombatSystem.enemyAttack = (enemy) => {
         const isSavageCounter = Boolean(enemy && enemy._rogueSavageCounterPending);
