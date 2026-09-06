@@ -19,7 +19,7 @@ const CONFIG = {
         // Configuración de Habilidades
         quick:  { dmgMult: 0.8,  var: 0.05, critBonus: 0,   label: "Rápido" },
         savage: { dmgMult: 1.4,  var: 0.40, critBonus: 0.2, label: "Salvaje" },
-        area:   { dmgMult: 0.5,  cooldown: 5, cost: 5,      label: "Barrido" },
+        area:   { dmgMult: 0.5,  cooldown: 5, label: "Barrido" },
         wait:   { atkBonus: 2 }, // Daño extra al siguiente turno tras esperar
         defend: { defMult: 1.5 } // Multiplicador defensa
     },
@@ -91,7 +91,6 @@ const GameState = {
         actionIndex: 0,
         currentActions: [],
         shopStock: [],
-        messageBuffer: []
     }
 };
 
@@ -338,7 +337,6 @@ const MapSystem = {
     isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#'; },
     isTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; return GameState.persistence[GameState.level].includes(key); },
     markTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; if (!GameState.persistence[GameState.level].includes(key)) GameState.persistence[GameState.level].push(key); },
-    freePosition: (x, y) => { let key = `${x},${y}`; const idx = GameState.persistence[GameState.level].indexOf(key); if (idx > -1) GameState.persistence[GameState.level].splice(idx, 1); }
 };
 
 // ============================================================================
@@ -746,15 +744,13 @@ const GameLogic = {
 
 const CombatSystem = {
     startTargeting: (attackType) => {
-        if (attackType === 'area' && GameState.player.combat.cooldowns.area > 0) {
-            Utils.log(`Habilidad en enfriamiento (${GameState.player.combat.cooldowns.area} turnos)`, "#f00");
-            return;
-        }
+        if (!['quick', 'savage'].includes(attackType)) return;
+
         GameState.player.combat.pendingAttack = attackType;
         StateController.change(STATE_ENUM.TARGETING);
-        let label = attackType === 'quick' ? "Rápido" : (attackType === 'savage' ? "Salvaje" : "Barrido");
-        Utils.log(`[${label}] Selecciona dirección...`, "#0ff");
-        UISystem.updateHUD(); 
+        const label = attackType === 'quick' ? 'Rápido' : 'Salvaje';
+        Utils.log(`[${label}] Selecciona dirección...`, '#0ff');
+        UISystem.updateHUD();
     },
 
     executeAttack: (dx, dy) => {
@@ -768,25 +764,6 @@ const CombatSystem = {
         let bonusDmg = GameState.player.combat.waitBonus;
         GameState.player.combat.waitBonus = 0; 
         GameState.player.combat.isDefending = false;
-
-        // BARRIDO (Area)
-        if (type === 'area') {
-            Utils.log("¡Ataque de barrido!", "#0ff");
-            GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
-            const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-            let hit = false;
-            dirs.forEach(d => {
-                let ex = GameState.player.x + d[0], ey = GameState.player.y + d[1];
-                let idx = GameState.entities.enemies.findIndex(e => e.x === ex && e.y === ey);
-                if (idx !== -1) {
-                    CombatSystem.applyDamage(idx, 'area', bonusDmg);
-                    hit = true;
-                }
-            });
-            if(!hit) Utils.log("El barrido no golpea nada.", "#777");
-            GameLogic.endTurn(true);
-            return;
-        }
 
         // ATAQUES DIRECCIONALES
         if (enemyIdx === -1) {
@@ -1201,7 +1178,7 @@ const UISystem = {
         if (!DOM.combatStatus) return;
         const parts = [];
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
-            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', area: 'BARRIDO' };
+            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
             parts.push(`<span style="color:#00ffff">OBJETIVO: ${label}</span>`);
         }
