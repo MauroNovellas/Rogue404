@@ -72,7 +72,7 @@ const CONFIG = {
             // Cada criatura tendrá una regla reconocible y una pista táctica en la leyenda.
             { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'DIVER', diveChance: 0.35, role: 'Acechador de grietas', lore: 'Caza por eco entre las fisuras y se deja caer cuando percibe una abertura.', tactic: 'PICADO: a 2 casillas puede acercarse y atacar en la misma acción. RÁPIDO rompe su ritmo.' },
             { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'THIEF', stealGold: 20, greedRange: 6, fleeHp: 0.30, role: 'Saqueador de las profundidades', lore: 'No busca una pelea justa: escucha monedas, calcula una ruta y solo entonces enseña los dientes.', tactic: 'CODICIA: persigue oro cercano. ROBO: si te hiere puede birlar 20 oro y huir hacia una escalera. Mátalo antes de que escape para recuperarlo.' },
-            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'REGEN' }
+            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
         ],
         items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
         chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, colors: { closed: '#DAA520', open: '#555' } },
@@ -709,6 +709,12 @@ const EntityFactory = {
             greedRange: Number(type.greedRange) || 0,
             fleeHp: Number(type.fleeHp) || 0.30,
             stolenGold: 0,
+            territoryRadius: Number(type.territoryRadius) || 0,
+            pressureRange: Number(type.pressureRange) || 0,
+            smashMult: Number(type.smashMult) || 1,
+            homeRegen: Number(type.homeRegen) || 0,
+            homeX: pos.x, homeY: pos.y,
+            _trollPressurePrimed: false,
             name: name, symbol: type.symbol,
             color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
             hp: hpVar.value, maxHp: hpVar.value,
@@ -938,7 +944,14 @@ const GameLogic = {
 
                 // Antes de buscar al jugador, el Goblin se desvía por oro cercano.
                 if (e.behavior === 'THIEF' && GameLogic.moveGoblinTowardGold(e)) continue;
-                
+
+                // El Trasgo no usa la persecución genérica: defiende su guarida,
+                // telegráfica APLASTAR y vuelve a casa si sales de su territorio.
+                if (e.behavior === 'WARDEN') {
+                    GameLogic.handleTrollAction(e);
+                    continue;
+                }
+
                 if (dist <= 1) { 
                     const fleeThreshold = Number(e.fleeHp) || 0.30;
                     if ((e.behavior === 'COWARD' || e.behavior === 'THIEF') && e.hp < e.maxHp * fleeThreshold) {
@@ -961,9 +974,92 @@ const GameLogic = {
                     }
                 }
             }
-            if (e.behavior === 'REGEN' && !e.tookDamage && e.hp < e.maxHp) { e.hp += 1; }
         });
         GameState.entities.enemies = GameState.entities.enemies.filter(enemy => !enemy._escaped);
+    },
+    trollDistanceFromHome: (e, x = e.x, y = e.y) => {
+        if (!e) return Infinity;
+        return Math.max(Math.abs((e.homeX ?? e.x) - x), Math.abs((e.homeY ?? e.y) - y));
+    },
+    playerInTrollTerritory: (e) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+        const radius = Math.max(1, Number(e.territoryRadius) || 5);
+        return GameLogic.trollDistanceFromHome(e, GameState.player.x, GameState.player.y) <= radius;
+    },
+    moveTrollWithinTerritory: (e, targetX, targetY) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+        let bestMove = null;
+        let minD = Infinity;
+        const radius = Math.max(1, Number(e.territoryRadius) || 5);
+        const moves = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+        moves.sort(() => Utils.random() - 0.5);
+        for (const [dx, dy] of moves) {
+            const tx = e.x + dx;
+            const ty = e.y + dy;
+            if (GameLogic.trollDistanceFromHome(e, tx, ty) > radius) continue;
+            if (!GameLogic.isValidEnemyMove(tx, ty)) continue;
+            const d = Math.max(Math.abs(targetX - tx), Math.abs(targetY - ty));
+            if (d < minD) { minD = d; bestMove = { x: tx, y: ty }; }
+        }
+        if (!bestMove) return false;
+        e.x = bestMove.x;
+        e.y = bestMove.y;
+        return true;
+    },
+    regenerateTrollAtHome: (e) => {
+        if (!e || e.behavior !== 'WARDEN' || e.x !== e.homeX || e.y !== e.homeY || e.hp >= e.maxHp) return 0;
+        const before = e.hp;
+        e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Number(e.homeRegen) || 2));
+        const healed = e.hp - before;
+        if (healed > 0) VisualFX.floatText(e.x, e.y, `+${healed}`, '#55bbff');
+        return healed;
+    },
+    performTrollSmash: (e) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+        const dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+        if (dist > 1) return false;
+
+        const originalAtk = e.atk;
+        const mult = Math.max(1, Number(e.smashMult) || 1.5);
+        e.atk = Math.max(1, Math.round(originalAtk * mult));
+        e._trollPressurePrimed = false;
+        Utils.log(`${e.name} descarga todo su peso: ¡APLASTAR!`, '#ff8c00');
+        VisualFX.floatText(e.x, e.y, '¡APLASTAR!', '#ff8c00');
+        try {
+            CombatSystem.enemyAttack(e);
+        } finally {
+            e.atk = originalAtk;
+        }
+        return true;
+    },
+    handleTrollAction: (e) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+
+        if (!GameLogic.playerInTrollTerritory(e)) {
+            e._trollPressurePrimed = false;
+            if (e.x !== e.homeX || e.y !== e.homeY) {
+                GameLogic.moveTrollWithinTerritory(e, e.homeX, e.homeY);
+            }
+            GameLogic.regenerateTrollAtHome(e);
+            return true;
+        }
+
+        const dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+        const pressureRange = Math.max(1, Number(e.pressureRange) || 2);
+
+        if (dist > pressureRange) {
+            e._trollPressurePrimed = false;
+        } else if (e._trollPressurePrimed && dist <= 1) {
+            return GameLogic.performTrollSmash(e);
+        } else if (!e._trollPressurePrimed) {
+            e._trollPressurePrimed = true;
+            Utils.log(`${e.name} golpea el suelo y RUGE. Si sigues cerca, va a aplastarte.`, '#ff8c00');
+            VisualFX.floatText(e.x, e.y, '¡RUGE!', '#ff8c00');
+        }
+
+        if (dist <= 1) CombatSystem.enemyAttack(e);
+        else GameLogic.moveTrollWithinTerritory(e, GameState.player.x, GameState.player.y);
+        return true;
     },
     findNearestGroundGold: (e, range = 6) => {
         if (!e) return null;
@@ -1602,7 +1698,11 @@ const Renderer = {
                 if (x === GameState.player.x && y === GameState.player.y) { char = "@"; color = "color:#ff0; font-weight:bold"; } 
                 else if (isVis) {
                     let enemy = GameState.entities.enemies.find(e => e.x === x && e.y === y);
-                    if (enemy) { char = enemy.isSleeping ? "z" : enemy.symbol; color = `color:${enemy.isSleeping ? '#888' : enemy.color}; font-weight:bold`; } 
+                    if (enemy) {
+                        char = enemy.isSleeping ? "z" : enemy.symbol;
+                        const enemyColor = enemy.isSleeping ? '#888' : (enemy._trollPressurePrimed ? '#ff8c00' : enemy.color);
+                        color = `color:${enemyColor}; font-weight:bold`;
+                    }
                     else {
                         let shop = GameState.entities.shops.find(s => s.x === x && s.y === y);
                         if (shop) { char = "S"; color = "color:#ffd700; font-weight:bold"; }
@@ -1700,6 +1800,12 @@ const UISystem = {
             parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
         }
         if (FloorSystem.is('UNSTABLE')) parts.push('<span style="color:#d7a56d">INESTABLE · NO RETROCEDAS</span>');
+        const primedTroll = GameState.entities.enemies.find(e =>
+            e.behavior === 'WARDEN' &&
+            e._trollPressurePrimed &&
+            GameState.visible[e.y] && GameState.visible[e.y][e.x]
+        );
+        if (primedTroll) parts.push('<span style="color:#ff8c00">RUGIDO · APLASTAR INMINENTE</span>');
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
             const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();

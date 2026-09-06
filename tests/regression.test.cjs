@@ -628,6 +628,114 @@ test('matar al Goblin hace caer exactamente el oro que llevaba', () => {
     }
 });
 
+test('el Trasgo es un guardián territorial con APLASTAR anunciado', () => {
+    const troll = CONFIG.ENTITIES.enemies.find(enemy => enemy.id === 'TROLL');
+    assert.ok(troll);
+    assert.equal(troll.behavior, 'WARDEN');
+    assert.equal(troll.territoryRadius, 5);
+    assert.equal(troll.pressureRange, 2);
+    assert.equal(troll.smashMult, 1.5);
+    assert.equal(troll.role, 'Guardián territorial');
+});
+
+test('el Trasgo ruge al entrar en presión y no aplasta sin aviso previo', () => {
+    freshGame(2301);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 12;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    const troll = {
+        x: 10, y: 10, homeX: 10, homeY: 10, behavior: 'WARDEN', territoryRadius: 5,
+        pressureRange: 2, smashMult: 1.5, homeRegen: 2, _trollPressurePrimed: false,
+        name: 'Trasgo', color: '#0088ff', atk: 10, hp: 40, maxHp: 40
+    };
+    GameState.entities.enemies = [troll];
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        GameLogic.handleTrollAction(troll);
+        assert.equal(troll._trollPressurePrimed, true);
+        assert.equal(GameState.player.hp, 100);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('el Trasgo APLASTA con +50% si sigues adyacente tras el rugido', () => {
+    freshGame(2302);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 11;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    GameState.player.equipment.armor = null;
+    const troll = {
+        x: 10, y: 10, homeX: 10, homeY: 10, behavior: 'WARDEN', territoryRadius: 5,
+        pressureRange: 2, smashMult: 1.5, homeRegen: 2, _trollPressurePrimed: true,
+        name: 'Trasgo', color: '#0088ff', atk: 10, hp: 40, maxHp: 40, energy: 0
+    };
+    GameState.entities.enemies = [troll];
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        assert.equal(GameLogic.handleTrollAction(troll), true);
+        assert.equal(GameState.player.hp, 85);
+        assert.equal(troll._trollPressurePrimed, false);
+        assert.equal(troll.atk, 10);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('salir del territorio rompe la presión y hace volver al Trasgo a casa', () => {
+    freshGame(2303);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 20;
+    GameState.player.y = 10;
+    const troll = {
+        x: 15, y: 10, homeX: 10, homeY: 10, behavior: 'WARDEN', territoryRadius: 5,
+        pressureRange: 2, smashMult: 1.5, homeRegen: 2, _trollPressurePrimed: true,
+        name: 'Trasgo', color: '#0088ff', atk: 10, hp: 30, maxHp: 40
+    };
+    GameState.entities.enemies = [troll];
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        GameLogic.handleTrollAction(troll);
+        assert.equal(troll._trollPressurePrimed, false);
+        assert.ok(troll.x < 15);
+        assert.equal(GameState.player.hp, 100);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('el Trasgo se regenera únicamente al recuperar su guarida', () => {
+    freshGame(2304);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 20;
+    GameState.player.y = 20;
+    const troll = {
+        x: 10, y: 10, homeX: 10, homeY: 10, behavior: 'WARDEN', territoryRadius: 5,
+        pressureRange: 2, smashMult: 1.5, homeRegen: 2, _trollPressurePrimed: false,
+        name: 'Trasgo', color: '#0088ff', atk: 10, hp: 30, maxHp: 40
+    };
+    GameState.entities.enemies = [troll];
+
+    GameLogic.handleTrollAction(troll);
+    assert.equal(troll.hp, 32);
+});
+
 test('I/H alternan la ayuda sin duplicar acciones', () => {
     freshGame(101);
     keydown('i');
