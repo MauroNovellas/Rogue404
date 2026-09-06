@@ -100,7 +100,7 @@ sub_once(
 
 sub_once(
     r"    die: \(cause\) => \{.*?    \},\n    win: \(\) => \{.*?    \}\n\};",
-    """    die: (cause) => {
+    r"""    die: (cause) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
         GameState.deathCause = cause;
         StateController.change(STATE_ENUM.GAMEOVER);
@@ -115,7 +115,7 @@ sub_once(
 
         if (atSurfaceExit) {
             const confirmed = window.confirm(
-                'SALIR A LA SUPERFICIE?\\n\\n' +
+                'SALIR A LA SUPERFICIE?\n\n' +
                 'Si abandonas la mazmorra, la partida termina y se calculará tu puntuación final.'
             );
             if (!confirmed) {
