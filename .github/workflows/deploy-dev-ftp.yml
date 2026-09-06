@@ -36,4 +36,5 @@ jobs:
             **/.git*
             **/.git*/**
             **/.github/**
+            tests/**
             rogue_scores.json
