@@ -7,7 +7,7 @@ text = path.read_text()
 
 def sub_once(pattern, replacement, label):
     global text
-    text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+    text, count = re.subn(pattern, lambda _match: replacement, text, count=1, flags=re.S)
     if count != 1:
         raise SystemExit(f'{label}: expected 1 replacement, got {count}')
 
