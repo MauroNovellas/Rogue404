@@ -1,0 +1,44 @@
+name: Add goblin thief behavior
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.event.head_commit.message == 'Trigger goblin thief migration'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Apply goblin thief migration
+        run: python3 .github/scripts/add_goblin_thief.py
+
+      - name: JavaScript syntax
+        run: |
+          node --check game.js
+          node --check dev-tools.js
+
+      - name: Structural guards
+        run: node tests/structure.test.cjs
+
+      - name: Gameplay regression suite
+        run: node tests/regression.test.cjs
+
+      - name: Diff sanity
+        run: git diff --check
+
+      - name: Commit goblin behavior
+        run: |
+          git config user.name "Mauro Novellas"
+          git config user.email "mauro@novellas.es"
+          git add game.js tests/regression.test.cjs
+          git commit -m "Turn goblins into loot thieves"
+          git push origin HEAD:dev
