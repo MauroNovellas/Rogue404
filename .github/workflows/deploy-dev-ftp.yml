@@ -22,46 +22,6 @@ jobs:
       - name: Checkout dev
         uses: actions/checkout@v4
 
-      - name: Inspect FTP paths
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          python - <<'PY'
-          from ftplib import FTP
-          import os
-
-          ftp = FTP()
-          ftp.connect(os.environ['FTP_SERVER'], 21, timeout=20)
-          ftp.login(os.environ['FTP_USERNAME'], os.environ['FTP_PASSWORD'])
-
-          start = ftp.pwd()
-          print(f"FTP initial directory: {start}")
-
-          for path in ['/', '/web', '/web/404', '/404']:
-              try:
-                  ftp.cwd(path)
-                  print(f"\n[{path}] resolves to: {ftp.pwd()}")
-                  names = ftp.nlst()
-                  if not names:
-                      print('(empty)')
-                  else:
-                      for name in names[:80]:
-                          print(name)
-                      if len(names) > 80:
-                          print(f"... and {len(names) - 80} more entries")
-              except Exception as exc:
-                  print(f"\n[{path}] unavailable: {exc}")
-              finally:
-                  try:
-                      ftp.cwd(start)
-                  except Exception:
-                      pass
-
-          ftp.quit()
-          PY
-
       - name: Upload Rogue404 to cdmon
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -71,7 +31,7 @@ jobs:
           protocol: ftp
           port: 21
           local-dir: ./
-          server-dir: /web/404/
+          server-dir: /404/
           exclude: |
             **/.git*
             **/.git*/**
