@@ -252,6 +252,71 @@ test('los crampones reducen un 75% la probabilidad de resbalón', () => {
     }
 });
 
+test('el nivel 6 activa Magma, su aviso y la malla térmica', () => {
+    freshGame(1604);
+    GameState.level = 6;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+
+    assert.equal(GameState.floor.type, 'MAGMA');
+    assert.equal(DOM.container.classList.contains('floor-magma'), true);
+    assert.equal(GameState.ui.floorWarningOpen, true);
+    assert.equal(DOM.floorWarning.classList.contains('floor-warning-magma'), true);
+    assert.equal(GameState.entities.items.some(item => item.specialId === 'MAGMA_THERMAL'), true);
+    FloorSystem.closeWarning();
+});
+
+test('el magma duplica la presión de sed y la malla térmica la reduce', () => {
+    freshGame(1605);
+    GameState.floor = { type: 'MAGMA' };
+
+    GameState.player.equipment.armor = null;
+    assert.equal(FloorSystem.thirstRate(), 3);
+
+    GameState.player.equipment.armor = { value: 1, traits: { thirstResist: 0.6, heatResist: 0.6, magmaRestHeal: 1 } };
+    assert.equal(FloorSystem.thirstRate(), 4);
+});
+
+test('la sed del magma se aplica durante la supervivencia', () => {
+    freshGame(1606);
+    GameState.floor = { type: 'MAGMA' };
+    GameState.player.equipment.armor = null;
+    GameState.player.food = 100;
+    GameState.player.water = 10;
+    GameState.moves = 2;
+
+    GameLogic.processSurvival();
+    assert.equal(GameState.moves, 3);
+    assert.equal(GameState.player.water, 9);
+});
+
+test('el calor impide curarse al descansar salvo con malla térmica', () => {
+    freshGame(1607);
+    GameState.floor = { type: 'MAGMA' };
+    GameState.entities.chests = [];
+    GameState.stairs.up = { x: 60, y: 20 };
+    GameState.stairs.down = { x: 61, y: 20 };
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.food = 100;
+    GameState.player.water = 100;
+    GameState.player.hp = 50;
+
+    const originalEndTurn = GameLogic.endTurn;
+    GameLogic.endTurn = () => {};
+    try {
+        GameState.player.equipment.armor = null;
+        GameLogic.interactAction();
+        assert.equal(GameState.player.hp, 50);
+
+        GameState.player.equipment.armor = { value: 1, traits: { thirstResist: 0.6, heatResist: 0.6, magmaRestHeal: 1 } };
+        GameLogic.interactAction();
+        assert.equal(GameState.player.hp, 51);
+    } finally {
+        GameLogic.endTurn = originalEndTurn;
+    }
+});
+
 test('I/H alternan la ayuda sin duplicar acciones', () => {
     freshGame(101);
     keydown('i');

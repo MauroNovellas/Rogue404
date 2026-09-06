@@ -23,7 +23,14 @@ const CONFIG = {
             warningTitle: '⚠ PROFUNDIDAD HELADA',
             warningText: 'EL FRÍO DOMINA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• El hielo puede hacerte resbalar y desviarte.<br>• El equipo polar con crampones reduce ambos peligros.'
         },
-        MAGMA: { enabled: false },
+        MAGMA: {
+            enabled: true,
+            label: 'MAGMA',
+            thirstMultiplier: 2,
+            colors: { wall: '#42130d', wallVisible: '#9c3520', floor: '#d56832', fog: '#210b08' },
+            warningTitle: '⚠ CÁMARA MAGMÁTICA',
+            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• La malla térmica reduce la presión del calor y permite descansar.'
+        },
         UNSTABLE: { enabled: false }
     },
     PLAYER: {
@@ -229,6 +236,8 @@ const FloorSystem = {
         GameState.floor = { type: FloorSystem.typeForLevel(GameState.level) };
         DOM.container.classList.remove('floor-frozen', 'floor-magma', 'floor-unstable');
         if (FloorSystem.is('FROZEN')) DOM.container.classList.add('floor-frozen');
+        else if (FloorSystem.is('MAGMA')) DOM.container.classList.add('floor-magma');
+        else if (FloorSystem.is('UNSTABLE')) DOM.container.classList.add('floor-unstable');
     },
     getPalette: () => {
         const config = FloorSystem.config();
@@ -272,15 +281,26 @@ const FloorSystem = {
         if (GameState.entities.chests.some(c => c.x === x && c.y === y)) return false;
         return true;
     },
+    thirstRate: () => {
+        const baseRate = CONFIG.PLAYER.survival.thirstRate;
+        if (!FloorSystem.is('MAGMA')) return baseRate;
+        const config = CONFIG.FLOORS.MAGMA;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().thirstResist) || 0));
+        const pressure = 1 + (config.thirstMultiplier - 1) * (1 - resist);
+        return Math.max(1, Math.round(baseRate / pressure));
+    },
     restHealing: () => {
-        if (!FloorSystem.is('FROZEN')) return 2;
-        return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
+        if (FloorSystem.is('FROZEN')) return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
+        if (FloorSystem.is('MAGMA')) return Math.max(0, Number(FloorSystem.armorTraits().magmaRestHeal) || 0);
+        return 2;
     },
     showWarning: () => {
         const config = FloorSystem.config();
         if (!config || !config.warningTitle || !DOM.floorWarning) return;
         DOM.floorWarningTitle.textContent = config.warningTitle;
         DOM.floorWarningText.innerHTML = config.warningText;
+        DOM.floorWarning.classList.remove('floor-warning-frozen', 'floor-warning-magma', 'floor-warning-unstable');
+        DOM.floorWarning.classList.add(`floor-warning-${GameState.floor.type.toLowerCase()}`);
         DOM.floorWarning.classList.remove('hidden');
         GameState.ui.floorWarningOpen = true;
     },
@@ -292,6 +312,9 @@ const FloorSystem = {
     onEnter: () => {
         if (FloorSystem.is('FROZEN')) {
             Utils.log('El aire corta como cristal. El suelo está helado.', '#8adfff');
+            FloorSystem.showWarning();
+        } else if (FloorSystem.is('MAGMA')) {
+            Utils.log('El aire quema los pulmones. La sed será tu mayor enemigo.', '#ff6b35');
             FloorSystem.showWarning();
         }
     }
@@ -505,21 +528,37 @@ const EntityFactory = {
         }
     },
     spawnFloorSpecial: () => {
-        if (!FloorSystem.is('FROZEN')) return;
+        if (!FloorSystem.is('FROZEN') && !FloorSystem.is('MAGMA')) return;
         const pos = EntityFactory.getEmptyPos();
         if (!pos || MapSystem.isTaken(pos.x, pos.y)) return;
-        GameState.entities.items.push({
-            x: pos.x,
-            y: pos.y,
-            type: 'armor',
-            specialId: 'FROZEN_CRAMPONS',
-            name: 'Arnés polar con crampones',
-            value: 1,
-            symbol: ']',
-            color: '#8adfff',
-            qualityColor: '#bdefff',
-            traits: { slipResist: 0.75, frozenRestHeal: 1 }
-        });
+
+        if (FloorSystem.is('FROZEN')) {
+            GameState.entities.items.push({
+                x: pos.x,
+                y: pos.y,
+                type: 'armor',
+                specialId: 'FROZEN_CRAMPONS',
+                name: 'Arnés polar con crampones',
+                value: 1,
+                symbol: ']',
+                color: '#8adfff',
+                qualityColor: '#bdefff',
+                traits: { slipResist: 0.75, frozenRestHeal: 1 }
+            });
+        } else {
+            GameState.entities.items.push({
+                x: pos.x,
+                y: pos.y,
+                type: 'armor',
+                specialId: 'MAGMA_THERMAL',
+                name: 'Malla térmica de salamandra',
+                value: 1,
+                symbol: ']',
+                color: '#ff6b35',
+                qualityColor: '#ffb347',
+                traits: { heatResist: 0.6, thirstResist: 0.6, magmaRestHeal: 1 }
+            });
+        }
     },
     spawnEnemy: () => {
         let pos = EntityFactory.getEmptyPos(); if (!pos) return;
@@ -804,7 +843,8 @@ const GameLogic = {
         const s = CONFIG.PLAYER.survival;
         GameState.moves++;
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
-        if (GameState.moves % s.thirstRate === 0) GameState.player.water--;
+        const thirstRate = FloorSystem.thirstRate();
+        if (GameState.moves % thirstRate === 0) GameState.player.water--;
 
         if (GameState.player.food <= 0) {
             GameState.player.food = 0;
@@ -838,9 +878,13 @@ const GameLogic = {
                 const healing = FloorSystem.restHealing();
                 if (healing > 0) {
                     GameState.player.hp = Math.min(GameState.player.hp + healing, GameState.player.maxHp);
-                    Utils.log(FloorSystem.is('FROZEN') ? `El equipo polar te permite recuperar ${healing} HP.` : 'Descansas...', FloorSystem.is('FROZEN') ? '#8adfff' : '#ccc');
-                } else {
+                    if (FloorSystem.is('FROZEN')) Utils.log(`El equipo polar te permite recuperar ${healing} HP.`, '#8adfff');
+                    else if (FloorSystem.is('MAGMA')) Utils.log(`La malla térmica te permite recuperar ${healing} HP.`, '#ff8a4c');
+                    else Utils.log('Descansas...', '#ccc');
+                } else if (FloorSystem.is('FROZEN')) {
                     Utils.log('El frío es demasiado intenso: descansar no recupera vida.', '#8adfff');
+                } else if (FloorSystem.is('MAGMA')) {
+                    Utils.log('El calor es insoportable: descansar no recupera vida.', '#ff6b35');
                 }
                 GameLogic.endTurn(true);
             } else {
@@ -1318,6 +1362,7 @@ const Renderer = {
                 else if (item.type === 'water') { id = 'WATER'; data = {symbol:'~', color:'#00ffff', name:'Agua', stats:'Bebida'}; } 
                 else if (item.type === 'weapon') { id = 'WEAPON_DROP'; data = {symbol:'!', color:'#ff00ff', name:'Arma', stats:'Ataque'}; } 
                 else if (item.specialId === 'FROZEN_CRAMPONS') { id = 'FROZEN_CRAMPONS'; data = {symbol:']', color:'#8adfff', name:'Arnés polar', stats:'DEF:1 · Hielo/agarre'}; }
+                else if (item.specialId === 'MAGMA_THERMAL') { id = 'MAGMA_THERMAL'; data = {symbol:']', color:'#ff6b35', name:'Malla térmica', stats:'DEF:1 · Calor/sed'}; }
                 else if (item.type === 'armor') { id = 'ARMOR_DROP'; data = {symbol:']', color:'#4682b4', name:'Malla', stats:'Defensa'}; }
             }
             else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { id = 'STAIRS_DOWN'; data = {symbol:'>', color:'#fff', name:'Bajada', stats:'Profundidad'}; }
@@ -1351,6 +1396,10 @@ const UISystem = {
         if (!DOM.combatStatus) return;
         const parts = [];
         if (FloorSystem.is('FROZEN')) parts.push('<span style="color:#8adfff">HIELO</span>');
+        if (FloorSystem.is('MAGMA')) {
+            const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
+            parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+        }
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
             const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();

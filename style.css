@@ -502,3 +502,35 @@ button:hover { background: #fff; color: #000; }
     color: #658491;
     font-size: 0.75rem;
 }
+
+
+/* --- MAGMA DEPTHS --- */
+#game-container.floor-magma {
+    border-color: #ff6b35;
+    box-shadow: 0 0 28px rgba(255, 72, 24, 0.38);
+}
+
+#floor-warning.floor-warning-magma {
+    background: #110603;
+    border-color: #ff6b35;
+    box-shadow: 0 0 65px rgba(255, 72, 24, 0.5);
+    color: #ffe2d5;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-title {
+    color: #ff7a3d;
+    border-bottom-color: #8a321c;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-text {
+    color: #ffd8c8;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-button {
+    border-color: #ff6b35;
+    color: #ff8a4c;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-hint {
+    color: #9a5a45;
+}
