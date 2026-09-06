@@ -1,0 +1,411 @@
+body {
+    background-color: #050505;
+    color: #33ff00;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* --- BARRA SUPERIOR (STATS) --- */
+#top-ui { 
+    width: 99%;
+    background-color: #111;
+    border-bottom: 2px solid #333;
+    padding: 12px 0;
+    margin-bottom: 5px;
+    display: flex; 
+    justify-content: space-around; 
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.3rem;
+    box-shadow: 0 2px 10px #000;
+    flex-shrink: 0;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+#main-layout {
+    display: flex;
+    flex-direction: row;
+    width: 99%;
+    /* CAMBIO 3: Usar calc para restar el espacio de la barra superior */
+    height: calc(100vh - 60px); 
+    gap: 10px;
+}
+
+/* --- PANELES LATERALES (LEYENDAS) --- */
+.legend-panel {
+    background: #000;
+    border: 1px solid #333;
+    padding: 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#legend-monsters {
+    width: 260px;
+    border-color: #500;
+}
+
+#legend-items {
+    width: 240px;
+    border-color: #055;
+}
+
+.legend-title {
+    color: #888;
+    border-bottom: 1px dashed #444;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    text-align: center;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeIn 0.5s;
+    background: #0a0a0a;
+    padding: 5px;
+    border-radius: 4px;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.legend-symbol {
+    font-weight: bold;
+    font-size: 1.6rem;
+    width: 30px;
+    text-align: center;
+}
+.legend-desc {
+    display: flex;
+    flex-direction: column;
+}
+.legend-name { 
+    font-weight: bold; 
+    font-size: 1.1rem; 
+    color: #eee;
+}
+.legend-stats { 
+    font-size: 0.9rem; 
+    color: #aaa; 
+}
+
+/* --- ÁREA DE JUEGO --- */
+#game-wrapper {
+    position: relative; /* Necesario para que el log y FX se posicionen dentro */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Capa de Efectos (Números de daño, etc) */
+#fx-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; /* Click traspasa */
+    z-index: 10;
+    overflow: hidden;
+}
+
+/* Animación de texto flotante */
+.float-msg {
+    position: absolute;
+    font-weight: bold;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.2rem;
+    text-shadow: 2px 2px 0px #000; /* Sombra dura para leer sobre el mapa */
+    animation: floatUp 1.0s ease-out forwards;
+    white-space: nowrap;
+    z-index: 11;
+}
+
+@keyframes floatUp {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    30% { transform: translateY(-15px) scale(1.3); opacity: 1; }
+    100% { transform: translateY(-40px) scale(1); opacity: 0; }
+}
+
+#game-container {
+    flex: 1;          /* Ocupa el espacio disponible dinámicamente */
+    min-height: 0;    /* TRUCO CLAVE: Permite que el contenedor se encoja si falta sitio */
+    overflow: auto;   /* Si el mapa es más grande que el hueco, sale scroll AQUÍ, no fuera */
+    
+    /* Estilos visuales */
+    line-height: 1.0;
+    white-space: pre;
+    font-size: 20px;  /* Mantenemos la fuente en 20px como hablamos */
+    font-weight: bold;
+    background-color: #000;
+    border: 2px solid #333;
+    padding: 15px;
+    box-shadow: 0 0 20px #111;
+    cursor: default;
+    user-select: none;
+    width: fit-content; /* Que se ajuste al ancho del texto */
+    margin-bottom: 5px; /* Un poco de aire antes del log */
+}
+
+/* Log Fantasma (Ghost Log) */
+#log {
+    position: absolute;
+    bottom: 20px;       /* Pegado abajo */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    height: auto;       /* Altura automática */
+    max-height: 150px;
+    display: flex;
+    flex-direction: column-reverse; /* Mensajes nuevos empujan hacia arriba */
+    align-items: center;
+    pointer-events: none; /* No bloquea el juego */
+    z-index: 20;
+    background: transparent;
+    border: none;
+    overflow: hidden;
+    /* Efecto desvanecimiento superior */
+    mask-image: linear-gradient(to top, black 60%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%);
+}
+
+#log div {
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo semitransparente para legibilidad */
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-top: 4px;
+    font-size: 1rem;
+    color: #ddd;
+    text-shadow: 0 1px 2px black;
+    animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- CLASES DE COLORES --- */
+.w { color: #444; }                
+.p { color: #ff0; font-weight: bold; } 
+.e { color: #f00; font-weight: bold; } 
+.g { color: #ffd700; }             
+.s { color: #fff; font-weight: bold; } 
+.f { color: #ffaa00; font-weight: bold; } 
+.d { color: #00ffff; font-weight: bold; } 
+.wp { color: #ff00ff; font-weight: bold; }
+.ar { color: #4682b4; font-weight: bold; }
+.fog { color: #222; }              
+
+/* --- MODALES --- */
+#game-over, #game-menu, #victory-screen {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #050505; 
+    border: 4px solid #33ff00;
+    padding: 40px; 
+    text-align: center; 
+    z-index: 50;
+    width: 600px;
+    display: flex; flex-direction: column; gap: 20px;
+    box-shadow: 0 0 80px #0f0;
+    font-size: 1.2rem;
+}
+#game-over.hidden, #game-menu.hidden, #victory-screen.hidden { display: none !important; }
+
+/* Tablas */
+table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+th { text-align: left; border-bottom: 1px dashed #444; padding: 8px; color: #33ff00; }
+td { padding: 6px; border-bottom: 1px solid #111; }
+#menu-scores-container { display: none; max-height: 250px; overflow-y: auto; }
+
+input, button {
+    background: #111; color: #fff; border: 2px solid #444; padding: 12px; font-family: inherit; cursor: pointer; font-size: 1rem;
+}
+button:hover { background: #fff; color: #000; }
+.btn-danger { border-color: #f00 !important; color: #f00 !important; }
+
+/* Color del Tendero */
+.shop-npc { color: #ffd700; font-weight: bold; text-shadow: 0 0 5px #ffaa00; }
+
+/* MENÚ DE TIENDA */
+#shop-menu {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #0f0f0f; 
+    border: 4px solid #ffd700;
+    padding: 20px; 
+    text-align: center; 
+    z-index: 60;
+    width: 400px;
+    display: flex; flex-direction: column; gap: 10px;
+    box-shadow: 0 0 80px #ffd700;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#shop-menu.hidden { display: none !important; }
+
+.shop-title {
+    font-size: 1.5rem;
+    color: #ffd700;
+    border-bottom: 2px dashed #555;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+}
+
+.shop-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a1a;
+    padding: 10px;
+    border: 1px solid #333;
+}
+
+.shop-item-info { text-align: left; color: #fff; }
+.shop-item-price { color: #ffd700; font-weight: bold; }
+
+.btn-buy {
+    background: #004400; border: 1px solid #00ff00; color: #fff; padding: 5px 10px; font-size: 0.9rem;
+}
+.btn-buy:hover { background: #006600; }
+.btn-buy:disabled {
+    background: #333; border-color: #555; color: #888; cursor: not-allowed;
+}
+.btn-close { background: #333; border: 1px solid #888; margin-top: 10px; }
+
+/* --- MENÚ INVENTARIO (GRID 3x2) --- */
+#inventory-menu {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #0f0f0f; 
+    border: 4px solid #fff;
+    padding: 20px; 
+    z-index: 70;
+    width: 400px;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex; flex-direction: column; gap: 15px;
+    box-shadow: 0 0 100px #333;
+}
+
+#inventory-menu.hidden { display: none !important; }
+
+.inv-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid #555; padding-bottom: 10px;
+    color: #fff; font-size: 1.2rem;
+}
+
+/* LA CUADRÍCULA 3x2 */
+.inv-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);   
+    gap: 15px;
+    justify-items: center;
+}
+
+/* EL CUADRADO DEL OBJETO */
+.inv-slot {
+    width: 80px; height: 80px;
+    background: #1a1a1a;
+    border: 2px solid #444;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.inv-slot.empty { opacity: 0.5; border-style: dashed; }
+
+/* Selección con teclado */
+.inv-slot.selected {
+    border-color: #33ff00;
+    box-shadow: 0 0 15px #33ff00 inset;
+    background: #222;
+}
+
+.inv-item-symbol {
+    font-size: 2.5rem; 
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.inv-item-name {
+    font-size: 0.7rem;
+    color: #fff;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: absolute;
+    bottom: 2px;
+}
+
+/* SECCIÓN EQUIPO */
+.equipment-section {
+    border-top: 1px dashed #555;
+    padding-top: 15px;
+    display: flex; flex-direction: column; gap: 5px;
+    color: #ccc; font-size: 0.9rem;
+}
+.equip-active { color: #33ff00; font-weight: bold; }
+
+.inv-help {
+    font-size: 0.75rem; color: #888; text-align: center; margin-top: 10px;
+}
+
+/* --- NUEVO: MENÚ DE ACCIONES (POP-UP) --- */
+#action-menu {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #000;
+    border: 2px solid #fff;
+    width: 200px;
+    z-index: 100; /* Encima del inventario */
+    box-shadow: 0 0 20px rgba(0,0,0,0.9);
+    display: flex; flex-direction: column;
+}
+#action-menu.hidden { display: none !important; }
+
+.action-title {
+    background: #111;
+    color: #ffd700;
+    padding: 8px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+}
+
+.action-option {
+    padding: 10px;
+    text-align: center;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 1px solid #111;
+}
+.action-option:last-child { border-bottom: none; }
+
+.action-option.selected {
+    background: #222;
+    color: #fff;
+    font-weight: bold;
+    border-left: 4px solid #33ff00;
+}
+
+/* Regla general para ocultar cualquier elemento con la clase hidden */
+.hidden {
+    display: none !important;
+}
