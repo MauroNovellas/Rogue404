@@ -376,6 +376,59 @@ test('el suelo se agrieta al abandonarlo y retroceder provoca caída con pérdid
     }
 });
 
+test('un pasillo de una casilla permite ida y vuelta y colapsa al intentar una tercera pasada', async () => {
+    freshGame(19051);
+    GameState.level = 9;
+    GameState.floor = { type: 'UNSTABLE' };
+    GameState.persistence[9] = [];
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('#'));
+    GameState.seen = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(true));
+    GameState.visible = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(true));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.stairs.up = { x: 60, y: 20 };
+    GameState.stairs.down = { x: 61, y: 20 };
+
+    for (let y = 9; y <= 11; y++) {
+        for (let x = 8; x <= 10; x++) GameState.map[y][x] = '.';
+        for (let x = 15; x <= 17; x++) GameState.map[y][x] = '.';
+    }
+    for (let x = 11; x <= 14; x++) GameState.map[10][x] = '.';
+
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    GameState.player.inventory = [];
+    GameState.player.equipment = { weapon: null, armor: null };
+
+    assert.equal(FloorSystem.isNarrowUnstableTile(10, 10), false);
+    assert.equal(FloorSystem.isNarrowUnstableTile(11, 10), true);
+
+    const originalEndTurn = GameLogic.endTurn;
+    const originalTimeout = context.setTimeout;
+    GameLogic.endTurn = () => {};
+    context.setTimeout = (fn) => { fn(); return 1; };
+    context.window.setTimeout = context.setTimeout;
+    try {
+        for (let i = 0; i < 5; i++) await GameLogic.movePlayer(1, 0);
+        for (let i = 0; i < 5; i++) await GameLogic.movePlayer(-1, 0);
+
+        assert.equal(GameState.level, 9);
+        assert.deepEqual([GameState.player.x, GameState.player.y], [10, 10]);
+        assert.equal(FloorSystem.hasNarrowGrace(10, 10), true);
+        assert.equal(FloorSystem.isCriticalCrack(11, 10), true);
+        assert.equal(FloorSystem.isHole(11, 10), false);
+
+        await GameLogic.movePlayer(1, 0);
+        assert.equal(GameState.level, 10);
+        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.persistence[9].includes('HOLE_11,10'), true);
+    } finally {
+        GameLogic.endTurn = originalEndTurn;
+        context.setTimeout = originalTimeout;
+        context.window.setTimeout = originalTimeout;
+    }
+});
+
 test('la resistencia a caída se calcula antes de soltar una armadura no retenida', () => {
     freshGame(19055);
     GameState.level = 9;
@@ -1234,7 +1287,7 @@ test('Inestable genera un Pasaje de Falla ciego con cofre especial y sin spawns 
     assert.equal(GameLogic.isValidEnemyMove(zone.tiles[0].x, zone.tiles[0].y), false);
 });
 
-test('retroceder por el Pasaje de Falla pisa tu propia grieta y provoca la caída', async () => {
+test('el Pasaje de Falla permite una retirada completa y cae al intentar entrar por tercera vez', async () => {
     freshGame(2602);
     GameState.level = 9;
     GameState.entryMethod = 'descending';
@@ -1250,12 +1303,14 @@ test('retroceder por el Pasaje de Falla pisa tu propia grieta y provoca la caíd
     GameState.player.x = zone.anchor.x;
     GameState.player.y = zone.anchor.y;
 
-    await GameLogic.movePlayer(zone.dx, zone.dy);
-    assert.deepEqual([GameState.player.x, GameState.player.y], [zone.tiles[0].x, zone.tiles[0].y]);
-    await GameLogic.movePlayer(zone.dx, zone.dy);
-    assert.equal(FloorSystem.isCracked(zone.tiles[0].x, zone.tiles[0].y), true);
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(zone.dx, zone.dy);
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(-zone.dx, -zone.dy);
 
-    await GameLogic.movePlayer(-zone.dx, -zone.dy);
+    assert.equal(GameState.level, 9);
+    assert.deepEqual([GameState.player.x, GameState.player.y], [zone.anchor.x, zone.anchor.y]);
+    assert.equal(FloorSystem.isCriticalCrack(zone.tiles[0].x, zone.tiles[0].y), true);
+
+    await GameLogic.movePlayer(zone.dx, zone.dy);
     assert.equal(GameState.level, 10);
     assert.equal(GameState.player.hp, 25);
 });
@@ -1295,7 +1350,7 @@ test('el Cofre de Falla evita trampas, entrega equipo superior y persiste abiert
     assert.equal(restored.isOpen, true);
 });
 
-test('el arnés convierte el retorno del Pasaje de Falla en una caída mucho menos destructiva', async () => {
+test('el arnés protege si fuerzas una tercera entrada al Pasaje de Falla', async () => {
     freshGame(2604);
     GameState.level = 9;
     GameState.entryMethod = 'descending';
@@ -1313,9 +1368,11 @@ test('el arnés convierte el retorno del Pasaje de Falla en una caída mucho men
     const zone = GameState.floor.riskZone;
     GameState.player.x = zone.anchor.x;
     GameState.player.y = zone.anchor.y;
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(zone.dx, zone.dy);
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(-zone.dx, -zone.dy);
+    assert.equal(GameState.level, 9);
+
     await GameLogic.movePlayer(zone.dx, zone.dy);
-    await GameLogic.movePlayer(zone.dx, zone.dy);
-    await GameLogic.movePlayer(-zone.dx, -zone.dy);
 
     assert.equal(GameState.level, 10);
     assert.equal(GameState.player.hp, 63);

@@ -68,7 +68,7 @@ const CONFIG = {
             },
             colors: { wall: '#302820', wallVisible: '#725d49', floor: '#b08b67', fog: '#241d17' },
             warningTitle: '⚠ ESTRATO INESTABLE',
-            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• Si vuelves a pisarla, el suelo cede y caes al siguiente nivel.<br>• Los Pasajes de Falla son caminos sin retorno: esconden botín superior, pero tus propias grietas cierran la salida.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
+            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• En zonas abiertas, volver a pisar una grieta provoca la caída.<br>• Los pasillos de una sola casilla permiten una segunda pasada: ╬ indica suelo crítico y una nueva entrada lo hará ceder.<br>• Los Pasajes de Falla usan esta misma regla y permiten una retirada antes de volverse letales.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
         }
     },
     PLAYER: {
@@ -482,14 +482,48 @@ const FloorSystem = {
     },
     unstableKey: (kind, x, y) => `${kind}_${x},${y}`,
     isCracked: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('CRACK', x, y)),
+    isCriticalCrack: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('CRITICAL', x, y)),
+    hasNarrowGrace: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('NARROW', x, y)),
     isHole: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('HOLE', x, y)),
     isStableUnstableTile: (x, y) => {
         return (x === GameState.stairs.up.x && y === GameState.stairs.up.y) ||
                (x === GameState.stairs.down.x && y === GameState.stairs.down.y);
     },
-    markCracked: (x, y) => {
+    // Una casilla es estrecha cuando no forma parte de ningún bloque transitable 2x2.
+    // Esto cubre corredores rectos, esquinas, puertas y pequeños cuellos de botella.
+    isNarrowUnstableTile: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE')) return false;
+        if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return false;
+        if (!GameState.map[y] || GameState.map[y][x] === '#') return false;
+        const open = (tx, ty) =>
+            tx >= 0 && tx < CONFIG.GRID.cols && ty >= 0 && ty < CONFIG.GRID.rows &&
+            GameState.map[ty] && GameState.map[ty][tx] !== '#';
+        const origins = [[-1,-1], [0,-1], [-1,0], [0,0]];
+        const belongsToOpen2x2 = origins.some(([ox, oy]) =>
+            open(x + ox, y + oy) &&
+            open(x + ox + 1, y + oy) &&
+            open(x + ox, y + oy + 1) &&
+            open(x + ox + 1, y + oy + 1)
+        );
+        return !belongsToOpen2x2;
+    },
+    usesNarrowDurability: (x, y) => FloorSystem.isNarrowUnstableTile(x, y) || FloorSystem.hasNarrowGrace(x, y),
+    markCracked: (x, y, nextX = null, nextY = null) => {
         if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y) || FloorSystem.isHole(x, y)) return;
+        const alreadyCracked = FloorSystem.isCracked(x, y);
+        const entersNarrow = nextX !== null && nextY !== null && FloorSystem.isNarrowUnstableTile(nextX, nextY);
+        const narrowDurability = FloorSystem.isNarrowUnstableTile(x, y) || entersNarrow || FloorSystem.hasNarrowGrace(x, y);
+
+        // El umbral de una sala también recibe la gracia del corredor. Sin esto,
+        // el jugador podría recorrer el túnel entero y caer justo al regresar a la sala.
+        if (narrowDurability) MapSystem.markTaken(FloorSystem.unstableKey('NARROW', x, y));
+        if (alreadyCracked && narrowDurability) MapSystem.markTaken(FloorSystem.unstableKey('CRITICAL', x, y));
         MapSystem.markTaken(FloorSystem.unstableKey('CRACK', x, y));
+    },
+    shouldCollapseOnEntry: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y) || !FloorSystem.isCracked(x, y)) return false;
+        if (!FloorSystem.usesNarrowDurability(x, y)) return true;
+        return FloorSystem.isCriticalCrack(x, y);
     },
     markHole: (x, y) => {
         if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y)) return;
@@ -1063,8 +1097,8 @@ const GameLogic = {
 
         const previousX = GameState.player.x;
         const previousY = GameState.player.y;
-        const willCollapse = FloorSystem.is('UNSTABLE') && FloorSystem.isCracked(nx, ny) && !FloorSystem.isStableUnstableTile(nx, ny);
-        if (FloorSystem.is('UNSTABLE')) FloorSystem.markCracked(previousX, previousY);
+        const willCollapse = FloorSystem.shouldCollapseOnEntry(nx, ny);
+        if (FloorSystem.is('UNSTABLE')) FloorSystem.markCracked(previousX, previousY, nx, ny);
         GameLogic.enterPlayerTile(nx, ny);
 
         if (willCollapse) {
@@ -1133,8 +1167,8 @@ const GameLogic = {
             VisualFX.floatText(x, y, '¡SED!', '#ff7a3d');
         }
         if (!wasUnstableRift && inUnstableRift) {
-            Utils.log('Entras en un Pasaje de Falla. El botín está al fondo; tus pasos cerrarán el camino de vuelta.', '#ffd27a');
-            VisualFX.floatText(x, y, '¡SIN RETORNO!', '#ffd27a');
+            Utils.log('Entras en un Pasaje de Falla. El corredor soporta una retirada; una tercera pasada será fatal.', '#ffd27a');
+            VisualFX.floatText(x, y, '¡2 PASADAS!', '#ffd27a');
         }
     },
     collectItemsAt: (x, y) => {
@@ -1558,7 +1592,7 @@ const GameLogic = {
                 EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + rift.rewardBonus, 'Malla tectónica', ']', rift.chestColor);
             }
             const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de falla se abre. El premio merece el riesgo; ahora queda decidir cómo salir.', rift.chestColor);
+            Utils.log('El cofre de falla se abre. El pasaje aguantará la retirada, pero quedará al límite.', rift.chestColor);
             InventorySystem.pickup(reward, -1, -1, -1, true);
             return;
         }
@@ -2104,6 +2138,7 @@ const Renderer = {
                 if (!color) {
                     if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
                     else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
+                    else if (FloorSystem.isCriticalCrack(x, y)) { char = "╬"; color = isVis ? 'color:#ff8a4c' : 'color:#70422d'; }
                     else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
                     else if (FloorSystem.isFrozenVaultTile(x, y)) {
                         const vault = CONFIG.FLOORS.FROZEN.vault;
@@ -2154,7 +2189,7 @@ const Renderer = {
             } else if (chest && chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
                 id = 'MAGMA_FUMAROLE_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.MAGMA.fumarole.chestColor, name:'Cofre de brasa', stats:'Botín excepcional'};
             } else if (chest && chest.specialId === 'UNSTABLE_RIFT_CHEST') {
-                id = 'UNSTABLE_RIFT_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.UNSTABLE.rift.chestColor, name:'Cofre de falla', stats:'Botín excepcional · sin retorno'};
+                id = 'UNSTABLE_RIFT_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.UNSTABLE.rift.chestColor, name:'Cofre de falla', stats:'Botín excepcional · ruta frágil'};
             } else {
                 id = 'CHEST'; data = {symbol:'=', color:CONFIG.ENTITIES.chests.colors.closed, name:'Cofre', stats:'Botín'};
             }
@@ -2216,7 +2251,7 @@ const UISystem = {
         }
         if (FloorSystem.is('UNSTABLE')) {
             const inRift = FloorSystem.isUnstableRiftTile(GameState.player.x, GameState.player.y);
-            parts.push(`<span style="color:#d7a56d">${inRift ? 'INESTABLE · PASAJE SIN RETORNO' : 'INESTABLE · NO RETROCEDAS'}</span>`);
+            parts.push(`<span style="color:#d7a56d">${inRift ? 'INESTABLE · PASAJE FRÁGIL · 2 PASADAS' : 'INESTABLE · NO RETROCEDAS'}</span>`);
         }
         const primedTroll = GameState.entities.enemies.find(e =>
             e.behavior === 'WARDEN' &&
