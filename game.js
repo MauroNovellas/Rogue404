@@ -71,7 +71,7 @@ const CONFIG = {
         enemies: [
             // Cada criatura tendrá una regla reconocible y una pista táctica en la leyenda.
             { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'DIVER', diveChance: 0.35, role: 'Acechador de grietas', lore: 'Caza por eco entre las fisuras y se deja caer cuando percibe una abertura.', tactic: 'PICADO: a 2 casillas puede acercarse y atacar en la misma acción. RÁPIDO rompe su ritmo.' },
-            { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'COWARD' },
+            { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'THIEF', stealGold: 20, greedRange: 6, fleeHp: 0.30, role: 'Saqueador de las profundidades', lore: 'No busca una pelea justa: escucha monedas, calcula una ruta y solo entonces enseña los dientes.', tactic: 'CODICIA: persigue oro cercano. ROBO: si te hiere puede birlar 20 oro y huir hacia una escalera. Mátalo antes de que escape para recuperarlo.' },
             { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'REGEN' }
         ],
         items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
@@ -705,6 +705,10 @@ const EntityFactory = {
             typeId: type.id,
             behavior: type.behavior,
             diveChance: Number(type.diveChance) || 0,
+            stealGold: Number(type.stealGold) || 0,
+            greedRange: Number(type.greedRange) || 0,
+            fleeHp: Number(type.fleeHp) || 0.30,
+            stolenGold: 0,
             name: name, symbol: type.symbol,
             color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
             hp: hpVar.value, maxHp: hpVar.value,
@@ -924,9 +928,20 @@ const GameLogic = {
             while(e.energy >= 1.0 && actions < 5) {
                 e.energy -= 1.0; actions++;
                 dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+
+                // Un Goblin que ya tiene botín deja de combatir: intenta alcanzar
+                // cualquiera de las dos escaleras y convertir el robo en pérdida real.
+                if (e.behavior === 'THIEF' && (e.stolenGold || 0) > 0) {
+                    if (GameLogic.moveGoblinToEscape(e)) break;
+                    continue;
+                }
+
+                // Antes de buscar al jugador, el Goblin se desvía por oro cercano.
+                if (e.behavior === 'THIEF' && GameLogic.moveGoblinTowardGold(e)) continue;
                 
                 if (dist <= 1) { 
-                    if (e.behavior === 'COWARD' && e.hp < e.maxHp * 0.3) {
+                    const fleeThreshold = Number(e.fleeHp) || 0.30;
+                    if ((e.behavior === 'COWARD' || e.behavior === 'THIEF') && e.hp < e.maxHp * fleeThreshold) {
                          if(!GameLogic.moveEnemyAway(e)) CombatSystem.enemyAttack(e); 
                     } else {
                         CombatSystem.enemyAttack(e); 
@@ -939,7 +954,7 @@ const GameLogic = {
                         GameLogic.performBatDive(e);
                     } else if (e.behavior === 'DIVER' && Utils.random() < 0.45) {
                         GameLogic.moveEnemyRandom(e);
-                    } else if (e.behavior === 'COWARD' && e.hp < e.maxHp * 0.3) {
+                    } else if ((e.behavior === 'COWARD' || e.behavior === 'THIEF') && e.hp < e.maxHp * (Number(e.fleeHp) || 0.30)) {
                         GameLogic.moveEnemyAway(e);
                     } else {
                         GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y);
@@ -948,6 +963,99 @@ const GameLogic = {
             }
             if (e.behavior === 'REGEN' && !e.tookDamage && e.hp < e.maxHp) { e.hp += 1; }
         });
+        GameState.entities.enemies = GameState.entities.enemies.filter(enemy => !enemy._escaped);
+    },
+    findNearestGroundGold: (e, range = 6) => {
+        if (!e) return null;
+        let best = null;
+        let bestDist = Infinity;
+        GameState.entities.items.forEach(item => {
+            if (!item || item.type !== 'GOLD') return;
+            const dist = Math.max(Math.abs(item.x - e.x), Math.abs(item.y - e.y));
+            if (dist <= range && dist < bestDist) {
+                best = item;
+                bestDist = dist;
+            }
+        });
+        return best;
+    },
+    collectGoblinGoldAt: (e) => {
+        if (!e || e.behavior !== 'THIEF') return false;
+        const idx = GameState.entities.items.findIndex(item => item.type === 'GOLD' && item.x === e.x && item.y === e.y);
+        if (idx === -1) return false;
+
+        const item = GameState.entities.items[idx];
+        const amount = Math.max(0, Number(item.value) || 0);
+        if (amount <= 0) return false;
+
+        e.stolenGold = (e.stolenGold || 0) + amount;
+        GameState.entities.items.splice(idx, 1);
+        MapSystem.markTaken(item.x, item.y);
+        Utils.log(`${e.name} recoge ${amount} oro y sale corriendo!`, e.color || '#00ff00');
+        VisualFX.floatText(e.x, e.y, `+$${amount}`, e.color || '#00ff00');
+        return true;
+    },
+    moveGoblinTowardGold: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) > 0) return false;
+        const target = GameLogic.findNearestGroundGold(e, Number(e.greedRange) || 6);
+        if (!target) return false;
+
+        if (e.x !== target.x || e.y !== target.y) {
+            GameLogic.moveEnemyTowards(e, target.x, target.y);
+        }
+        GameLogic.collectGoblinGoldAt(e);
+        return true;
+    },
+    goblinStealGold: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) > 0 || GameState.score <= 0) return 0;
+        const amount = Math.min(Number(e.stealGold) || 20, GameState.score);
+        if (amount <= 0) return 0;
+
+        GameState.score -= amount;
+        e.stolenGold = (e.stolenGold || 0) + amount;
+        Utils.log(`¡${e.name} te roba ${amount} oro! Va hacia una escalera.`, '#7fff00');
+        VisualFX.floatText(GameState.player.x, GameState.player.y, `-$${amount}`, '#7fff00', 'incoming');
+        UISystem.updateHUD();
+        return amount;
+    },
+    nearestEscapeStair: (e) => {
+        if (!e) return null;
+        const candidates = [GameState.stairs.up, GameState.stairs.down].filter(Boolean);
+        if (candidates.length === 0) return null;
+        candidates.sort((a, b) => {
+            const da = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
+            const db = Math.max(Math.abs(b.x - e.x), Math.abs(b.y - e.y));
+            return da - db;
+        });
+        return candidates.find(s => s.x !== GameState.player.x || s.y !== GameState.player.y) || candidates[0];
+    },
+    moveGoblinToEscape: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) <= 0) return false;
+        const isOnStairs = () => [GameState.stairs.up, GameState.stairs.down].some(s => s && s.x === e.x && s.y === e.y);
+
+        if (!isOnStairs()) {
+            const target = GameLogic.nearestEscapeStair(e);
+            if (target) GameLogic.moveEnemyTowards(e, target.x, target.y);
+        }
+
+        if (isOnStairs()) {
+            e._escaped = true;
+            Utils.log(`${e.name} escapa con ${e.stolenGold} oro.`, '#55aa22');
+            VisualFX.floatText(e.x, e.y, '¡ESCAPA!', '#55aa22');
+            return true;
+        }
+        return false;
+    },
+    dropGoblinLoot: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) <= 0) return 0;
+        const amount = e.stolenGold;
+        e.stolenGold = 0;
+        GameState.entities.items.push({
+            x: e.x, y: e.y, type: 'GOLD', value: amount,
+            name: 'Bolsa de oro robado', symbol: '$', color: '#ffd700', stolenFromGoblin: true
+        });
+        Utils.log(`El Goblin deja caer una bolsa con ${amount} oro.`, '#ffd700');
+        return amount;
     },
     performBatDive: (e) => {
         if (!e) return false;
@@ -1213,6 +1321,7 @@ const CombatSystem = {
             CombatSystem.gainXp(e.xp); GameState.score += 25;
             if (!GameState.player.stats.kills[e.name]) GameState.player.stats.kills[e.name] = 0; GameState.player.stats.kills[e.name]++;
 
+            GameLogic.dropGoblinLoot(e);
             let currentIdx = GameState.entities.enemies.indexOf(e);
             if(currentIdx !== -1) GameState.entities.enemies.splice(currentIdx, 1);
 
@@ -1308,6 +1417,7 @@ const CombatSystem = {
             if (!GameState.player.stats.kills[enemy.name]) GameState.player.stats.kills[enemy.name] = 0;
             GameState.player.stats.kills[enemy.name]++;
 
+            GameLogic.dropGoblinLoot(enemy);
             let idx = GameState.entities.enemies.indexOf(enemy);
             if (idx !== -1) GameState.entities.enemies.splice(idx, 1);
 
@@ -1344,6 +1454,7 @@ const CombatSystem = {
         }
 
         GameState.player.hp -= dmg;
+        if (dmg > 0 && GameState.player.hp > 0) GameLogic.goblinStealGold(e);
         if (GameState.player.hp <= 0) GameLogic.die(e.name);
 
         if (isSavageCounter && e) {

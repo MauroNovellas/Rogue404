@@ -509,6 +509,125 @@ test('Rápido corta el turno de picado del Murciélago', () => {
     assert.equal(bat.y, 10);
 });
 
+test('el Goblin es un saqueador con codicia y ruta de escape', () => {
+    const goblin = CONFIG.ENTITIES.enemies.find(enemy => enemy.id === 'GOBLIN');
+    assert.ok(goblin);
+    assert.equal(goblin.behavior, 'THIEF');
+    assert.equal(goblin.stealGold, 20);
+    assert.equal(goblin.greedRange, 6);
+    assert.equal(goblin.role, 'Saqueador de las profundidades');
+});
+
+test('el Goblin prioriza oro cercano y se lo guarda antes de huir', () => {
+    freshGame(2201);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.persistence[GameState.level] = [];
+    GameState.player.x = 20;
+    GameState.player.y = 20;
+    const goblin = {
+        x: 10, y: 10, typeId: 'GOBLIN', behavior: 'THIEF', greedRange: 6, stealGold: 20,
+        name: 'Goblin', symbol: 'G', color: '#00ff00', hp: 15, maxHp: 15, atk: 5,
+        xp: 25, speed: 1, energy: 0, isSleeping: false, tookDamage: false, stolenGold: 0
+    };
+    GameState.entities = {
+        enemies: [goblin],
+        items: [{ x: 11, y: 10, type: 'GOLD', value: 10, name: 'Oro', symbol: '$', color: '#ffd700' }],
+        chests: [], shops: []
+    };
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        assert.equal(GameLogic.moveGoblinTowardGold(goblin), true);
+        assert.equal(goblin.x, 11);
+        assert.equal(goblin.y, 10);
+        assert.equal(goblin.stolenGold, 10);
+        assert.equal(GameState.entities.items.length, 0);
+        assert.equal(MapSystem.isTaken(11, 10), true);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('un golpe del Goblin roba oro solo si consigue herir', () => {
+    freshGame(2202);
+    GameState.score = 50;
+    GameState.player.hp = 100;
+    GameState.player.equipment.armor = null;
+    const goblin = { behavior: 'THIEF', stealGold: 20, stolenGold: 0, name: 'Goblin', atk: 5, energy: 0 };
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        CombatSystem.enemyAttack(goblin);
+        assert.equal(GameState.player.hp, 95);
+        assert.equal(GameState.score, 30);
+        assert.equal(goblin.stolenGold, 20);
+
+        const blocked = { behavior: 'THIEF', stealGold: 20, stolenGold: 0, name: 'Goblin', atk: 5, energy: 0 };
+        GameState.score = 50;
+        GameState.player.hp = 100;
+        GameState.player.equipment.armor = { value: 99 };
+        CombatSystem.enemyAttack(blocked);
+        assert.equal(GameState.score, 50);
+        assert.equal(blocked.stolenGold, 0);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('el Goblin con botín desaparece al alcanzar una escalera', () => {
+    freshGame(2203);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.stairs.up = { x: 5, y: 5 };
+    GameState.stairs.down = { x: 30, y: 15 };
+    GameState.player.x = 20;
+    GameState.player.y = 20;
+    GameState.entities = {
+        enemies: [{
+            x: 5, y: 5, typeId: 'GOBLIN', behavior: 'THIEF', greedRange: 6, stealGold: 20,
+            name: 'Goblin', symbol: 'G', color: '#00ff00', hp: 15, maxHp: 15, atk: 5,
+            xp: 25, speed: 1, energy: 0, isSleeping: false, tookDamage: false, stolenGold: 20
+        }],
+        items: [], chests: [], shops: []
+    };
+
+    GameLogic.updateEnemies();
+    assert.equal(GameState.entities.enemies.length, 0);
+});
+
+test('matar al Goblin hace caer exactamente el oro que llevaba', () => {
+    freshGame(2204);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.baseAtk = 100;
+    const goblin = {
+        x: 11, y: 10, typeId: 'GOBLIN', behavior: 'THIEF', stolenGold: 20,
+        name: 'Goblin', symbol: 'G', color: '#00ff00', hp: 1, maxHp: 15, atk: 5,
+        xp: 25, speed: 1, energy: 0, isSleeping: false, tookDamage: false
+    };
+    GameState.entities = { enemies: [goblin], items: [], chests: [], shops: [] };
+
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        CombatSystem.bumpAttack(goblin);
+        assert.equal(GameState.entities.enemies.length, 0);
+        const bag = GameState.entities.items.find(item => item.stolenFromGoblin);
+        assert.ok(bag);
+        assert.equal(bag.type, 'GOLD');
+        assert.equal(bag.value, 20);
+        assert.equal(bag.x, 11);
+        assert.equal(bag.y, 10);
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
 test('I/H alternan la ayuda sin duplicar acciones', () => {
     freshGame(101);
     keydown('i');
