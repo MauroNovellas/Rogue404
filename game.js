@@ -373,6 +373,7 @@ const FloorSystem = {
     fallPlayer: () => {
         const traits = FloorSystem.armorTraits();
         const keepEquipped = Boolean(traits.retainEquippedOnFall);
+        const hpLoss = FloorSystem.fallHpLoss();
         const itemsToScatter = [...GameState.player.inventory];
         if (!keepEquipped) {
             if (GameState.player.equipment.weapon) itemsToScatter.push(GameState.player.equipment.weapon);
@@ -382,7 +383,6 @@ const FloorSystem = {
         }
         GameState.player.inventory = [];
 
-        const hpLoss = FloorSystem.fallHpLoss();
         GameState.player.hp = Math.max(1, Math.ceil(GameState.player.hp * (1 - hpLoss)));
 
         GameState.level++;

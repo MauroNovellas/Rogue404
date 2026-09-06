@@ -375,6 +375,27 @@ test('el suelo se agrieta al abandonarlo y retroceder provoca caída con pérdid
     }
 });
 
+test('la resistencia a caída se calcula antes de soltar una armadura no retenida', () => {
+    freshGame(19055);
+    GameState.level = 9;
+    GameState.floor = { type: 'UNSTABLE' };
+    GameState.persistence[9] = [];
+    GameState.player.hp = 100;
+    GameState.player.inventory = [];
+    GameState.player.equipment.weapon = null;
+    GameState.player.equipment.armor = {
+        type: 'armor', name: 'Protección de prueba', value: 1, symbol: ']', color: '#aaa',
+        traits: { fallDamageResist: 0.5, retainEquippedOnFall: false }
+    };
+
+    FloorSystem.fallPlayer();
+
+    assert.equal(GameState.level, 10);
+    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.equipment.armor, null);
+    assert.equal(GameState.recoveryDrops[10].length, 1);
+});
+
 test('el arnés ligero reduce la caída y conserva el equipo puesto', () => {
     freshGame(1906);
     GameState.level = 9;
