@@ -1,0 +1,44 @@
+name: Consolidate Rogue404 core
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Merge stability layer into game core
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f game.js
+          test -f stability.js
+
+          printf '\n\n// ============================================================================\n// VALIDATED RUNTIME STABILIZATION (consolidated from stability.js)\n// ============================================================================\n' >> game.js
+          cat stability.js >> game.js
+          sed -i '\|<script src="/404/stability.js"></script>|d' index.html
+          rm stability.js
+
+          node --check game.js
+          git diff --check
+
+      - name: Commit consolidated core
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js index.html stability.js
+          git commit -m "Consolidate validated runtime into game core"
+          git push origin HEAD:dev
