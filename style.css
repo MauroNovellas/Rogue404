@@ -534,3 +534,35 @@ button:hover { background: #fff; color: #000; }
 #floor-warning.floor-warning-magma .floor-warning-hint {
     color: #9a5a45;
 }
+
+
+/* --- UNSTABLE DEPTHS --- */
+#game-container.floor-unstable {
+    border-color: #b98a58;
+    box-shadow: 0 0 28px rgba(185, 138, 88, 0.36);
+}
+
+#floor-warning.floor-warning-unstable {
+    background: #0d0906;
+    border-color: #c69762;
+    box-shadow: 0 0 65px rgba(185, 138, 88, 0.46);
+    color: #f1dcc6;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-title {
+    color: #f0bd7a;
+    border-bottom-color: #755438;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-text {
+    color: #ead4bd;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-button {
+    border-color: #d7a56d;
+    color: #f0bd7a;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-hint {
+    color: #8b6b4e;
+}

@@ -31,7 +31,15 @@ const CONFIG = {
             warningTitle: '⚠ CÁMARA MAGMÁTICA',
             warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• La malla térmica reduce la presión del calor y permite descansar.'
         },
-        UNSTABLE: { enabled: false }
+        UNSTABLE: {
+            enabled: true,
+            label: 'INESTABLE',
+            fallHpLoss: 0.75,
+            collapseAnimationMs: 180,
+            colors: { wall: '#302820', wallVisible: '#725d49', floor: '#b08b67', fog: '#241d17' },
+            warningTitle: '⚠ ESTRATO INESTABLE',
+            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• Si vuelves a pisarla, el suelo cede y caes al siguiente nivel.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
+        }
     },
     PLAYER: {
         startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 6,
@@ -96,7 +104,7 @@ const GameState = {
     floor: { type: 'NORMAL' },
     map: [], seen: [], visible: [], rooms: [],
     stairs: { up: {x:0, y:0}, down: {x:0, y:0} },
-    persistence: {}, discoveredTypes: new Set(),
+    persistence: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
     entities: { enemies: [], items: [], chests: [], shops: [] },
     player: {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
@@ -294,6 +302,109 @@ const FloorSystem = {
         if (FloorSystem.is('MAGMA')) return Math.max(0, Number(FloorSystem.armorTraits().magmaRestHeal) || 0);
         return 2;
     },
+    unstableKey: (kind, x, y) => `${kind}_${x},${y}`,
+    isCracked: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('CRACK', x, y)),
+    isHole: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('HOLE', x, y)),
+    isStableUnstableTile: (x, y) => {
+        return (x === GameState.stairs.up.x && y === GameState.stairs.up.y) ||
+               (x === GameState.stairs.down.x && y === GameState.stairs.down.y);
+    },
+    markCracked: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y) || FloorSystem.isHole(x, y)) return;
+        MapSystem.markTaken(FloorSystem.unstableKey('CRACK', x, y));
+    },
+    markHole: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y)) return;
+        MapSystem.markTaken(FloorSystem.unstableKey('HOLE', x, y));
+    },
+    fallHpLoss: () => {
+        if (!FloorSystem.is('UNSTABLE')) return 0;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().fallDamageResist) || 0));
+        return CONFIG.FLOORS.UNSTABLE.fallHpLoss * (1 - resist);
+    },
+    recoveryPositions: (count) => {
+        const positions = [];
+        const px = GameState.player.x;
+        const py = GameState.player.y;
+        for (let radius = 1; radius <= 7 && positions.length < count; radius++) {
+            for (let dy = -radius; dy <= radius && positions.length < count; dy++) {
+                for (let dx = -radius; dx <= radius && positions.length < count; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+                    const x = px + dx;
+                    const y = py + dy;
+                    if (MapSystem.isBlocked(x, y)) continue;
+                    if (EntityFactory.isOccupied(x, y)) continue;
+                    if (x === GameState.stairs.up.x && y === GameState.stairs.up.y) continue;
+                    if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) continue;
+                    if (positions.some(p => p.x === x && p.y === y)) continue;
+                    positions.push({ x, y });
+                }
+            }
+        }
+        return positions;
+    },
+    scatterRecovery: (items) => {
+        if (!items.length) return;
+        if (!GameState.recoveryDrops[GameState.level]) GameState.recoveryDrops[GameState.level] = [];
+        const positions = FloorSystem.recoveryPositions(items.length);
+        items.forEach((item, index) => {
+            const pos = positions[index] || { x: GameState.player.x, y: GameState.player.y };
+            const recoveryDropId = `RECOVERY_${GameState.level}_${++GameState.recoveryDropSeq}`;
+            const dropped = { ...item, x: pos.x, y: pos.y, recoveryDropId };
+            GameState.recoveryDrops[GameState.level].push({ ...dropped });
+            GameState.entities.items.push(dropped);
+        });
+    },
+    restoreRecoveryDrops: () => {
+        const drops = GameState.recoveryDrops[GameState.level] || [];
+        drops.forEach(drop => {
+            if (!GameState.entities.items.some(item => item.recoveryDropId === drop.recoveryDropId)) {
+                GameState.entities.items.push({ ...drop });
+            }
+        });
+    },
+    removeRecoveryDrop: (id) => {
+        if (!id) return;
+        const drops = GameState.recoveryDrops[GameState.level];
+        if (!drops) return;
+        const index = drops.findIndex(drop => drop.recoveryDropId === id);
+        if (index !== -1) drops.splice(index, 1);
+    },
+    fallPlayer: () => {
+        const traits = FloorSystem.armorTraits();
+        const keepEquipped = Boolean(traits.retainEquippedOnFall);
+        const itemsToScatter = [...GameState.player.inventory];
+        if (!keepEquipped) {
+            if (GameState.player.equipment.weapon) itemsToScatter.push(GameState.player.equipment.weapon);
+            if (GameState.player.equipment.armor) itemsToScatter.push(GameState.player.equipment.armor);
+            GameState.player.equipment.weapon = null;
+            GameState.player.equipment.armor = null;
+        }
+        GameState.player.inventory = [];
+
+        const hpLoss = FloorSystem.fallHpLoss();
+        GameState.player.hp = Math.max(1, Math.ceil(GameState.player.hp * (1 - hpLoss)));
+
+        GameState.level++;
+        GameState.entryMethod = 'falling';
+        MapSystem.initLevel();
+        FloorSystem.scatterRecovery(itemsToScatter);
+        Renderer.draw();
+        UISystem.updateHUD();
+
+        Utils.log(keepEquipped ? '¡CAÍDA! El arnés salva tu equipo, pero la mochila sale despedida.' : '¡CAÍDA! Tu equipo y mochila quedan dispersos por el nivel.', '#d7a56d');
+        VisualFX.floatText(GameState.player.x, GameState.player.y, `-${Math.round(hpLoss * 100)}% HP`, '#ff6b35', 'incoming');
+    },
+    collapsePlayerTile: async (x, y) => {
+        FloorSystem.markHole(x, y);
+        Utils.log('¡CRAC! El suelo desaparece bajo tus pies.', '#d7a56d');
+        VisualFX.floatText(x, y, '¡CRAC!', '#f0bd7a');
+        MapSystem.updateFog();
+        Renderer.draw();
+        UISystem.updateHUD();
+        await new Promise(resolve => window.setTimeout(resolve, CONFIG.FLOORS.UNSTABLE.collapseAnimationMs));
+        FloorSystem.fallPlayer();
+    },
     showWarning: () => {
         const config = FloorSystem.config();
         if (!config || !config.warningTitle || !DOM.floorWarning) return;
@@ -315,6 +426,9 @@ const FloorSystem = {
             FloorSystem.showWarning();
         } else if (FloorSystem.is('MAGMA')) {
             Utils.log('El aire quema los pulmones. La sed será tu mayor enemigo.', '#ff6b35');
+            FloorSystem.showWarning();
+        } else if (FloorSystem.is('UNSTABLE')) {
+            Utils.log('La piedra cruje bajo tus botas. No confíes en el camino de vuelta.', '#d7a56d');
             FloorSystem.showWarning();
         }
     }
@@ -415,8 +529,14 @@ const MapSystem = {
             GameState.map.push(new Array(CONFIG.GRID.cols).fill('#'));
         }
         MapSystem.generateDungeon(); EntityFactory.spawnAll();
-        const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
-        GameState.player.x = stairs.x; GameState.player.y = stairs.y;
+        FloorSystem.restoreRecoveryDrops();
+        if (GameState.entryMethod === 'falling') {
+            const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
+            GameState.player.x = landing.x; GameState.player.y = landing.y;
+        } else {
+            const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
+            GameState.player.x = stairs.x; GameState.player.y = stairs.y;
+        }
         GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null };
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
@@ -465,7 +585,7 @@ const MapSystem = {
             }
         }
     },
-    isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#'; },
+    isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#' || FloorSystem.isHole(x, y); },
     isTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; return GameState.persistence[GameState.level].includes(key); },
     markTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; if (!GameState.persistence[GameState.level].includes(key)) GameState.persistence[GameState.level].push(key); },
 };
@@ -528,7 +648,7 @@ const EntityFactory = {
         }
     },
     spawnFloorSpecial: () => {
-        if (!FloorSystem.is('FROZEN') && !FloorSystem.is('MAGMA')) return;
+        if (!FloorSystem.is('FROZEN') && !FloorSystem.is('MAGMA') && !FloorSystem.is('UNSTABLE')) return;
         const pos = EntityFactory.getEmptyPos();
         if (!pos || MapSystem.isTaken(pos.x, pos.y)) return;
 
@@ -545,7 +665,7 @@ const EntityFactory = {
                 qualityColor: '#bdefff',
                 traits: { slipResist: 0.75, frozenRestHeal: 1 }
             });
-        } else {
+        } else if (FloorSystem.is('MAGMA')) {
             GameState.entities.items.push({
                 x: pos.x,
                 y: pos.y,
@@ -557,6 +677,19 @@ const EntityFactory = {
                 color: '#ff6b35',
                 qualityColor: '#ffb347',
                 traits: { heatResist: 0.6, thirstResist: 0.6, magmaRestHeal: 1 }
+            });
+        } else {
+            GameState.entities.items.push({
+                x: pos.x,
+                y: pos.y,
+                type: 'armor',
+                specialId: 'UNSTABLE_HARNESS',
+                name: 'Arnés ligero de espeleólogo',
+                value: 1,
+                symbol: ']',
+                color: '#d7a56d',
+                qualityColor: '#f0bd7a',
+                traits: { fallDamageResist: 0.5, retainEquippedOnFall: true }
             });
         }
     },
@@ -589,7 +722,7 @@ const EntityFactory = {
         while (limit-- > 0) {
             const x = Math.floor(Utils.random() * (CONFIG.GRID.cols - 2)) + 1;
             const y = Math.floor(Utils.random() * (CONFIG.GRID.rows - 2)) + 1;
-            if (GameState.map[y][x] === '.' && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (GameState.map[y][x] === '.' && !MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
         }
         return null;
     },
@@ -600,7 +733,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
         }
         return null;
     },
@@ -611,7 +744,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
         }
         return null;
     },
@@ -644,7 +777,7 @@ const GameLogic = {
             equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
             combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
         };
-        GameState.persistence = {}; GameState.discoveredTypes.clear(); Renderer.resetLegend();
+        GameState.persistence = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
 
         // Una partida nueva entra por las escaleras que comunican con la superficie.
@@ -696,7 +829,21 @@ const GameLogic = {
             return false;
         }
 
+        const previousX = GameState.player.x;
+        const previousY = GameState.player.y;
+        const willCollapse = FloorSystem.is('UNSTABLE') && FloorSystem.isCracked(nx, ny) && !FloorSystem.isStableUnstableTile(nx, ny);
+        if (FloorSystem.is('UNSTABLE')) FloorSystem.markCracked(previousX, previousY);
         GameLogic.enterPlayerTile(nx, ny);
+
+        if (willCollapse) {
+            GameState.ui.movementLocked = true;
+            try {
+                await FloorSystem.collapsePlayerTile(nx, ny);
+            } finally {
+                GameState.ui.movementLocked = false;
+            }
+            return true;
+        }
 
         if (FloorSystem.shouldSlip()) {
             GameState.ui.movementLocked = true;
@@ -1207,6 +1354,7 @@ const InventorySystem = {
         if (!forced && arrIndex >= 0) {
             GameState.entities.items.splice(arrIndex, 1);
             MapSystem.markTaken(x, y);
+            FloorSystem.removeRecoveryDrop(item.recoveryDropId);
         }
         UISystem.updateHUD();
 
@@ -1335,6 +1483,8 @@ const Renderer = {
                 }
                 if (!color) {
                     if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
+                    else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
+                    else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
                 html += `<span style="${color}">${char}</span>`;
@@ -1363,6 +1513,7 @@ const Renderer = {
                 else if (item.type === 'weapon') { id = 'WEAPON_DROP'; data = {symbol:'!', color:'#ff00ff', name:'Arma', stats:'Ataque'}; } 
                 else if (item.specialId === 'FROZEN_CRAMPONS') { id = 'FROZEN_CRAMPONS'; data = {symbol:']', color:'#8adfff', name:'Arnés polar', stats:'DEF:1 · Hielo/agarre'}; }
                 else if (item.specialId === 'MAGMA_THERMAL') { id = 'MAGMA_THERMAL'; data = {symbol:']', color:'#ff6b35', name:'Malla térmica', stats:'DEF:1 · Calor/sed'}; }
+                else if (item.specialId === 'UNSTABLE_HARNESS') { id = 'UNSTABLE_HARNESS'; data = {symbol:']', color:'#d7a56d', name:'Arnés ligero', stats:'DEF:1 · Caída/equipo'}; }
                 else if (item.type === 'armor') { id = 'ARMOR_DROP'; data = {symbol:']', color:'#4682b4', name:'Malla', stats:'Defensa'}; }
             }
             else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { id = 'STAIRS_DOWN'; data = {symbol:'>', color:'#fff', name:'Bajada', stats:'Profundidad'}; }
@@ -1400,6 +1551,7 @@ const UISystem = {
             const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
             parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
         }
+        if (FloorSystem.is('UNSTABLE')) parts.push('<span style="color:#d7a56d">INESTABLE · NO RETROCEDAS</span>');
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
             const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();

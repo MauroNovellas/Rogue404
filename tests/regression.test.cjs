@@ -317,6 +317,108 @@ test('el calor impide curarse al descansar salvo con malla térmica', () => {
     }
 });
 
+test('el nivel 9 activa suelo inestable, aviso y arnés ligero', () => {
+    freshGame(1904);
+    GameState.level = 9;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+
+    assert.equal(GameState.floor.type, 'UNSTABLE');
+    assert.equal(DOM.container.classList.contains('floor-unstable'), true);
+    assert.equal(GameState.ui.floorWarningOpen, true);
+    assert.equal(DOM.floorWarning.classList.contains('floor-warning-unstable'), true);
+    assert.equal(GameState.entities.items.some(item => item.specialId === 'UNSTABLE_HARNESS'), true);
+    FloorSystem.closeWarning();
+});
+
+test('el suelo se agrieta al abandonarlo y retroceder provoca caída con pérdida de equipo', async () => {
+    freshGame(1905);
+    GameState.level = 9;
+    GameState.floor = { type: 'UNSTABLE' };
+    GameState.persistence[9] = [];
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.seen = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(true));
+    GameState.visible = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(true));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.stairs.up = { x: 60, y: 20 };
+    GameState.stairs.down = { x: 61, y: 20 };
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    GameState.player.inventory = [{ type: 'food', name: 'Ración', value: 10, symbol: '%', color: '#ffaa00' }];
+    GameState.player.equipment.weapon = { type: 'weapon', name: 'Espada prueba', value: 2, symbol: '!', color: '#ff00ff' };
+    GameState.player.equipment.armor = { type: 'armor', name: 'Malla prueba', value: 2, symbol: ']', color: '#4682b4' };
+
+    const originalEndTurn = GameLogic.endTurn;
+    const originalTimeout = context.setTimeout;
+    GameLogic.endTurn = () => {};
+    context.setTimeout = (fn) => { fn(); return 1; };
+    context.window.setTimeout = context.setTimeout;
+    try {
+        await GameLogic.movePlayer(1, 0);
+        assert.equal(FloorSystem.isCracked(10, 10), true);
+        assert.equal(GameState.level, 9);
+
+        await GameLogic.movePlayer(-1, 0);
+        assert.equal(GameState.level, 10);
+        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.player.inventory.length, 0);
+        assert.equal(GameState.player.equipment.weapon, null);
+        assert.equal(GameState.player.equipment.armor, null);
+        assert.equal(GameState.recoveryDrops[10].length, 3);
+        assert.equal(GameState.entities.items.filter(item => item.recoveryDropId).length, 3);
+        assert.equal(GameState.persistence[9].includes('HOLE_10,10'), true);
+    } finally {
+        GameLogic.endTurn = originalEndTurn;
+        context.setTimeout = originalTimeout;
+        context.window.setTimeout = originalTimeout;
+    }
+});
+
+test('el arnés ligero reduce la caída y conserva el equipo puesto', () => {
+    freshGame(1906);
+    GameState.level = 9;
+    GameState.floor = { type: 'UNSTABLE' };
+    GameState.persistence[9] = [];
+    GameState.player.hp = 100;
+    const weapon = { type: 'weapon', name: 'Pico', value: 3, symbol: '!', color: '#ff00ff' };
+    const harness = { type: 'armor', specialId: 'UNSTABLE_HARNESS', name: 'Arnés ligero', value: 1, symbol: ']', color: '#d7a56d', traits: { fallDamageResist: 0.5, retainEquippedOnFall: true } };
+    GameState.player.equipment.weapon = weapon;
+    GameState.player.equipment.armor = harness;
+    GameState.player.inventory = [{ type: 'water', name: 'Agua', value: 20, symbol: '~', color: '#00ffff' }];
+
+    FloorSystem.fallPlayer();
+
+    assert.equal(GameState.level, 10);
+    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.equipment.weapon.name, 'Pico');
+    assert.equal(GameState.player.equipment.armor.specialId, 'UNSTABLE_HARNESS');
+    assert.equal(GameState.player.inventory.length, 0);
+    assert.equal(GameState.recoveryDrops[10].length, 1);
+});
+
+test('los objetos dispersados por una caída persisten hasta recuperarlos', () => {
+    freshGame(1907);
+    GameState.level = 9;
+    GameState.floor = { type: 'UNSTABLE' };
+    GameState.persistence[9] = [];
+    GameState.player.inventory = [{ type: 'food', name: 'Ración perdida', value: 20, symbol: '%', color: '#ffaa00' }];
+    GameState.player.equipment.weapon = null;
+    GameState.player.equipment.armor = null;
+    FloorSystem.fallPlayer();
+
+    const saved = GameState.recoveryDrops[10][0];
+    assert.ok(saved);
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    const restored = GameState.entities.items.find(item => item.recoveryDropId === saved.recoveryDropId);
+    assert.ok(restored);
+
+    const idx = GameState.entities.items.indexOf(restored);
+    InventorySystem.pickup(restored, idx, restored.x, restored.y);
+    assert.equal((GameState.recoveryDrops[10] || []).some(item => item.recoveryDropId === saved.recoveryDropId), false);
+});
+
 test('I/H alternan la ayuda sin duplicar acciones', () => {
     freshGame(101);
     keydown('i');
