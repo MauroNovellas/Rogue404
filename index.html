@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>404 - Dungeon Not Found</title>
+    <link rel="stylesheet" href="/404/style.css">
+    <style>
+        .stat-box {
+            background: #111;
+            border: 1px dashed #444;
+            padding: 10px;
+            margin: 5px 0;
+            text-align: left;
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+        .stat-box strong { color: #fff; }
+        
+        /* Estilos del Menú de Controles */
+        #controls-menu {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            border: 4px double #fff;
+            padding: 30px;
+            z-index: 80;
+            width: 500px;
+            box-shadow: 0 0 50px #000;
+            text-align: center;
+        }
+        .key-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 2px;}
+        .key-btn { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace;}
+    </style>
+</head>
+<body>
+
+    <div id="top-ui">
+        <div><span style="color:#fff">PJ</span> <span id="char-lvl" style="color:#33ff00">1</span></div>
+        <div><span style="color:#888">PISO</span> <span id="dungeon-lvl" style="color:#fff">-1</span></div>
+        
+        <div style="border-left: 1px solid #333; padding-left: 15px;">
+            <span style="color:#fff">MOCHILA (M):</span> 
+            <span id="bag-count" style="color:#ccc">0/6</span>
+        </div>
+
+        <div><span style="color:#f00">HP</span> <span id="hp-val">100/100</span></div>
+        <div><span style="color:#ffaa00">ATK</span> <span id="atk-val">3</span> <span id="weapon-bonus" style="font-size:0.8em; color:#ff00ff">(+0)</span></div>
+        <div><span style="color:#4682b4">DEF</span> <span id="armor-bonus" style="font-size:0.8em;">(+0)</span></div>
+        
+        <div style="border-left: 1px solid #333; padding-left: 15px;">
+            <span style="color:#ffaa00" title="Hambre">% <span id="food-val">100</span></span>
+            <span style="color:#00ffff; margin-left:10px;" title="Sed">~ <span id="water-val">100</span></span>
+        </div>
+        
+        <div style="border-left: 1px solid #333; padding-left: 15px;">
+            <span style="color:#ffd700">Oro: <span id="score">0</span></span>
+        </div>
+        
+        <div style="font-size: 0.8em; color: #888;">AYUDA: <span style="color:#fff">I</span> | PAUSA: <span style="color:#fff">P</span></div>
+        <div style="display:none">SEED: <span id="seed-val"></span></div>
+    </div>
+
+    <div id="main-layout">
+        <div id="legend-monsters" class="legend-panel">
+            <div class="legend-title">Amenazas</div>
+        </div>
+        <div id="legend-items" class="legend-panel">
+            <div class="legend-title">Entorno</div>
+        </div>
+        <div id="game-wrapper">
+            <div id="game-container"></div>
+            <div id="log">Explora lo desconocido...</div>
+        </div>
+    </div>
+
+    <div id="controls-menu" class="hidden">
+        <h2 style="color:#fff; border-bottom:2px solid #555; margin-top:0;">CONTROLES</h2>
+        
+        <div class="key-row" style="text-align:left;"><span>Movimiento</span> <span><span class="key-btn">WASD</span> o <span class="key-btn">FLECHAS</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Esperar / Escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
+        
+        <div style="margin-top:20px;">
+            <button onclick="setGameState('PLAYING')" style="background:#33ff00; color:#000; font-weight:bold; padding:10px 30px; border:none; cursor:pointer;">
+                ¡ENTENDIDO, A JUGAR!
+            </button>
+        </div>
+        
+        <div style="margin-top:10px; font-style:italic; color:#888; font-size: 0.8em;">
+            (Pulsa ESC, ENTER o el botón para cerrar)
+        </div>
+    </div>
+
+    <div id="inventory-menu" class="hidden">
+        <div class="inv-header">
+            <span>MOCHILA</span>
+            <span id="inv-capacity">0/6</span>
+        </div>
+        <div id="inv-grid" class="inv-grid"></div>
+        <div class="equipment-section">
+            <div id="equip-weapon">Arma: <span class="w">Puños</span></div>
+            <div id="equip-armor">Armadura: <span class="w">Ropa</span></div>
+        </div>
+        <div class="inv-help">
+            <span class="key-hint">FLECHAS</span> Navegar &nbsp; 
+            <span class="key-hint">ENTER</span> Acciones &nbsp; 
+            <span class="key-hint">M</span> Cerrar
+        </div>
+        <div id="action-menu" class="hidden">
+            <div id="action-title" class="action-title">Objeto</div>
+            <div id="action-list"></div>
+        </div>
+    </div>
+
+    <div id="shop-menu" class="hidden">
+        <div class="shop-title">MERCADER ERRANTE</div>
+        <div id="shop-items-container"></div>
+        <button onclick="closeShop()" class="btn-close">Salir de la Tienda</button>
+    </div>
+
+    <div id="game-menu" class="hidden">
+        <h2 style="color: #33ff00; margin: 0;">PAUSA</h2>
+        <p style="margin:5px 0; font-size:0.8em">Seed: <span id="menu-seed-display"></span></p>
+        <div style="display:flex; gap:5px; margin-bottom: 10px;">
+            <input type="number" id="seed-input" placeholder="Seed..." style="width: 60%; margin:0;">
+            <button onclick="restartWithSeed()" style="width: 40%; margin:0;">Cargar</button>
+        </div>
+        <button onclick="showMenuScores()">Ver Salón de la Fama</button>
+        <div id="menu-scores-container">
+            <div id="menu-leaderboard">Cargando...</div>
+        </div>
+        <button onclick="harakiri()" class="btn-danger" style="margin-top: 10px;">HARAKIRI</button>
+        <button onclick="toggleMenu()" style="margin-top: 10px;">VOLVER</button>
+    </div>
+
+    <div id="game-over" class="hidden">
+        <h2 style="color: #f00;">HAS MUERTO</h2>
+        <p>Nivel Alcanzado: <span id="final-level">1</span></p>
+        <p>Oro Final: <span id="final-score">0</span></p>
+        
+        <div class="stat-box">
+            <strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span><br>
+            <strong>Mejor Equipo:</strong> <span id="death-best-gear">Ninguno</span>
+        </div>
+
+        <input type="text" id="player-name" placeholder="Nombre (5 letras)" maxlength="5">
+        <button onclick="saveScore()">Grabar Legado</button>
+        
+        <div style="font-size: 0.8em; color: #666; margin-top: 10px;">
+            (Presiona <span style="color:#fff; border:1px solid #444; padding:0 4px;">I</span> para cerrar y reiniciar)
+        </div>
+
+        <div id="leaderboard" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="victory-screen" class="hidden" style="border-color: #ffd700; box-shadow: 0 0 50px #ffd700;">
+        <h2 style="color: #ffd700;">¡VICTORIA!</h2>
+        <p id="victory-message" style="color: #fff;">Has escapado...</p>
+        <p>Puntuación Total: <span id="victory-score" style="color:#ffd700; font-weight:bold;">0</span></p>
+        
+        <div class="stat-box">
+            <strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span><br>
+            <strong>Mejor Equipo:</strong> <span id="win-best-gear">Ninguno</span>
+        </div>
+
+        <input type="text" id="winner-name" placeholder="Nombre (5 letras)" maxlength="5">
+        <button onclick="saveScore()" style="border-color: #ffd700; color: #ffd700;">Inscribir Leyenda</button>
+        
+        <div style="font-size: 0.8em; color: #666; margin-top: 10px;">
+            (Presiona <span style="color:#fff; border:1px solid #444; padding:0 4px;">I</span> para cerrar y reiniciar)
+        </div>
+
+        <div id="victory-leaderboard" style="margin-top:15px; text-align: left; font-size: 0.8em;"></div>
+    </div>
+
+    <script src="/404/game.js"></script>
+</body>
+</html>
