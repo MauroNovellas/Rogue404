@@ -1,0 +1,46 @@
+name: Clean dead code
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Remove proven dead code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/cleanup_dead_code.py
+          node --check game.js
+          php -l rogue_api.php
+          python3 -m json.tool rogue_scores.json >/dev/null
+          node tests/regression.test.cjs
+          git diff --check
+          ! grep -q "startTargeting('area')" game.js
+          ! grep -q "type === 'area'" game.js
+          ! grep -q "cost: 5" game.js
+          ! grep -q "messageBuffer" game.js
+          ! grep -q "freePosition" game.js
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js
+          git commit -m "Remove obsolete combat and persistence code"
+          git push origin HEAD:dev
