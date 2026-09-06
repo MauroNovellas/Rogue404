@@ -24,38 +24,12 @@
             border: 4px double #fff;
             padding: 30px;
             z-index: 80;
-            width: 620px;
-            max-width: calc(100vw - 80px);
-            max-height: calc(100vh - 80px);
-            overflow-y: auto;
+            width: 500px;
             box-shadow: 0 0 50px #000;
             text-align: center;
         }
-        .key-row { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 4px; text-align:left; }
-        .key-row > span:last-child { text-align: right; }
-        .key-btn { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; white-space: nowrap; }
-        .controls-section-title {
-            margin: 18px 0 8px;
-            color: #33ff00;
-            text-align: left;
-            font-size: 0.85rem;
-            letter-spacing: 0.12em;
-            border-bottom: 1px dashed #444;
-            padding-bottom: 5px;
-        }
-        .combat-row {
-            display: grid;
-            grid-template-columns: 95px 1fr;
-            gap: 12px;
-            text-align: left;
-            padding: 7px 0;
-            border-bottom: 1px solid #191919;
-            font-size: 0.86rem;
-            line-height: 1.3;
-        }
-        .combat-row strong { color: #fff; }
-        .combat-row .combat-desc { color: #aaa; }
-        .combat-note { color:#777; font-size:0.76rem; text-align:left; margin-top:8px; line-height:1.35; }
+        .key-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 2px;}
+        .key-btn { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace;}
     </style>
 </head>
 <body>
@@ -101,42 +75,14 @@
     </div>
 
     <div id="controls-menu" class="hidden">
-        <h2 style="color:#fff; border-bottom:2px solid #555; margin-top:0;">INFORMACIÓN / CONTROLES</h2>
-
-        <div class="controls-section-title">EXPLORACIÓN</div>
-        <div class="key-row"><span>Movimiento</span> <span><span class="key-btn">WASD</span> o <span class="key-btn">FLECHAS</span></span></div>
-        <div class="key-row"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
-        <div class="key-row"><span>Interactuar / descansar / escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
-        <div class="key-row"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
-        <div class="key-row"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
-        <div class="key-row"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
-
-        <div class="controls-section-title">COMBATE</div>
-        <div class="combat-row">
-            <div><span class="key-btn">MOVER</span></div>
-            <div><strong>Golpe normal</strong><br><span class="combat-desc">Muévete contra un enemigo para atacarlo directamente. Es el ataque básico y no requiere seleccionar dirección.</span></div>
-        </div>
-        <div class="combat-row">
-            <div><span class="key-btn">R</span></div>
-            <div><strong>Rápido</strong><br><span class="combat-desc">Ataque dirigido de daño moderado y muy poca variación. Tras pulsarlo, elige una dirección.</span></div>
-        </div>
-        <div class="combat-row">
-            <div><span class="key-btn">F</span></div>
-            <div><strong>Salvaje</strong><br><span class="combat-desc">Mucho más daño y mayor probabilidad de crítico, pero también es impredecible. Si el enemigo sobrevive, contraataca inmediatamente.</span></div>
-        </div>
-        <div class="combat-row">
-            <div><span class="key-btn">T</span></div>
-            <div><strong>Barrido</strong><br><span class="combat-desc">Golpea a todos los enemigos de las 8 casillas que te rodean con daño reducido. Tiene enfriamiento.</span></div>
-        </div>
-        <div class="combat-row">
-            <div><span class="key-btn">C</span></div>
-            <div><strong>Esperar</strong><br><span class="combat-desc">Cedes el turno para preparar un golpe: tus ataques dirigidos R/F reciben +2 de daño. El bonus se pierde si te mueves.</span></div>
-        </div>
-        <div class="combat-row">
-            <div><span class="key-btn">V</span></div>
-            <div><strong>Defender</strong><br><span class="combat-desc">Adoptas una posición defensiva durante la respuesta enemiga de este turno: aumenta tu protección y evita críticos enemigos.</span></div>
-        </div>
-        <div class="combat-note">R y F entran en modo de selección de dirección. Puedes cancelar la selección con <span class="key-btn">ESC</span>. Todas las acciones de combate consumen turno cuando se ejecutan.</div>
+        <h2 style="color:#fff; border-bottom:2px solid #555; margin-top:0;">CONTROLES</h2>
+        
+        <div class="key-row" style="text-align:left;"><span>Movimiento</span> <span><span class="key-btn">WASD</span> o <span class="key-btn">FLECHAS</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Esperar / Escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
+        <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
         
         <div style="margin-top:20px;">
             <button onclick="setGameState('PLAYING')" style="background:#33ff00; color:#000; font-weight:bold; padding:10px 30px; border:none; cursor:pointer;">
