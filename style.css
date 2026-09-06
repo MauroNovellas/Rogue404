@@ -409,3 +409,41 @@ button:hover { background: #fff; color: #000; }
 .hidden {
     display: none !important;
 }
+
+/* --- FX TÁCTICOS Y ESTADO DE COMBATE --- */
+.float-msg.float-msg-incoming { animation: floatDown 1.0s ease-out forwards; }
+.float-msg.float-msg-pickup { font-size: 1rem; animation: floatPickup 1.0s ease-out forwards; }
+
+#combat-status {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 15;
+    pointer-events: none;
+    font-size: 0.78rem;
+    font-weight: bold;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: right;
+    text-shadow: 2px 2px 0 #000;
+    line-height: 1.35;
+}
+#combat-status:empty { display: none; }
+#combat-status span {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 5px;
+    background: rgba(0, 0, 0, 0.72);
+    border: 1px solid #333;
+}
+
+@keyframes floatDown {
+    0% { transform: translate(-18px, 0) scale(1); opacity: 1; }
+    30% { transform: translate(-24px, 12px) scale(1.3); opacity: 1; }
+    100% { transform: translate(-30px, 38px) scale(1); opacity: 0; }
+}
+
+@keyframes floatPickup {
+    0% { transform: translate(8px, 0) scale(1); opacity: 1; }
+    30% { transform: translate(12px, -12px) scale(1.15); opacity: 1; }
+    100% { transform: translate(16px, -34px) scale(1); opacity: 0; }
+}

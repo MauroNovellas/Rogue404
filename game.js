@@ -98,6 +98,7 @@ const GameState = {
 const DOM = {
     container: document.getElementById('game-container'),
     log: document.getElementById('log'),
+    combatStatus: document.getElementById('combat-status'),
     menus: {
         controls: document.getElementById('controls-menu'),
         inventory: document.getElementById('inventory-menu'),
@@ -155,24 +156,39 @@ const Utils = {
     }
 };
 
-const VisualFX = { // SISTEMA DE EFECTOS VISUALES (NUEVO)
-    floatText: (x, y, text, color) => {
+const VisualFX = {
+    floatText: (x, y, text, color, kind = 'auto') => {
+        const layer = document.getElementById('fx-layer');
+        if (!layer) return;
+
+        const textValue = String(text);
+        const isPlayerPosition = x === GameState.player.x && y === GameState.player.y;
+        const autoIncoming = isPlayerPosition && (textValue.startsWith('-') || textValue === 'BLOCK');
+        const resolvedKind = kind === 'auto' ? (autoIncoming ? 'incoming' : 'outgoing') : kind;
+
         const el = document.createElement('div');
         el.className = 'float-msg';
-        el.innerText = text;
+        if (resolvedKind === 'incoming') el.classList.add('float-msg-incoming');
+        if (resolvedKind === 'pickup') el.classList.add('float-msg-pickup');
+
+        el.innerText = textValue;
         el.style.color = color;
-        
-        // CALCULO MÁGICO DE POSICIÓN:
-        // Asumiendo font-size: 20px en game-container y padding: 15px
-        // 1ch es el ancho de un caracter (aprox 12px en courier 20px)
-        // Usamos unidades relativas para que cuadre perfecto
-        
-        // Ajuste manual: 15px de padding + x * 0.6em (aprox ancho char)
-        el.style.left = `calc(15px + ${x} * 0.6em)`; 
-        el.style.top = `calc(15px + ${y} * 1.0em)`; 
-        
-        document.getElementById('fx-layer').appendChild(el);
-        setTimeout(() => el.remove(), 1000); // Auto destruir
+        el.style.left = `calc(15px + ${x} * 0.6em)`;
+        el.style.top = `calc(15px + ${y} * 1.0em)`;
+
+        if (resolvedKind === 'incoming') {
+            el.style.marginLeft = '-18px';
+            el.style.marginTop = '8px';
+        } else if (resolvedKind === 'pickup') {
+            el.style.marginLeft = '10px';
+            el.style.marginTop = '-5px';
+        } else {
+            el.style.marginLeft = '6px';
+            el.style.marginTop = '-4px';
+        }
+
+        layer.appendChild(el);
+        setTimeout(() => el.remove(), 1100);
     }
 };
 
@@ -180,41 +196,77 @@ const VisualFX = { // SISTEMA DE EFECTOS VISUALES (NUEVO)
 // 4. NETWORK (API PHP)
 // ============================================================================
 const Network = {
+    isSaving: false,
     fetchScores: async (targetId) => {
         const target = document.getElementById(targetId);
-        if(!target) return;
-        target.innerHTML = "Cargando...";
+        if (!target) return;
+        target.innerHTML = 'Cargando...';
         try {
             const r = await fetch('/404/rogue_api.php?v=' + Date.now());
             const d = await r.json();
             Network.renderLeaderboard(d, targetId);
-        } catch (e) { console.error(e); target.innerHTML = "Offline o Error de Conexión"; }
+        } catch (e) {
+            console.error(e);
+            target.innerHTML = 'Offline o Error de Conexión';
+        }
     },
     saveScore: async () => {
-        const nameInput = document.getElementById('player-name').value || document.getElementById('winner-name').value || "UNK";
-        const name = nameInput.toUpperCase();
-        let killsStr = Object.entries(GameState.player.stats.kills).map(([k,v]) => `${v} ${k}`).join(", ") || "Ninguna";
-        let gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
+        if (GameState.current !== STATE_ENUM.GAMEOVER || Network.isSaving) return;
+
+        const isVictory = !DOM.menus.victory.classList.contains('hidden');
+        const input = document.getElementById(isVictory ? 'winner-name' : 'player-name');
+        const name = ((input && input.value.trim()) || 'UNK').toUpperCase();
+        const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
+        const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
+
+        Network.isSaving = true;
         try {
             const r = await fetch('/404/rogue_api.php', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score: GameState.score, level: GameState.maxLevel, seed: GameState.seed, cause: GameState.deathCause, kills: killsStr, equipment: gearStr })
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    score: GameState.score,
+                    level: GameState.maxLevel,
+                    seed: GameState.seed,
+                    cause: GameState.deathCause,
+                    kills: killsStr,
+                    equipment: gearStr
+                })
             });
-            if (!r.ok) throw new Error("Error en servidor");
+            if (!r.ok) throw new Error('Error en servidor');
+
             const d = await r.json();
-            Network.renderLeaderboard(d, 'leaderboard'); Network.renderLeaderboard(d, 'victory-leaderboard');
-            Utils.log("¡Legado guardado!", "#ffd700"); setTimeout(GameLogic.init, 2000);
-        } catch (e) { console.error(e); alert("Error guardando datos."); }
+            Network.renderLeaderboard(d, 'leaderboard');
+            Network.renderLeaderboard(d, 'victory-leaderboard');
+            Utils.log('¡Legado guardado!', '#ffd700');
+            setTimeout(() => GameLogic.init(), 2000);
+        } catch (e) {
+            Network.isSaving = false;
+            console.error(e);
+            alert('Error guardando datos.');
+        }
     },
     renderLeaderboard: (data, targetId) => {
-        let h = "<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>";
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[ch]);
+
+        let h = '<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>';
         if (Array.isArray(data)) {
             data.forEach((e) => {
-                let date = e.date || "--/--"; let lvl = e.level || 1; let cause = e.cause || "Desconocido";
-                const detalles = `Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`;
-                h += `<tr title="${detalles}"><td>${e.name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${e.score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
+                const name = escapeHtml(e.name || 'UNK');
+                const date = escapeHtml(e.date || '--/--');
+                const lvl = Number.isFinite(Number(e.level)) ? Number(e.level) : 1;
+                const score = Number.isFinite(Number(e.score)) ? Number(e.score) : 0;
+                const cause = escapeHtml(e.cause || 'Desconocido');
+                const details = escapeHtml(`Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`);
+                h += `<tr title="${details}"><td>${name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
             });
-        } h += "</table>"; const target = document.getElementById(targetId); if(target) target.innerHTML = h;
+        }
+        h += '</table>';
+        const target = document.getElementById(targetId);
+        if (target) target.innerHTML = h;
     }
 };
 
@@ -952,11 +1004,32 @@ const CombatSystem = {
 // ============================================================================
 const InventorySystem = {
     pickup: (item, arrIndex, x, y, forced = false) => {
-        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) { Utils.log("¡Mochila llena!", "#f00"); return; }
+        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) {
+            Utils.log('¡Mochila llena!', '#f00');
+            return;
+        }
+
+        const inventorySizeBefore = GameState.player.inventory.length;
         GameState.player.inventory.push(item);
         Utils.log(`Recogido: ${item.name}`, item.qualityColor || item.color);
-        if(!forced && arrIndex >= 0) { GameState.entities.items.splice(arrIndex, 1); MapSystem.markTaken(x, y); }
+        if (!forced && arrIndex >= 0) {
+            GameState.entities.items.splice(arrIndex, 1);
+            MapSystem.markTaken(x, y);
+        }
         UISystem.updateHUD();
+
+        if (item && GameState.player.inventory.length > inventorySizeBefore && (item.type === 'food' || item.type === 'water')) {
+            const fxX = forced ? GameState.player.x : x;
+            const fxY = forced ? GameState.player.y : y;
+            const isFood = item.type === 'food';
+            VisualFX.floatText(
+                fxX,
+                fxY,
+                isFood ? '+COMIDA' : '+AGUA',
+                isFood ? '#ffaa00' : '#00ffff',
+                'pickup'
+            );
+        }
     },
     executeAction: () => {
         const actions = GameState.ui.currentActions; const selectedAction = actions[GameState.ui.actionIndex]; const itemIdx = GameState.ui.inventoryIndex;
@@ -1123,13 +1196,19 @@ const UISystem = {
         document.getElementById('score').innerText = GameState.score; document.getElementById('bag-count').innerText = `${GameState.player.inventory.length}/${CONFIG.PLAYER.inventorySize}`;
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
-        if(document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
+        if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
 
-        let combatStatus = "";
-        if (GameState.current === STATE_ENUM.TARGETING) combatStatus += `<span style="color:#0ff">[OBJETIVO: ${GameState.player.combat.pendingAttack.toUpperCase()}]</span> `;
-        if (GameState.player.combat.isDefending) combatStatus += `<span style="color:#4682b4">[DEFENDIENDO]</span> `;
-        if (GameState.player.combat.waitBonus > 0) combatStatus += `<span style="color:#aaa">[CARGADO]</span> `;
-        if (GameState.player.combat.cooldowns.area > 0) combatStatus += `<span style="color:#555">[Barrido CD: ${GameState.player.combat.cooldowns.area}]</span>`;
+        if (!DOM.combatStatus) return;
+        const parts = [];
+        if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
+            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', area: 'BARRIDO' };
+            const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
+            parts.push(`<span style="color:#00ffff">OBJETIVO: ${label}</span>`);
+        }
+        if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
+        if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
+        if (GameState.player.combat.cooldowns.area > 0) parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
+        DOM.combatStatus.innerHTML = parts.join('');
     },
     renderInventory: () => {
         const grid = document.getElementById('inv-grid'); grid.innerHTML = "";
@@ -1197,71 +1276,71 @@ const StateController = {
 };
 
 document.addEventListener('keydown', (e) => {
-    // [FIX] Evitar spam si se mantiene la tecla pulsada
     if (e.repeat) return;
 
-    if (e.target.tagName === 'INPUT') { if (e.key === 'Enter') Network.saveScore(); return; }
-    
     const key = e.key.toLowerCase();
-    
-    // --- ESTADO JUGANDO ---
+
+    if (e.target && e.target.tagName === 'INPUT') {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.target.id === 'seed-input') window.restartWithSeed();
+            else if (e.target.id === 'player-name' || e.target.id === 'winner-name') Network.saveScore();
+        }
+        return;
+    }
+
+    if ((GameState.current === STATE_ENUM.PLAYING || GameState.current === STATE_ENUM.CONTROLS) && ['i', 'h'].includes(key)) {
+        e.preventDefault();
+        StateController.change(GameState.current === STATE_ENUM.CONTROLS ? STATE_ENUM.PLAYING : STATE_ENUM.CONTROLS);
+        return;
+    }
+
     if (GameState.current === STATE_ENUM.PLAYING) {
-        
-        // SISTEMA Y MENÚS
         if (key === 'm') StateController.change(STATE_ENUM.INVENTORY);
         else if (key === 'p' || key === 'escape') StateController.change(STATE_ENUM.MENU);
         else if (key === ' ') GameLogic.interactAction();
-        
-        // ACCIONES DE COMBATE
         else if (key === 'r') CombatSystem.startTargeting('quick');
         else if (key === 'f') CombatSystem.startTargeting('savage');
-        else if (key === 't') CombatSystem.performAreaAttack();   // Barrido instantáneo (sin targeting)
+        else if (key === 't') { e.preventDefault(); CombatSystem.performAreaAttack(); }
         else if (key === 'c') CombatSystem.performWait();
         else if (key === 'v') CombatSystem.performDefend();
-        
-        // MOVIMIENTO
         else {
-            let dx=0, dy=0;
-            if (['w','arrowup'].includes(key)) dy=-1; 
-            else if (['s','arrowdown'].includes(key)) dy=1;
-            else if (['a','arrowleft'].includes(key)) dx=-1; 
-            else if (['d','arrowright'].includes(key)) dx=1; 
-            
-            else if (key==='q') {dx=-1; dy=-1;} else if (key==='e') {dx=1; dy=-1;} 
-            else if (key==='z') {dx=-1; dy=1;} else if (key==='x') {dx=1; dy=1;}
-            
-            if(dx!==0 || dy!==0) GameLogic.movePlayer(dx, dy);
-        }
-    } 
-    
-    // --- ESTADO SELECCIÓN DE OBJETIVO ---
-    else if (GameState.current === STATE_ENUM.TARGETING) {
-        if (key === 'escape' || key === 'r' || key === 'f') { 
-            StateController.change(STATE_ENUM.PLAYING); 
-            Utils.log("Ataque cancelado.", "#aaa"); 
-            GameState.player.combat.pendingAttack = null;
-        }
-        else {
-            let dx=0, dy=0;
-            if (['w','arrowup', 'k'].includes(key)) dy=-1; 
-            else if (['s','arrowdown', 'j'].includes(key)) dy=1;
-            else if (['a','arrowleft', 'h'].includes(key)) dx=-1; 
-            else if (['d','arrowright', 'l'].includes(key)) dx=1;
-            
-            else if (['y','q'].includes(key)) {dx=-1; dy=-1;} else if (['u','e'].includes(key)) {dx=1; dy=-1;} 
-            else if (['b','z'].includes(key)) {dx=-1; dy=1;} else if (['n','x'].includes(key)) {dx=1; dy=1;}
-
-            if(dx!==0 || dy!==0) CombatSystem.executeAttack(dx, dy);
+            let dx = 0, dy = 0;
+            if (['w','arrowup'].includes(key)) dy = -1;
+            else if (['s','arrowdown'].includes(key)) dy = 1;
+            else if (['a','arrowleft'].includes(key)) dx = -1;
+            else if (['d','arrowright'].includes(key)) dx = 1;
+            else if (key === 'q') { dx = -1; dy = -1; }
+            else if (key === 'e') { dx = 1; dy = -1; }
+            else if (key === 'z') { dx = -1; dy = 1; }
+            else if (key === 'x') { dx = 1; dy = 1; }
+            if (dx !== 0 || dy !== 0) GameLogic.movePlayer(dx, dy);
         }
     }
-    
-    // --- MENÚ INVENTARIO ---
+    else if (GameState.current === STATE_ENUM.TARGETING) {
+        if (key === 'escape' || key === 'r' || key === 'f') {
+            StateController.change(STATE_ENUM.PLAYING);
+            Utils.log('Ataque cancelado.', '#aaa');
+            GameState.player.combat.pendingAttack = null;
+        } else {
+            let dx = 0, dy = 0;
+            if (['w','arrowup','k'].includes(key)) dy = -1;
+            else if (['s','arrowdown','j'].includes(key)) dy = 1;
+            else if (['a','arrowleft','h'].includes(key)) dx = -1;
+            else if (['d','arrowright','l'].includes(key)) dx = 1;
+            else if (['y','q'].includes(key)) { dx = -1; dy = -1; }
+            else if (['u','e'].includes(key)) { dx = 1; dy = -1; }
+            else if (['b','z'].includes(key)) { dx = -1; dy = 1; }
+            else if (['n','x'].includes(key)) { dx = 1; dy = 1; }
+            if (dx !== 0 || dy !== 0) CombatSystem.executeAttack(dx, dy);
+        }
+    }
     else if (GameState.current === STATE_ENUM.INVENTORY) {
         if (GameState.ui.actionMenuOpen) {
             if (key === 'escape') InventorySystem.closeActionMenu();
-            else if (['w', 'arrowup'].includes(key)) { GameState.ui.actionIndex = Math.max(0, GameState.ui.actionIndex - 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
-            else if (['s', 'arrowdown'].includes(key)) { GameState.ui.actionIndex = Math.min(GameState.ui.currentActions.length - 1, GameState.ui.actionIndex + 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
-            else if (key === 'enter' || key === ' ') { InventorySystem.executeAction(); }
+            else if (['w','arrowup'].includes(key)) { GameState.ui.actionIndex = Math.max(0, GameState.ui.actionIndex - 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
+            else if (['s','arrowdown'].includes(key)) { GameState.ui.actionIndex = Math.min(GameState.ui.currentActions.length - 1, GameState.ui.actionIndex + 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
+            else if (key === 'enter' || key === ' ') InventorySystem.executeAction();
         } else {
             if (key === 'm' || key === 'escape') StateController.change(STATE_ENUM.PLAYING);
             else if (key === 'enter' || key === ' ') InventorySystem.openActionMenu();
@@ -1269,290 +1348,31 @@ document.addEventListener('keydown', (e) => {
                 let idx = GameState.ui.inventoryIndex;
                 if (['d','arrowright'].includes(key) && idx % 3 < 2) idx++;
                 else if (['a','arrowleft'].includes(key) && idx % 3 > 0) idx--;
-                else if (['s','arrowdown'].includes(key) && idx + 3 < CONFIG.PLAYER.inventorySize) idx+=3;
-                else if (['w','arrowup'].includes(key) && idx - 3 >= 0) idx-=3;
-                GameState.ui.inventoryIndex = idx; UISystem.renderInventory();
+                else if (['s','arrowdown'].includes(key) && idx + 3 < CONFIG.PLAYER.inventorySize) idx += 3;
+                else if (['w','arrowup'].includes(key) && idx - 3 >= 0) idx -= 3;
+                GameState.ui.inventoryIndex = idx;
+                UISystem.renderInventory();
             }
         }
     }
-    // --- OTROS MENÚS ---
     else if (GameState.current === STATE_ENUM.CONTROLS && ['enter',' ','escape'].includes(key)) StateController.change(STATE_ENUM.PLAYING);
     else if (GameState.current === STATE_ENUM.SHOP && key === 'escape') StateController.change(STATE_ENUM.PLAYING);
     else if (GameState.current === STATE_ENUM.MENU && key === 'escape') StateController.change(STATE_ENUM.PLAYING);
     else if (GameState.current === STATE_ENUM.GAMEOVER && key === 'i') GameLogic.init();
 });
 
-// Corrección para tecla T (Barrido)
-// Si quieres que T inicie targeting de area:
-document.addEventListener('keydown', (e) => {
-    if(GameState.current === STATE_ENUM.PLAYING && e.key.toLowerCase() === 't') {
-        // Opción A: Targeting
-        CombatSystem.startTargeting('area');
-        // Opción B: Inmediato (descomentar si prefieres instantáneo)
-        // CombatSystem.startTargeting('area'); CombatSystem.executeAttack(0,0);
-    }
-});
-
 window.setGameState = (s) => StateController.change(s);
 window.restartWithSeed = () => { let v = parseInt(document.getElementById('seed-input').value); if(!isNaN(v)) { GameLogic.init(v); StateController.change(STATE_ENUM.PLAYING); } };
 window.saveScore = Network.saveScore;
-window.showMenuScores = () => Network.fetchScores('menu-leaderboard');
+window.toggleMenu = () => StateController.change(STATE_ENUM.PLAYING);
+window.showMenuScores = () => {
+    const container = document.getElementById('menu-scores-container');
+    if (!container) return;
+    const willShow = container.style.display !== 'block';
+    container.style.display = willShow ? 'block' : 'none';
+    if (willShow) Network.fetchScores('menu-leaderboard');
+};
 window.closeShop = () => StateController.change(STATE_ENUM.PLAYING);
 window.harakiri = () => { if(confirm("¿Rendirse?")) GameLogic.die("Harakiri"); };
 
 GameLogic.init();
-
-// ============================================================================
-// VALIDATED RUNTIME STABILIZATION (consolidated from stability.js)
-// ============================================================================
-// Rogue404 - capa de estabilización
-// Correcciones aisladas sobre el núcleo original para mantener main intacta y dev fácil de revisar.
-(() => {
-    // Los FX no deben romper la partida si la capa visual no está disponible.
-    VisualFX.floatText = (x, y, text, color) => {
-        const layer = document.getElementById('fx-layer');
-        if (!layer) return;
-
-        const el = document.createElement('div');
-        el.className = 'float-msg';
-        el.innerText = text;
-        el.style.color = color;
-        el.style.left = `calc(15px + ${x} * 0.6em)`;
-        el.style.top = `calc(15px + ${y} * 1.0em)`;
-        layer.appendChild(el);
-        setTimeout(() => el.remove(), 1000);
-    };
-
-    // Evita dobles envíos y usa el nombre de la pantalla final realmente visible.
-    Network.isSaving = false;
-    Network.saveScore = async () => {
-        if (GameState.current !== STATE_ENUM.GAMEOVER || Network.isSaving) return;
-
-        const isVictory = !DOM.menus.victory.classList.contains('hidden');
-        const input = document.getElementById(isVictory ? 'winner-name' : 'player-name');
-        const name = ((input && input.value.trim()) || 'UNK').toUpperCase();
-        const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
-        const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
-
-        Network.isSaving = true;
-        try {
-            const r = await fetch('/404/rogue_api.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name,
-                    score: GameState.score,
-                    level: GameState.maxLevel,
-                    seed: GameState.seed,
-                    cause: GameState.deathCause,
-                    kills: killsStr,
-                    equipment: gearStr
-                })
-            });
-            if (!r.ok) throw new Error('Error en servidor');
-
-            const d = await r.json();
-            Network.renderLeaderboard(d, 'leaderboard');
-            Network.renderLeaderboard(d, 'victory-leaderboard');
-            Utils.log('¡Legado guardado!', '#ffd700');
-            setTimeout(() => GameLogic.init(), 2000);
-        } catch (e) {
-            Network.isSaving = false;
-            console.error(e);
-            alert('Error guardando datos.');
-        }
-    };
-    window.saveScore = Network.saveScore;
-
-    // Repara acciones de botones del menú que habían quedado desconectadas del controlador de estado.
-    window.toggleMenu = () => StateController.change(STATE_ENUM.PLAYING);
-    window.showMenuScores = () => {
-        const container = document.getElementById('menu-scores-container');
-        if (!container) return;
-        const willShow = container.style.display !== 'block';
-        container.style.display = willShow ? 'block' : 'none';
-        if (willShow) Network.fetchScores('menu-leaderboard');
-    };
-
-    // El ranking recibe datos de una API pública: escapamos todo lo que acaba en HTML/atributos.
-    Network.renderLeaderboard = (data, targetId) => {
-        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        })[ch]);
-
-        let h = '<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>';
-        if (Array.isArray(data)) {
-            data.forEach((e) => {
-                const name = escapeHtml(e.name || 'UNK');
-                const date = escapeHtml(e.date || '--/--');
-                const lvl = Number.isFinite(Number(e.level)) ? Number(e.level) : 1;
-                const score = Number.isFinite(Number(e.score)) ? Number(e.score) : 0;
-                const cause = escapeHtml(e.cause || 'Desconocido');
-                const details = escapeHtml(`Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`);
-                h += `<tr title="${details}"><td>${name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
-            });
-        }
-        h += '</table>';
-        const target = document.getElementById(targetId);
-        if (target) target.innerHTML = h;
-    };
-
-    // Captura antes de los listeners antiguos: T queda como barrido instantáneo y Enter hace lo correcto según el input.
-    document.addEventListener('keydown', (e) => {
-        const key = e.key.toLowerCase();
-
-        if (GameState.current === STATE_ENUM.PLAYING && key === 't') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!e.repeat) CombatSystem.performAreaAttack();
-            return;
-        }
-
-        if ((GameState.current === STATE_ENUM.PLAYING || GameState.current === STATE_ENUM.CONTROLS) && ['i', 'h'].includes(key)) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!e.repeat) {
-                StateController.change(GameState.current === STATE_ENUM.CONTROLS ? STATE_ENUM.PLAYING : STATE_ENUM.CONTROLS);
-            }
-            return;
-        }
-
-        if (e.target && e.target.tagName === 'INPUT' && e.key === 'Enter') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (e.target.id === 'seed-input') window.restartWithSeed();
-            else if (e.target.id === 'player-name' || e.target.id === 'winner-name') Network.saveScore();
-        }
-    }, true);
-
-})();
-
-
-// Rogue404 - mejoras visuales y de experiencia de juego
-(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-        .float-msg.float-msg-incoming { animation: floatDown 1.0s ease-out forwards; }
-        .float-msg.float-msg-pickup { font-size: 1rem; animation: floatPickup 1.0s ease-out forwards; }
-
-        #combat-status {
-            position: absolute;
-            top: 8px;
-            right: 10px;
-            z-index: 15;
-            pointer-events: none;
-            font-size: 0.78rem;
-            font-weight: bold;
-            font-family: 'Courier New', Courier, monospace;
-            text-align: right;
-            text-shadow: 2px 2px 0 #000;
-            line-height: 1.35;
-        }
-        #combat-status:empty { display: none; }
-        #combat-status span {
-            display: inline-block;
-            margin-left: 6px;
-            padding: 2px 5px;
-            background: rgba(0, 0, 0, 0.72);
-            border: 1px solid #333;
-        }
-
-        @keyframes floatDown {
-            0% { transform: translate(-18px, 0) scale(1); opacity: 1; }
-            30% { transform: translate(-24px, 12px) scale(1.3); opacity: 1; }
-            100% { transform: translate(-30px, 38px) scale(1); opacity: 0; }
-        }
-        @keyframes floatPickup {
-            0% { transform: translate(8px, 0) scale(1); opacity: 1; }
-            30% { transform: translate(12px, -12px) scale(1.15); opacity: 1; }
-            100% { transform: translate(16px, -34px) scale(1); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
-
-    const gameWrapper = document.getElementById('game-wrapper');
-    const combatStatus = document.createElement('div');
-    combatStatus.id = 'combat-status';
-    if (gameWrapper) gameWrapper.appendChild(combatStatus);
-
-    VisualFX.floatText = (x, y, text, color, kind = 'auto') => {
-        const layer = document.getElementById('fx-layer');
-        if (!layer) return;
-
-        const textValue = String(text);
-        const isPlayerPosition = x === GameState.player.x && y === GameState.player.y;
-        const autoIncoming = isPlayerPosition && (textValue.startsWith('-') || textValue === 'BLOCK');
-        const resolvedKind = kind === 'auto' ? (autoIncoming ? 'incoming' : 'outgoing') : kind;
-
-        const el = document.createElement('div');
-        el.className = 'float-msg';
-        if (resolvedKind === 'incoming') el.classList.add('float-msg-incoming');
-        if (resolvedKind === 'pickup') el.classList.add('float-msg-pickup');
-
-        el.innerText = textValue;
-        el.style.color = color;
-        el.style.left = `calc(15px + ${x} * 0.6em)`;
-        el.style.top = `calc(15px + ${y} * 1.0em)`;
-
-        if (resolvedKind === 'incoming') {
-            el.style.marginLeft = '-18px';
-            el.style.marginTop = '8px';
-        } else if (resolvedKind === 'pickup') {
-            el.style.marginLeft = '10px';
-            el.style.marginTop = '-5px';
-        } else {
-            el.style.marginLeft = '6px';
-            el.style.marginTop = '-4px';
-        }
-
-        layer.appendChild(el);
-        setTimeout(() => el.remove(), 1100);
-    };
-
-    const originalPickup = InventorySystem.pickup.bind(InventorySystem);
-    InventorySystem.pickup = (item, arrIndex, x, y, forced = false) => {
-        const inventorySizeBefore = GameState.player.inventory.length;
-        originalPickup(item, arrIndex, x, y, forced);
-
-        if (!item || GameState.player.inventory.length <= inventorySizeBefore) return;
-        if (item.type !== 'food' && item.type !== 'water') return;
-
-        const fxX = forced ? GameState.player.x : x;
-        const fxY = forced ? GameState.player.y : y;
-        const isFood = item.type === 'food';
-
-        VisualFX.floatText(
-            fxX,
-            fxY,
-            isFood ? '+COMIDA' : '+AGUA',
-            isFood ? '#ffaa00' : '#00ffff',
-            'pickup'
-        );
-    };
-
-    // El estado táctico ya se calculaba en el núcleo, pero nunca se mostraba.
-    const stabilizedUpdateHUD = UISystem.updateHUD.bind(UISystem);
-    UISystem.updateHUD = () => {
-        stabilizedUpdateHUD();
-        if (!combatStatus) return;
-
-        const parts = [];
-        if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
-            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', area: 'BARRIDO' };
-            const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
-            parts.push(`<span style="color:#00ffff">OBJETIVO: ${label}</span>`);
-        }
-        if (GameState.player.combat.isDefending) {
-            parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
-        }
-        if (GameState.player.combat.waitBonus > 0) {
-            parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
-        }
-        if (GameState.player.combat.cooldowns.area > 0) {
-            parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
-        }
-        combatStatus.innerHTML = parts.join('');
-    };
-
-    UISystem.updateHUD();
-})();
