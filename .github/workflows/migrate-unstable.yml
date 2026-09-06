@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   migrate:
-    if: github.event.head_commit.message == 'Trigger Unstable migration'
+    if: github.event.head_commit.message == 'Trigger Unstable robustness fix'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout dev
@@ -18,7 +18,7 @@ jobs:
         with:
           ref: dev
 
-      - name: Apply Unstable migration
+      - name: Apply Unstable robustness fix
         run: python3 .github/scripts/add_unstable.py
 
       - name: JavaScript syntax
@@ -39,8 +39,6 @@ jobs:
         run: |
           git config user.name "Mauro Novellas"
           git config user.email "mauro@novellas.es"
-          git add game.js style.css tests/regression.test.cjs
-          git commit -m "Add Unstable Depths floor mechanics"
+          git add game.js tests/regression.test.cjs
+          git commit -m "Harden Unstable fall protection"
           git push origin HEAD:dev
-
-# one-shot trigger
