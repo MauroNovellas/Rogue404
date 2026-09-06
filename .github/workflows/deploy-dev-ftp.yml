@@ -1,0 +1,40 @@
+name: Deploy dev to cdmon
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rogue404-cdmon-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy /404 via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+
+      - name: Upload Rogue404 to cdmon
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./
+          server-dir: /404/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            tests/**
+            rogue_scores.json

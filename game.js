@@ -19,7 +19,7 @@ const CONFIG = {
         // Configuración de Habilidades
         quick:  { dmgMult: 0.8,  var: 0.05, critBonus: 0,   label: "Rápido" },
         savage: { dmgMult: 1.4,  var: 0.40, critBonus: 0.2, label: "Salvaje" },
-        area:   { dmgMult: 0.5,  cooldown: 5, cost: 5,      label: "Barrido" },
+        area:   { dmgMult: 0.5,  cooldown: 5, label: "Barrido" },
         wait:   { atkBonus: 2 }, // Daño extra al siguiente turno tras esperar
         defend: { defMult: 1.5 } // Multiplicador defensa
     },
@@ -91,13 +91,13 @@ const GameState = {
         actionIndex: 0,
         currentActions: [],
         shopStock: [],
-        messageBuffer: []
     }
 };
 
 const DOM = {
     container: document.getElementById('game-container'),
     log: document.getElementById('log'),
+    combatStatus: document.getElementById('combat-status'),
     menus: {
         controls: document.getElementById('controls-menu'),
         inventory: document.getElementById('inventory-menu'),
@@ -155,24 +155,39 @@ const Utils = {
     }
 };
 
-const VisualFX = { // SISTEMA DE EFECTOS VISUALES (NUEVO)
-    floatText: (x, y, text, color) => {
+const VisualFX = {
+    floatText: (x, y, text, color, kind = 'auto') => {
+        const layer = document.getElementById('fx-layer');
+        if (!layer) return;
+
+        const textValue = String(text);
+        const isPlayerPosition = x === GameState.player.x && y === GameState.player.y;
+        const autoIncoming = isPlayerPosition && (textValue.startsWith('-') || textValue === 'BLOCK');
+        const resolvedKind = kind === 'auto' ? (autoIncoming ? 'incoming' : 'outgoing') : kind;
+
         const el = document.createElement('div');
         el.className = 'float-msg';
-        el.innerText = text;
+        if (resolvedKind === 'incoming') el.classList.add('float-msg-incoming');
+        if (resolvedKind === 'pickup') el.classList.add('float-msg-pickup');
+
+        el.innerText = textValue;
         el.style.color = color;
-        
-        // CALCULO MÁGICO DE POSICIÓN:
-        // Asumiendo font-size: 20px en game-container y padding: 15px
-        // 1ch es el ancho de un caracter (aprox 12px en courier 20px)
-        // Usamos unidades relativas para que cuadre perfecto
-        
-        // Ajuste manual: 15px de padding + x * 0.6em (aprox ancho char)
-        el.style.left = `calc(15px + ${x} * 0.6em)`; 
-        el.style.top = `calc(15px + ${y} * 1.0em)`; 
-        
-        document.getElementById('fx-layer').appendChild(el);
-        setTimeout(() => el.remove(), 1000); // Auto destruir
+        el.style.left = `calc(15px + ${x} * 0.6em)`;
+        el.style.top = `calc(15px + ${y} * 1.0em)`;
+
+        if (resolvedKind === 'incoming') {
+            el.style.marginLeft = '-18px';
+            el.style.marginTop = '8px';
+        } else if (resolvedKind === 'pickup') {
+            el.style.marginLeft = '10px';
+            el.style.marginTop = '-5px';
+        } else {
+            el.style.marginLeft = '6px';
+            el.style.marginTop = '-4px';
+        }
+
+        layer.appendChild(el);
+        setTimeout(() => el.remove(), 1100);
     }
 };
 
@@ -180,41 +195,77 @@ const VisualFX = { // SISTEMA DE EFECTOS VISUALES (NUEVO)
 // 4. NETWORK (API PHP)
 // ============================================================================
 const Network = {
+    isSaving: false,
     fetchScores: async (targetId) => {
         const target = document.getElementById(targetId);
-        if(!target) return;
-        target.innerHTML = "Cargando...";
+        if (!target) return;
+        target.innerHTML = 'Cargando...';
         try {
             const r = await fetch('/404/rogue_api.php?v=' + Date.now());
             const d = await r.json();
             Network.renderLeaderboard(d, targetId);
-        } catch (e) { console.error(e); target.innerHTML = "Offline o Error de Conexión"; }
+        } catch (e) {
+            console.error(e);
+            target.innerHTML = 'Offline o Error de Conexión';
+        }
     },
     saveScore: async () => {
-        const nameInput = document.getElementById('player-name').value || document.getElementById('winner-name').value || "UNK";
-        const name = nameInput.toUpperCase();
-        let killsStr = Object.entries(GameState.player.stats.kills).map(([k,v]) => `${v} ${k}`).join(", ") || "Ninguna";
-        let gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
+        if (GameState.current !== STATE_ENUM.GAMEOVER || Network.isSaving) return;
+
+        const isVictory = !DOM.menus.victory.classList.contains('hidden');
+        const input = document.getElementById(isVictory ? 'winner-name' : 'player-name');
+        const name = ((input && input.value.trim()) || 'UNK').toUpperCase();
+        const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
+        const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
+
+        Network.isSaving = true;
         try {
             const r = await fetch('/404/rogue_api.php', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, score: GameState.score, level: GameState.maxLevel, seed: GameState.seed, cause: GameState.deathCause, kills: killsStr, equipment: gearStr })
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    score: GameState.score,
+                    level: GameState.maxLevel,
+                    seed: GameState.seed,
+                    cause: GameState.deathCause,
+                    kills: killsStr,
+                    equipment: gearStr
+                })
             });
-            if (!r.ok) throw new Error("Error en servidor");
+            if (!r.ok) throw new Error('Error en servidor');
+
             const d = await r.json();
-            Network.renderLeaderboard(d, 'leaderboard'); Network.renderLeaderboard(d, 'victory-leaderboard');
-            Utils.log("¡Legado guardado!", "#ffd700"); setTimeout(GameLogic.init, 2000);
-        } catch (e) { console.error(e); alert("Error guardando datos."); }
+            Network.renderLeaderboard(d, 'leaderboard');
+            Network.renderLeaderboard(d, 'victory-leaderboard');
+            Utils.log('¡Legado guardado!', '#ffd700');
+            setTimeout(() => GameLogic.init(), 2000);
+        } catch (e) {
+            Network.isSaving = false;
+            console.error(e);
+            alert('Error guardando datos.');
+        }
     },
     renderLeaderboard: (data, targetId) => {
-        let h = "<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>";
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[ch]);
+
+        let h = '<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>';
         if (Array.isArray(data)) {
             data.forEach((e) => {
-                let date = e.date || "--/--"; let lvl = e.level || 1; let cause = e.cause || "Desconocido";
-                const detalles = `Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`;
-                h += `<tr title="${detalles}"><td>${e.name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${e.score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
+                const name = escapeHtml(e.name || 'UNK');
+                const date = escapeHtml(e.date || '--/--');
+                const lvl = Number.isFinite(Number(e.level)) ? Number(e.level) : 1;
+                const score = Number.isFinite(Number(e.score)) ? Number(e.score) : 0;
+                const cause = escapeHtml(e.cause || 'Desconocido');
+                const details = escapeHtml(`Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`);
+                h += `<tr title="${details}"><td>${name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
             });
-        } h += "</table>"; const target = document.getElementById(targetId); if(target) target.innerHTML = h;
+        }
+        h += '</table>';
+        const target = document.getElementById(targetId);
+        if (target) target.innerHTML = h;
     }
 };
 
@@ -286,43 +337,61 @@ const MapSystem = {
     isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#'; },
     isTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; return GameState.persistence[GameState.level].includes(key); },
     markTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; if (!GameState.persistence[GameState.level].includes(key)) GameState.persistence[GameState.level].push(key); },
-    freePosition: (x, y) => { let key = `${x},${y}`; const idx = GameState.persistence[GameState.level].indexOf(key); if (idx > -1) GameState.persistence[GameState.level].splice(idx, 1); }
 };
 
 // ============================================================================
 // 6. FACTORÍA DE ENTIDADES (CORREGIDO BUG DE COFRES)
 // ============================================================================
 const EntityFactory = {
+    isOccupied: (x, y) => {
+        return GameState.entities.enemies.some(e => e.x === x && e.y === y) ||
+               GameState.entities.items.some(i => i.x === x && i.y === y) ||
+               GameState.entities.chests.some(c => c.x === x && c.y === y) ||
+               GameState.entities.shops.some(s => s.x === x && s.y === y);
+    },
     spawnAll: () => {
-        let count = 3 + GameState.level + Math.floor(Utils.random() * 3);
-        for(let i=0; i<count; i++) EntityFactory.spawnEnemy();
+        const enemyCount = 3 + GameState.level + Math.floor(Utils.random() * 3);
+        for (let i = 0; i < enemyCount; i++) EntityFactory.spawnEnemy();
+
         const spawns = [
-            { count: 8, type: 'GOLD', chance: 1.0 }, { count: 1, type: 'FOOD', chance: 1.0 }, { count: 1, type: 'WATER', chance: 1.0 },
-            { count: 1, type: 'FOOD', chance: CONFIG.ENTITIES.items.foodChance }, { count: 1, type: 'WATER', chance: CONFIG.ENTITIES.items.drinkChance },
-            { count: 1, type: 'WEAPON', chance: (GameState.level % 2 === 0) ? 1.0 : 0 }, { count: 1, type: 'ARMOR', chance: (GameState.level % 5 === 0) ? 1.0 : 0 }
+            { count: 8, type: 'GOLD', chance: 1.0 },
+            { count: 1, type: 'FOOD', chance: 1.0 },
+            { count: 1, type: 'WATER', chance: 1.0 },
+            { count: 1, type: 'FOOD', chance: CONFIG.ENTITIES.items.foodChance },
+            { count: 1, type: 'WATER', chance: CONFIG.ENTITIES.items.drinkChance },
+            { count: 1, type: 'WEAPON', chance: (GameState.level % 2 === 0) ? 1.0 : 0 },
+            { count: 1, type: 'ARMOR', chance: (GameState.level % 5 === 0) ? 1.0 : 0 }
         ];
-        spawns.forEach(s => {
-            if(Utils.random() < s.chance) {
-                for(let k=0; k<s.count; k++) {
-                    let pos = EntityFactory.getEmptyPos(); if(!pos || MapSystem.isTaken(pos.x, pos.y)) continue;
-                    if (s.type === 'GOLD') EntityFactory.createItem(pos, 'GOLD', 10);
-                    else if (s.type === 'FOOD') EntityFactory.createSmartItem(pos, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
-                    else if (s.type === 'WATER') EntityFactory.createSmartItem(pos, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
-                    else if (s.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', CONFIG.COMBAT.baseWeaponVal, 'Arma', '!', '#ff00ff');
-                    else if (s.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', CONFIG.COMBAT.baseArmorVal, 'Malla', ']', '#4682b4');
-                }
+
+        spawns.forEach(spawn => {
+            if (Utils.random() >= spawn.chance) return;
+            for (let k = 0; k < spawn.count; k++) {
+                const pos = EntityFactory.getEmptyPos();
+                if (!pos || MapSystem.isTaken(pos.x, pos.y)) continue;
+                if (spawn.type === 'GOLD') EntityFactory.createItem(pos, 'GOLD', 10);
+                else if (spawn.type === 'FOOD') EntityFactory.createSmartItem(pos, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
+                else if (spawn.type === 'WATER') EntityFactory.createSmartItem(pos, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
+                else if (spawn.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', CONFIG.COMBAT.baseWeaponVal, 'Arma', '!', '#ff00ff');
+                else if (spawn.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', CONFIG.COMBAT.baseArmorVal, 'Malla', ']', '#4682b4');
             }
         });
-        if (CONFIG.ENTITIES.shops.levels.includes(GameState.level)) { let p = EntityFactory.getRoomPos(); if(p) GameState.entities.shops.push({ x: p.x, y: p.y, name: "Mercader" }); }
-        
-        let chestCount = CONFIG.ENTITIES.chests.minPerLevel + (Utils.random() < CONFIG.ENTITIES.chests.spawnChance ? 1 : 0);
-        for(let i=0; i<chestCount; i++) { 
-            let p = EntityFactory.getRoomPos(); 
-            // [FIX] Comprobamos que no esté ocupado Y lo marcamos como ocupado
-            if(p && !MapSystem.isTaken(p.x, p.y)) {
-                GameState.entities.chests.push({ x: p.x, y: p.y, name: "Cofre", isOpen: false });
-                MapSystem.markTaken(p.x, p.y); // <-- IMPORTANTE
-            }
+
+        if (CONFIG.ENTITIES.shops.levels.includes(GameState.level)) {
+            const pos = EntityFactory.getRoomPos();
+            if (pos) GameState.entities.shops.push({ x: pos.x, y: pos.y, name: 'Mercader' });
+        }
+
+        const chestCount = CONFIG.ENTITIES.chests.minPerLevel + (Utils.random() < CONFIG.ENTITIES.chests.spawnChance ? 1 : 0);
+        for (let i = 0; i < chestCount; i++) {
+            const pos = EntityFactory.getChestPos();
+            if (!pos) continue;
+            const chestKey = `CHEST_${pos.x},${pos.y}`;
+            GameState.entities.chests.push({
+                x: pos.x,
+                y: pos.y,
+                name: 'Cofre',
+                isOpen: MapSystem.isTaken(chestKey)
+            });
         }
     },
     spawnEnemy: () => {
@@ -332,16 +401,16 @@ const EntityFactory = {
         let baseHp = type.hp + (GameState.level * 2); let hpVar = Utils.applyVariance(baseHp);
         let baseAtk = type.atk + Math.floor(GameState.level/2); let atkVar = Utils.applyVariance(baseAtk);
         let name = type.name; if (hpVar.multiplier > 1.3) name += " Alfa"; else if (hpVar.multiplier < 0.8) name += " Enclenque";
-        GameState.entities.enemies.push({ 
-            x: pos.x, y: pos.y, 
-            typeId: type.id, 
-            behavior: type.behavior, 
-            name: name, symbol: type.symbol, 
-            color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color), 
-            hp: hpVar.value, maxHp: hpVar.value, 
-            atk: atkVar.value, xp: type.xp, speed: type.speed, 
+        GameState.entities.enemies.push({
+            x: pos.x, y: pos.y,
+            typeId: type.id,
+            behavior: type.behavior,
+            name: name, symbol: type.symbol,
+            color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
+            hp: hpVar.value, maxHp: hpVar.value,
+            atk: atkVar.value, xp: type.xp, speed: type.speed,
             energy: 0, isSleeping: Utils.random() < 0.3,
-            tookDamage: false 
+            tookDamage: false
         });
     },
     createSmartItem: (pos, type, baseVal, baseName, symbol, color) => {
@@ -351,18 +420,34 @@ const EntityFactory = {
     createItem: (pos, type, val) => { GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, value: val, name: type === 'GOLD' ? 'Oro' : 'Item', symbol: '$', color: '#ffd700' }); },
     getEmptyPos: () => {
         let limit = 500;
-        while(limit-- > 0) {
-            let x = Math.floor(Utils.random() * (CONFIG.GRID.cols-2)) + 1; let y = Math.floor(Utils.random() * (CONFIG.GRID.rows-2)) + 1;
-            if (GameState.map[y][x] === '.' && !EntityFactory.isStartEnd(x,y)) return {x,y};
-        } return null;
+        while (limit-- > 0) {
+            const x = Math.floor(Utils.random() * (CONFIG.GRID.cols - 2)) + 1;
+            const y = Math.floor(Utils.random() * (CONFIG.GRID.rows - 2)) + 1;
+            if (GameState.map[y][x] === '.' && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+        }
+        return null;
     },
     getRoomPos: () => {
         if (GameState.rooms.length === 0) return EntityFactory.getEmptyPos();
         let limit = 100;
-        while(limit-- > 0) {
-            let r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)]; let x = r.x + Math.floor(Utils.random() * r.w); let y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x,y)) return {x,y};
-        } return null;
+        while (limit-- > 0) {
+            const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
+            const x = r.x + Math.floor(Utils.random() * r.w);
+            const y = r.y + Math.floor(Utils.random() * r.h);
+            if (!MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+        }
+        return null;
+    },
+    getChestPos: () => {
+        if (GameState.rooms.length === 0) return EntityFactory.getEmptyPos();
+        let limit = 100;
+        while (limit-- > 0) {
+            const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
+            const x = r.x + Math.floor(Utils.random() * r.w);
+            const y = r.y + Math.floor(Utils.random() * r.h);
+            if (!EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+        }
+        return null;
     },
     isStartEnd: (x, y) => { return (x === GameState.stairs.up.x && y === GameState.stairs.up.y) || (x === GameState.stairs.down.x && y === GameState.stairs.down.y); }
 };
@@ -372,6 +457,15 @@ const EntityFactory = {
 // ============================================================================
 const GameLogic = {
     init: (seedInput = null) => {
+        GameState.entryMethod = 'start';
+        GameState.deathCause = 'Desconocido';
+        GameState.ui.inventoryIndex = 0;
+        GameState.ui.actionMenuOpen = false;
+        GameState.ui.actionIndex = 0;
+        GameState.ui.currentActions = [];
+        GameState.ui.shopStock = [];
+        Network.isSaving = false;
+
         GameState.seed = seedInput !== null ? seedInput : Math.floor(Math.random() * 999999);
         GameState.level = 1; GameState.score = 0; GameState.moves = 0; GameState.maxLevel = 1;
         const pConf = CONFIG.PLAYER;
@@ -382,16 +476,30 @@ const GameLogic = {
             combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
         };
         GameState.persistence = {}; GameState.discoveredTypes.clear(); Renderer.resetLegend();
-        MapSystem.initLevel(); StateController.change(STATE_ENUM.CONTROLS);
+        MapSystem.initLevel();
+
+        // Una partida nueva entra por las escaleras que comunican con la superficie.
+        GameState.player.x = GameState.stairs.up.x;
+        GameState.player.y = GameState.stairs.up.y;
+        GameState.seen.forEach(row => row.fill(false));
+        GameState.visible.forEach(row => row.fill(false));
+        MapSystem.updateFog();
+        Renderer.draw();
+
+        StateController.change(STATE_ENUM.CONTROLS);
     },
     endTurn: (didAction = true) => {
-        if (!didAction) return;
-        if (!GameState.player.combat.isDefending) GameState.player.combat.isDefending = false;
+        if (!didAction || GameState.current === STATE_ENUM.GAMEOVER) return;
         if (GameState.player.combat.cooldowns.area > 0) GameState.player.combat.cooldowns.area--;
 
         GameLogic.updateEnemies();
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+
+        // Defender cubre únicamente la respuesta enemiga del turno actual.
+        GameState.player.combat.isDefending = false;
         GameLogic.processSurvival();
-        
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+
         MapSystem.updateFog();
         Renderer.draw();
         UISystem.updateHUD();
@@ -449,6 +557,16 @@ const GameLogic = {
         return true;
     },
     updateEnemies: () => {
+        GameState.entities.enemies.forEach(enemy => {
+            if (enemy._rogueQuickStaggerPending) {
+                enemy.energy = (enemy.energy || 0) - 1;
+                enemy._rogueQuickStaggerPending = false;
+                enemy._rogueQuickStaggerImmune = true;
+            } else if (enemy._rogueQuickStaggerImmune) {
+                enemy._rogueQuickStaggerImmune = false;
+            }
+        });
+
         GameState.entities.enemies.forEach(e => {
             e.tookDamage = false; 
             let dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
@@ -520,11 +638,30 @@ const GameLogic = {
         return true;
     },
     processSurvival: () => {
-        const s = CONFIG.PLAYER.survival; GameState.moves++;
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+
+        const s = CONFIG.PLAYER.survival;
+        GameState.moves++;
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
         if (GameState.moves % s.thirstRate === 0) GameState.player.water--;
-        if (GameState.player.food <= 0) { GameState.player.food = 0; GameState.player.hp -= s.starvationDmg; if(GameState.player.hp <= 0) GameLogic.die("Hambre"); }
-        if (GameState.player.water <= 0) { GameState.player.water = 0; GameState.player.hp -= s.dehydrationDmg; if(GameState.player.hp <= 0) GameLogic.die("Sed"); }
+
+        if (GameState.player.food <= 0) {
+            GameState.player.food = 0;
+            GameState.player.hp -= s.starvationDmg;
+            if (GameState.player.hp <= 0) {
+                GameLogic.die('Hambre');
+                return;
+            }
+        }
+
+        if (GameState.player.water <= 0) {
+            GameState.player.water = 0;
+            GameState.player.hp -= s.dehydrationDmg;
+            if (GameState.player.hp <= 0) {
+                GameLogic.die('Sed');
+                return;
+            }
+        }
     },
     interactAction: () => {
         const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
@@ -541,30 +678,60 @@ const GameLogic = {
         }
     },
     openChest: (idx) => {
-        let chest = GameState.entities.chests[idx]; chest.isOpen = true;
+        const chest = GameState.entities.chests[idx];
+        if (!chest || chest.isOpen) return;
+
+        chest.isOpen = true;
+        MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
+
         if (Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
-            Utils.log("¡TRAMPA! El cofre explota.", "#f00"); GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
-            GameState.entities.enemies.forEach(e => { if(e.isSleeping) e.isSleeping = false; });
-            if (GameState.player.hp <= 0) GameLogic.die("Cofre Trampa");
+            Utils.log('¡TRAMPA! El cofre explota.', '#f00');
+            GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
+            GameState.entities.enemies.forEach(e => { if (e.isSleeping) e.isSleeping = false; });
+            if (GameState.player.hp <= 0) GameLogic.die('Cofre Trampa');
+            return;
+        }
+
+        Utils.log('Abres el cofre...', CONFIG.ENTITIES.chests.colors.closed);
+        const r = Utils.random();
+        if (r < 0.3) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
+        else if (r < 0.5) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
+        else if (r < 0.7) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', '#ff00ff');
+        else if (r < 0.9) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', '#4682b4');
+
+        if (r < 0.9) {
+            const newItem = GameState.entities.items.pop();
+            InventorySystem.pickup(newItem, -1, -1, -1, true);
         } else {
-            Utils.log("Abres el cofre...", CONFIG.ENTITIES.chests.colors.closed);
-            let r = Utils.random();
-            if (r < 0.3) EntityFactory.createSmartItem({x:0,y:0}, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
-            else if (r < 0.5) EntityFactory.createSmartItem({x:0,y:0}, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
-            else if (r < 0.7) EntityFactory.createSmartItem({x:0,y:0}, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', '#ff00ff');
-            else if (r < 0.9) EntityFactory.createSmartItem({x:0,y:0}, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', '#4682b4');
-            if (r < 0.9) { let newItem = GameState.entities.items.pop(); InventorySystem.pickup(newItem, -1, -1, -1, true); }
-            else { GameState.score += 50; Utils.log("¡Encuentras oro!", "#ffd700"); }
+            GameState.score += 50;
+            Utils.log('¡Encuentras oro!', '#ffd700');
         }
     },
     die: (cause) => {
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
         GameState.deathCause = cause;
         StateController.change(STATE_ENUM.GAMEOVER);
-        UISystem.fillEndGameStats('death'); 
+        UISystem.fillEndGameStats('death');
         Network.fetchScores('leaderboard');
     },
     win: () => {
-        GameState.deathCause = "Vio la luz"; GameState.score += (GameState.maxLevel * 100);
+        const atSurfaceExit =
+            GameState.level === 1 &&
+            GameState.player.x === GameState.stairs.up.x &&
+            GameState.player.y === GameState.stairs.up.y;
+
+        if (atSurfaceExit) {
+            const confirmed = window.confirm(
+                'SALIR A LA SUPERFICIE?\n\n' +
+                'Si abandonas la mazmorra, la partida termina y se calculará tu puntuación final.'
+            );
+            if (!confirmed) {
+                Utils.log('Decides continuar explorando la mazmorra.', '#aaa');
+                return;
+            }
+        }
+
+        GameState.deathCause = 'Vio la luz'; GameState.score += (GameState.maxLevel * 100);
         StateController.change(STATE_ENUM.GAMEOVER); DOM.menus.gameOver.classList.add('hidden'); DOM.menus.victory.classList.remove('hidden');
         UISystem.fillEndGameStats('win');
         Network.fetchScores('victory-leaderboard');
@@ -577,15 +744,13 @@ const GameLogic = {
 
 const CombatSystem = {
     startTargeting: (attackType) => {
-        if (attackType === 'area' && GameState.player.combat.cooldowns.area > 0) {
-            Utils.log(`Habilidad en enfriamiento (${GameState.player.combat.cooldowns.area} turnos)`, "#f00");
-            return;
-        }
+        if (!['quick', 'savage'].includes(attackType)) return;
+
         GameState.player.combat.pendingAttack = attackType;
         StateController.change(STATE_ENUM.TARGETING);
-        let label = attackType === 'quick' ? "Rápido" : (attackType === 'savage' ? "Salvaje" : "Barrido");
-        Utils.log(`[${label}] Selecciona dirección...`, "#0ff");
-        UISystem.updateHUD(); 
+        const label = attackType === 'quick' ? 'Rápido' : 'Salvaje';
+        Utils.log(`[${label}] Selecciona dirección...`, '#0ff');
+        UISystem.updateHUD();
     },
 
     executeAttack: (dx, dy) => {
@@ -599,25 +764,6 @@ const CombatSystem = {
         let bonusDmg = GameState.player.combat.waitBonus;
         GameState.player.combat.waitBonus = 0; 
         GameState.player.combat.isDefending = false;
-
-        // BARRIDO (Area)
-        if (type === 'area') {
-            Utils.log("¡Ataque de barrido!", "#0ff");
-            GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
-            const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
-            let hit = false;
-            dirs.forEach(d => {
-                let ex = GameState.player.x + d[0], ey = GameState.player.y + d[1];
-                let idx = GameState.entities.enemies.findIndex(e => e.x === ex && e.y === ey);
-                if (idx !== -1) {
-                    CombatSystem.applyDamage(idx, 'area', bonusDmg);
-                    hit = true;
-                }
-            });
-            if(!hit) Utils.log("El barrido no golpea nada.", "#777");
-            GameLogic.endTurn(true);
-            return;
-        }
 
         // ATAQUES DIRECCIONALES
         if (enemyIdx === -1) {
@@ -645,19 +791,19 @@ const CombatSystem = {
     applyDamage: (enemyIdx, type, bonus) => {
         let e = GameState.entities.enemies[enemyIdx];
         if (!e) return;
-        
-        e.tookDamage = true; 
+
+        e.tookDamage = true;
         if (e.isSleeping) { e.isSleeping = false; Utils.log(`¡${e.name} despierta!`, "#fa0"); }
 
         let conf = CONFIG.COMBAT[type];
         let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
         let baseDmg = GameState.player.baseAtk + weaponVal + bonus;
-        
+
         baseDmg = Math.floor(baseDmg * conf.dmgMult);
-        
+
         let vari = conf.var || CONFIG.COMBAT.variability;
         let varianceMult = 1.0 + (Utils.random() * (vari * 2) - vari);
-        
+
         let finalDmg = Math.round(baseDmg * varianceMult);
         if (finalDmg < 1) finalDmg = 1;
 
@@ -669,23 +815,29 @@ const CombatSystem = {
         }
 
         e.hp -= finalDmg;
-        
-        // --- VISUAL FX: Daño al enemigo ---
+
         let dmgColor = isCrit ? "#ff00ff" : "#ffffff";
         let dmgText = isCrit ? `¡${finalDmg}!` : `${finalDmg}`;
         VisualFX.floatText(e.x, e.y, dmgText, dmgColor);
-        // ----------------------------------
-
         Utils.log(`Golpeas a ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
 
         if (e.hp <= 0) {
             CombatSystem.gainXp(e.xp); GameState.score += 25;
             if (!GameState.player.stats.kills[e.name]) GameState.player.stats.kills[e.name] = 0; GameState.player.stats.kills[e.name]++;
-            
+
             let currentIdx = GameState.entities.enemies.indexOf(e);
             if(currentIdx !== -1) GameState.entities.enemies.splice(currentIdx, 1);
-            
+
             Utils.log(`${e.name} muere.`, "#ff0");
+        }
+
+        const enemySurvives = e.hp > 0 && GameState.entities.enemies.includes(e);
+        if (type === 'quick' && enemySurvives && !e._rogueQuickStaggerImmune) {
+            e._rogueQuickStaggerPending = true;
+            Utils.log(`${e.name} queda descolocado.`, '#00ffff');
+        }
+        if (type === 'savage' && enemySurvives) {
+            e._rogueSavageCounterPending = true;
         }
     },
 
@@ -710,6 +862,7 @@ const CombatSystem = {
             return;
         }
 
+        const cooldownBefore = GameState.player.combat.cooldowns.area;
         GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
         Utils.log("¡Barrido!", "#0ff");
 
@@ -721,7 +874,6 @@ const CombatSystem = {
             let ey = GameState.player.y + d[1];
             let idx = GameState.entities.enemies.findIndex(e => e.x === ex && e.y === ey);
             if (idx !== -1) {
-                // Usamos daño de área (más bajo pero golpea varios)
                 CombatSystem.applyDamage(idx, 'area', 0);
                 hit = true;
             }
@@ -730,6 +882,15 @@ const CombatSystem = {
         if (!hit) Utils.log("El barrido no golpea a nadie.", "#777");
 
         GameLogic.endTurn(true);
+
+        if (
+            cooldownBefore === 0 &&
+            GameState.current !== STATE_ENUM.GAMEOVER &&
+            GameState.player.combat.cooldowns.area === CONFIG.COMBAT.area.cooldown - 1
+        ) {
+            GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
+            UISystem.updateHUD();
+        }
     },
 
     // Bump Attack - Mejorado: forma principal y natural de combatir
@@ -767,15 +928,18 @@ const CombatSystem = {
     },
 
     enemyAttack: (e) => {
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+        const isSavageCounter = Boolean(e && e._rogueSavageCounterPending);
+
         let armorVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         if (GameState.player.combat.isDefending) {
-            armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult); 
+            armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult);
         }
 
         let dmg = Math.max(0, e.atk - armorVal);
         let variance = 1.0 + (Utils.random() * 0.2 - 0.1);
         dmg = Math.round(dmg * variance);
-        if (dmg < 0) dmg = 0; 
+        if (dmg < 0) dmg = 0;
 
         let enemyCritChance = GameState.player.combat.isDefending ? 0.0 : 0.05;
         if (Utils.random() < enemyCritChance) {
@@ -783,7 +947,6 @@ const CombatSystem = {
             Utils.log(`¡CRÍTICO de ${e.name}!`, "#f00");
         }
 
-        // --- VISUAL FX: Daño al Jugador ---
         if (dmg > 0) {
             VisualFX.floatText(GameState.player.x, GameState.player.y, `-${dmg}`, "#ff0000");
             Utils.log(`${e.name} te hiere: -${dmg} HP`, "#f44");
@@ -791,10 +954,14 @@ const CombatSystem = {
             VisualFX.floatText(GameState.player.x, GameState.player.y, "BLOCK", "#4682b4");
             Utils.log(`Bloqueas a ${e.name}`, "#888");
         }
-        // ----------------------------------
 
-        GameState.player.hp -= dmg; 
+        GameState.player.hp -= dmg;
         if (GameState.player.hp <= 0) GameLogic.die(e.name);
+
+        if (isSavageCounter && e) {
+            e._rogueSavageCounterPending = false;
+            e.energy = (e.energy || 0) - 1;
+        }
     },
 
     gainXp: (amount) => {
@@ -814,11 +981,32 @@ const CombatSystem = {
 // ============================================================================
 const InventorySystem = {
     pickup: (item, arrIndex, x, y, forced = false) => {
-        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) { Utils.log("¡Mochila llena!", "#f00"); return; }
+        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) {
+            Utils.log('¡Mochila llena!', '#f00');
+            return;
+        }
+
+        const inventorySizeBefore = GameState.player.inventory.length;
         GameState.player.inventory.push(item);
         Utils.log(`Recogido: ${item.name}`, item.qualityColor || item.color);
-        if(!forced && arrIndex >= 0) { GameState.entities.items.splice(arrIndex, 1); MapSystem.markTaken(x, y); }
+        if (!forced && arrIndex >= 0) {
+            GameState.entities.items.splice(arrIndex, 1);
+            MapSystem.markTaken(x, y);
+        }
         UISystem.updateHUD();
+
+        if (item && GameState.player.inventory.length > inventorySizeBefore && (item.type === 'food' || item.type === 'water')) {
+            const fxX = forced ? GameState.player.x : x;
+            const fxY = forced ? GameState.player.y : y;
+            const isFood = item.type === 'food';
+            VisualFX.floatText(
+                fxX,
+                fxY,
+                isFood ? '+COMIDA' : '+AGUA',
+                isFood ? '#ffaa00' : '#00ffff',
+                'pickup'
+            );
+        }
     },
     executeAction: () => {
         const actions = GameState.ui.currentActions; const selectedAction = actions[GameState.ui.actionIndex]; const itemIdx = GameState.ui.inventoryIndex;
@@ -847,10 +1035,14 @@ const InventorySystem = {
         }
     },
     dropItem: (idx) => {
-        let item = GameState.player.inventory[idx]; Utils.log(`Tiras ${item.name}`, "#888");
+        const item = GameState.player.inventory[idx];
+        if (!item) return;
+
+        Utils.log(`Tiras ${item.name}`, '#888');
         GameState.entities.items.push({ ...item, x: GameState.player.x, y: GameState.player.y });
-        MapSystem.freePosition(GameState.player.x, GameState.player.y);
-        GameState.player.inventory.splice(idx, 1); InventorySystem.closeActionMenu(); Renderer.draw();
+        GameState.player.inventory.splice(idx, 1);
+        InventorySystem.closeActionMenu();
+        Renderer.draw();
         GameLogic.endTurn(true);
     },
     openActionMenu: () => {
@@ -981,13 +1173,19 @@ const UISystem = {
         document.getElementById('score').innerText = GameState.score; document.getElementById('bag-count').innerText = `${GameState.player.inventory.length}/${CONFIG.PLAYER.inventorySize}`;
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
-        if(document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
+        if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
 
-        let combatStatus = "";
-        if (GameState.current === STATE_ENUM.TARGETING) combatStatus += `<span style="color:#0ff">[OBJETIVO: ${GameState.player.combat.pendingAttack.toUpperCase()}]</span> `;
-        if (GameState.player.combat.isDefending) combatStatus += `<span style="color:#4682b4">[DEFENDIENDO]</span> `;
-        if (GameState.player.combat.waitBonus > 0) combatStatus += `<span style="color:#aaa">[CARGADO]</span> `;
-        if (GameState.player.combat.cooldowns.area > 0) combatStatus += `<span style="color:#555">[Barrido CD: ${GameState.player.combat.cooldowns.area}]</span>`;
+        if (!DOM.combatStatus) return;
+        const parts = [];
+        if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
+            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
+            const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
+            parts.push(`<span style="color:#00ffff">OBJETIVO: ${label}</span>`);
+        }
+        if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
+        if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
+        if (GameState.player.combat.cooldowns.area > 0) parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
+        DOM.combatStatus.innerHTML = parts.join('');
     },
     renderInventory: () => {
         const grid = document.getElementById('inv-grid'); grid.innerHTML = "";
@@ -1055,71 +1253,71 @@ const StateController = {
 };
 
 document.addEventListener('keydown', (e) => {
-    // [FIX] Evitar spam si se mantiene la tecla pulsada
     if (e.repeat) return;
 
-    if (e.target.tagName === 'INPUT') { if (e.key === 'Enter') Network.saveScore(); return; }
-    
     const key = e.key.toLowerCase();
-    
-    // --- ESTADO JUGANDO ---
+
+    if (e.target && e.target.tagName === 'INPUT') {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.target.id === 'seed-input') window.restartWithSeed();
+            else if (e.target.id === 'player-name' || e.target.id === 'winner-name') Network.saveScore();
+        }
+        return;
+    }
+
+    if ((GameState.current === STATE_ENUM.PLAYING || GameState.current === STATE_ENUM.CONTROLS) && ['i', 'h'].includes(key)) {
+        e.preventDefault();
+        StateController.change(GameState.current === STATE_ENUM.CONTROLS ? STATE_ENUM.PLAYING : STATE_ENUM.CONTROLS);
+        return;
+    }
+
     if (GameState.current === STATE_ENUM.PLAYING) {
-        
-        // SISTEMA Y MENÚS
         if (key === 'm') StateController.change(STATE_ENUM.INVENTORY);
         else if (key === 'p' || key === 'escape') StateController.change(STATE_ENUM.MENU);
         else if (key === ' ') GameLogic.interactAction();
-        
-        // ACCIONES DE COMBATE
         else if (key === 'r') CombatSystem.startTargeting('quick');
         else if (key === 'f') CombatSystem.startTargeting('savage');
-        else if (key === 't') CombatSystem.performAreaAttack();   // Barrido instantáneo (sin targeting)
+        else if (key === 't') { e.preventDefault(); CombatSystem.performAreaAttack(); }
         else if (key === 'c') CombatSystem.performWait();
         else if (key === 'v') CombatSystem.performDefend();
-        
-        // MOVIMIENTO
         else {
-            let dx=0, dy=0;
-            if (['w','arrowup'].includes(key)) dy=-1; 
-            else if (['s','arrowdown'].includes(key)) dy=1;
-            else if (['a','arrowleft'].includes(key)) dx=-1; 
-            else if (['d','arrowright'].includes(key)) dx=1; 
-            
-            else if (key==='q') {dx=-1; dy=-1;} else if (key==='e') {dx=1; dy=-1;} 
-            else if (key==='z') {dx=-1; dy=1;} else if (key==='x') {dx=1; dy=1;}
-            
-            if(dx!==0 || dy!==0) GameLogic.movePlayer(dx, dy);
-        }
-    } 
-    
-    // --- ESTADO SELECCIÓN DE OBJETIVO ---
-    else if (GameState.current === STATE_ENUM.TARGETING) {
-        if (key === 'escape' || key === 'r' || key === 'f') { 
-            StateController.change(STATE_ENUM.PLAYING); 
-            Utils.log("Ataque cancelado.", "#aaa"); 
-            GameState.player.combat.pendingAttack = null;
-        }
-        else {
-            let dx=0, dy=0;
-            if (['w','arrowup', 'k'].includes(key)) dy=-1; 
-            else if (['s','arrowdown', 'j'].includes(key)) dy=1;
-            else if (['a','arrowleft', 'h'].includes(key)) dx=-1; 
-            else if (['d','arrowright', 'l'].includes(key)) dx=1;
-            
-            else if (['y','q'].includes(key)) {dx=-1; dy=-1;} else if (['u','e'].includes(key)) {dx=1; dy=-1;} 
-            else if (['b','z'].includes(key)) {dx=-1; dy=1;} else if (['n','x'].includes(key)) {dx=1; dy=1;}
-
-            if(dx!==0 || dy!==0) CombatSystem.executeAttack(dx, dy);
+            let dx = 0, dy = 0;
+            if (['w','arrowup'].includes(key)) dy = -1;
+            else if (['s','arrowdown'].includes(key)) dy = 1;
+            else if (['a','arrowleft'].includes(key)) dx = -1;
+            else if (['d','arrowright'].includes(key)) dx = 1;
+            else if (key === 'q') { dx = -1; dy = -1; }
+            else if (key === 'e') { dx = 1; dy = -1; }
+            else if (key === 'z') { dx = -1; dy = 1; }
+            else if (key === 'x') { dx = 1; dy = 1; }
+            if (dx !== 0 || dy !== 0) GameLogic.movePlayer(dx, dy);
         }
     }
-    
-    // --- MENÚ INVENTARIO ---
+    else if (GameState.current === STATE_ENUM.TARGETING) {
+        if (key === 'escape' || key === 'r' || key === 'f') {
+            StateController.change(STATE_ENUM.PLAYING);
+            Utils.log('Ataque cancelado.', '#aaa');
+            GameState.player.combat.pendingAttack = null;
+        } else {
+            let dx = 0, dy = 0;
+            if (['w','arrowup','k'].includes(key)) dy = -1;
+            else if (['s','arrowdown','j'].includes(key)) dy = 1;
+            else if (['a','arrowleft','h'].includes(key)) dx = -1;
+            else if (['d','arrowright','l'].includes(key)) dx = 1;
+            else if (['y','q'].includes(key)) { dx = -1; dy = -1; }
+            else if (['u','e'].includes(key)) { dx = 1; dy = -1; }
+            else if (['b','z'].includes(key)) { dx = -1; dy = 1; }
+            else if (['n','x'].includes(key)) { dx = 1; dy = 1; }
+            if (dx !== 0 || dy !== 0) CombatSystem.executeAttack(dx, dy);
+        }
+    }
     else if (GameState.current === STATE_ENUM.INVENTORY) {
         if (GameState.ui.actionMenuOpen) {
             if (key === 'escape') InventorySystem.closeActionMenu();
-            else if (['w', 'arrowup'].includes(key)) { GameState.ui.actionIndex = Math.max(0, GameState.ui.actionIndex - 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
-            else if (['s', 'arrowdown'].includes(key)) { GameState.ui.actionIndex = Math.min(GameState.ui.currentActions.length - 1, GameState.ui.actionIndex + 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
-            else if (key === 'enter' || key === ' ') { InventorySystem.executeAction(); }
+            else if (['w','arrowup'].includes(key)) { GameState.ui.actionIndex = Math.max(0, GameState.ui.actionIndex - 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
+            else if (['s','arrowdown'].includes(key)) { GameState.ui.actionIndex = Math.min(GameState.ui.currentActions.length - 1, GameState.ui.actionIndex + 1); UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]); }
+            else if (key === 'enter' || key === ' ') InventorySystem.executeAction();
         } else {
             if (key === 'm' || key === 'escape') StateController.change(STATE_ENUM.PLAYING);
             else if (key === 'enter' || key === ' ') InventorySystem.openActionMenu();
@@ -1127,34 +1325,30 @@ document.addEventListener('keydown', (e) => {
                 let idx = GameState.ui.inventoryIndex;
                 if (['d','arrowright'].includes(key) && idx % 3 < 2) idx++;
                 else if (['a','arrowleft'].includes(key) && idx % 3 > 0) idx--;
-                else if (['s','arrowdown'].includes(key) && idx + 3 < CONFIG.PLAYER.inventorySize) idx+=3;
-                else if (['w','arrowup'].includes(key) && idx - 3 >= 0) idx-=3;
-                GameState.ui.inventoryIndex = idx; UISystem.renderInventory();
+                else if (['s','arrowdown'].includes(key) && idx + 3 < CONFIG.PLAYER.inventorySize) idx += 3;
+                else if (['w','arrowup'].includes(key) && idx - 3 >= 0) idx -= 3;
+                GameState.ui.inventoryIndex = idx;
+                UISystem.renderInventory();
             }
         }
     }
-    // --- OTROS MENÚS ---
     else if (GameState.current === STATE_ENUM.CONTROLS && ['enter',' ','escape'].includes(key)) StateController.change(STATE_ENUM.PLAYING);
     else if (GameState.current === STATE_ENUM.SHOP && key === 'escape') StateController.change(STATE_ENUM.PLAYING);
     else if (GameState.current === STATE_ENUM.MENU && key === 'escape') StateController.change(STATE_ENUM.PLAYING);
     else if (GameState.current === STATE_ENUM.GAMEOVER && key === 'i') GameLogic.init();
 });
 
-// Corrección para tecla T (Barrido)
-// Si quieres que T inicie targeting de area:
-document.addEventListener('keydown', (e) => {
-    if(GameState.current === STATE_ENUM.PLAYING && e.key.toLowerCase() === 't') {
-        // Opción A: Targeting
-        CombatSystem.startTargeting('area');
-        // Opción B: Inmediato (descomentar si prefieres instantáneo)
-        // CombatSystem.startTargeting('area'); CombatSystem.executeAttack(0,0);
-    }
-});
-
 window.setGameState = (s) => StateController.change(s);
 window.restartWithSeed = () => { let v = parseInt(document.getElementById('seed-input').value); if(!isNaN(v)) { GameLogic.init(v); StateController.change(STATE_ENUM.PLAYING); } };
 window.saveScore = Network.saveScore;
-window.showMenuScores = () => Network.fetchScores('menu-leaderboard');
+window.toggleMenu = () => StateController.change(STATE_ENUM.PLAYING);
+window.showMenuScores = () => {
+    const container = document.getElementById('menu-scores-container');
+    if (!container) return;
+    const willShow = container.style.display !== 'block';
+    container.style.display = willShow ? 'block' : 'none';
+    if (willShow) Network.fetchScores('menu-leaderboard');
+};
 window.closeShop = () => StateController.change(STATE_ENUM.PLAYING);
 window.harakiri = () => { if(confirm("¿Rendirse?")) GameLogic.die("Harakiri"); };
 
