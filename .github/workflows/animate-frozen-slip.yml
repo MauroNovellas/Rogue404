@@ -1,0 +1,45 @@
+name: Animate Frozen Slip
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Animate frozen sliding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/animate_frozen_slip.py
+          node --check game.js
+          php -l rogue_api.php
+          python3 -m json.tool rogue_scores.json >/dev/null
+          node tests/structure.test.cjs
+          node tests/regression.test.cjs
+          git diff --check
+          grep -q "animationMs: 90" game.js
+          grep -q "movementLocked" game.js
+          grep -q "renderSlipFrame" game.js
+
+      - name: Commit frozen slide animation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js tests/regression.test.cjs
+          git commit -m "Animate Frozen Depths sliding"
+          git push origin HEAD:dev
