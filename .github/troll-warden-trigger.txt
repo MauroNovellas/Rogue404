@@ -1,1 +1,1 @@
-trigger troll warden migration v2
+cleanup troll warden migration
