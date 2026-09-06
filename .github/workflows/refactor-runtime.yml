@@ -1,0 +1,46 @@
+name: Refactor runtime into core
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Integrate validated runtime fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/refactor_runtime.py
+          node --check game.js
+          git diff --check
+          ! grep -q 'VALIDATED RUNTIME STABILIZATION' game.js
+          ! grep -q 'const originalPickup = InventorySystem.pickup' game.js
+          ! grep -q 'const stabilizedUpdateHUD = UISystem.updateHUD' game.js
+          ! grep -q 'Network.saveScore = ' game.js
+          ! grep -q 'Network.renderLeaderboard = ' game.js
+          ! grep -q 'VisualFX.floatText = ' game.js
+          test "$(grep -c "document.addEventListener('keydown'" game.js)" -eq 1
+          grep -q '<div id="combat-status"></div>' index.html
+          grep -q 'FX TÁCTICOS Y ESTADO DE COMBATE' style.css
+
+      - name: Commit runtime cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js index.html style.css
+          git commit -m "Integrate validated runtime fixes into core"
+          git push origin HEAD:dev
