@@ -29,7 +29,7 @@ text = replace_once(
 text = replace_once(
     text,
     """                // Antes de buscar al jugador, el Goblin se desvía por oro cercano.\n                if (e.behavior === 'THIEF' && GameLogic.moveGoblinTowardGold(e)) continue;\n                \n                if (dist <= 1) {""",
-    """                // Antes de buscar al jugador, el Goblin se desvía por oro cercano.\n                if (e.behavior === 'THIEF' && GameLogic.moveGoblinTowardGold(e)) continue;\n\n                // El Trasgo no usa la persecución genérica: defiende su guarida,\n                // telegráfica APLASTAR y vuelve a casa si sales de su territorio.\n                if (e.behavior === 'WARDEN') {\n                    GameLogic.handleTrollAction(e);\n                    continue;\n                }\n                \n                if (dist <= 1) {""",
+    """                // Antes de buscar al jugador, el Goblin se desvía por oro cercano.\n                if (e.behavior === 'THIEF' && GameLogic.moveGoblinTowardGold(e)) continue;\n\n                // El Trasgo no usa la persecución genérica: defiende su guarida,\n                // telegráfica APLASTAR y vuelve a casa si sales de su territorio.\n                if (e.behavior === 'WARDEN') {\n                    GameLogic.handleTrollAction(e);\n                    continue;\n                }\n\n                if (dist <= 1) {""",
     'warden action hook'
 )
 
@@ -50,7 +50,7 @@ text = replace_once(
 text = replace_once(
     text,
     """                    if (enemy) { char = enemy.isSleeping ? \"z\" : enemy.symbol; color = `color:${enemy.isSleeping ? '#888' : enemy.color}; font-weight:bold`; } """,
-    """                    if (enemy) {\n                        char = enemy.isSleeping ? \"z\" : enemy.symbol;\n                        const enemyColor = enemy.isSleeping ? '#888' : (enemy._trollPressurePrimed ? '#ff8c00' : enemy.color);\n                        color = `color:${enemyColor}; font-weight:bold`;\n                    } """,
+    """                    if (enemy) {\n                        char = enemy.isSleeping ? \"z\" : enemy.symbol;\n                        const enemyColor = enemy.isSleeping ? '#888' : (enemy._trollPressurePrimed ? '#ff8c00' : enemy.color);\n                        color = `color:${enemyColor}; font-weight:bold`;\n                    }""",
     'primed troll renderer'
 )
 
