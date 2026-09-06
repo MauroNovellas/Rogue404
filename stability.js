@@ -192,6 +192,96 @@
         return null;
     };
 
+    // Los cofres usan posiciones deterministas sin confundir persistencia con ocupación.
+    EntityFactory.getChestPos = () => {
+        if (GameState.rooms.length === 0) return EntityFactory.getEmptyPos();
+        let limit = 100;
+        while (limit-- > 0) {
+            const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
+            const x = r.x + Math.floor(Utils.random() * r.w);
+            const y = r.y + Math.floor(Utils.random() * r.h);
+            if (!EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+        }
+        return null;
+    };
+
+    EntityFactory.spawnAll = () => {
+        const enemyCount = 3 + GameState.level + Math.floor(Utils.random() * 3);
+        for (let i = 0; i < enemyCount; i++) EntityFactory.spawnEnemy();
+
+        const spawns = [
+            { count: 8, type: 'GOLD', chance: 1.0 },
+            { count: 1, type: 'FOOD', chance: 1.0 },
+            { count: 1, type: 'WATER', chance: 1.0 },
+            { count: 1, type: 'FOOD', chance: CONFIG.ENTITIES.items.foodChance },
+            { count: 1, type: 'WATER', chance: CONFIG.ENTITIES.items.drinkChance },
+            { count: 1, type: 'WEAPON', chance: (GameState.level % 2 === 0) ? 1.0 : 0 },
+            { count: 1, type: 'ARMOR', chance: (GameState.level % 5 === 0) ? 1.0 : 0 }
+        ];
+
+        spawns.forEach(spawn => {
+            if (Utils.random() >= spawn.chance) return;
+            for (let k = 0; k < spawn.count; k++) {
+                const pos = EntityFactory.getEmptyPos();
+                if (!pos || MapSystem.isTaken(pos.x, pos.y)) continue;
+                if (spawn.type === 'GOLD') EntityFactory.createItem(pos, 'GOLD', 10);
+                else if (spawn.type === 'FOOD') EntityFactory.createSmartItem(pos, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
+                else if (spawn.type === 'WATER') EntityFactory.createSmartItem(pos, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
+                else if (spawn.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', CONFIG.COMBAT.baseWeaponVal, 'Arma', '!', '#ff00ff');
+                else if (spawn.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', CONFIG.COMBAT.baseArmorVal, 'Malla', ']', '#4682b4');
+            }
+        });
+
+        if (CONFIG.ENTITIES.shops.levels.includes(GameState.level)) {
+            const pos = EntityFactory.getRoomPos();
+            if (pos) GameState.entities.shops.push({ x: pos.x, y: pos.y, name: 'Mercader' });
+        }
+
+        const chestCount = CONFIG.ENTITIES.chests.minPerLevel + (Utils.random() < CONFIG.ENTITIES.chests.spawnChance ? 1 : 0);
+        for (let i = 0; i < chestCount; i++) {
+            const pos = EntityFactory.getChestPos();
+            if (!pos) continue;
+            const chestKey = `CHEST_${pos.x},${pos.y}`;
+            GameState.entities.chests.push({
+                x: pos.x,
+                y: pos.y,
+                name: 'Cofre',
+                isOpen: MapSystem.isTaken(chestKey)
+            });
+        }
+    };
+
+    GameLogic.openChest = (idx) => {
+        const chest = GameState.entities.chests[idx];
+        if (!chest || chest.isOpen) return;
+
+        chest.isOpen = true;
+        MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
+
+        if (Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
+            Utils.log('¡TRAMPA! El cofre explota.', '#f00');
+            GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
+            GameState.entities.enemies.forEach(e => { if (e.isSleeping) e.isSleeping = false; });
+            if (GameState.player.hp <= 0) GameLogic.die('Cofre Trampa');
+            return;
+        }
+
+        Utils.log('Abres el cofre...', CONFIG.ENTITIES.chests.colors.closed);
+        const r = Utils.random();
+        if (r < 0.3) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
+        else if (r < 0.5) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
+        else if (r < 0.7) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', '#ff00ff');
+        else if (r < 0.9) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', '#4682b4');
+
+        if (r < 0.9) {
+            const newItem = GameState.entities.items.pop();
+            InventorySystem.pickup(newItem, -1, -1, -1, true);
+        } else {
+            GameState.score += 50;
+            Utils.log('¡Encuentras oro!', '#ffd700');
+        }
+    };
+
     // Toda partida nueva debe empezar desde el estado inicial, no desde la dirección del último cambio de piso.
     const originalInit = GameLogic.init.bind(GameLogic);
     GameLogic.init = (seedInput = null) => {
