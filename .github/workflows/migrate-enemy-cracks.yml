@@ -42,3 +42,5 @@ jobs:
           git add game.js tests/regression.test.cjs
           git commit -m "Block enemies from unstable cracks"
           git push origin HEAD:dev
+
+# trigger
