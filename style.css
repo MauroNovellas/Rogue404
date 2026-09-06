@@ -98,6 +98,20 @@ body {
     font-size: 0.9rem; 
     color: #aaa; 
 }
+.legend-lore {
+    margin-top: 3px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: #777;
+    white-space: normal;
+}
+.legend-tactic {
+    margin-top: 3px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: #c7a6e8;
+    white-space: normal;
+}
 
 /* --- ÁREA DE JUEGO --- */
 #game-wrapper {
@@ -446,4 +460,123 @@ button:hover { background: #fff; color: #000; }
     0% { transform: translate(8px, 0) scale(1); opacity: 1; }
     30% { transform: translate(12px, -12px) scale(1.15); opacity: 1; }
     100% { transform: translate(16px, -34px) scale(1); opacity: 0; }
+}
+
+
+/* --- FROZEN DEPTHS / PISOS ESPECIALES --- */
+#game-container.floor-frozen {
+    border-color: #6ecff6;
+    box-shadow: 0 0 24px rgba(110, 207, 246, 0.32);
+}
+
+#floor-warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 95;
+    width: 520px;
+    padding: 28px 32px;
+    box-sizing: border-box;
+    background: #050b10;
+    border: 4px double #8adfff;
+    box-shadow: 0 0 60px rgba(138, 223, 255, 0.45);
+    color: #dff7ff;
+    text-align: center;
+}
+
+#floor-warning.hidden { display: none !important; }
+
+.floor-warning-title {
+    color: #8adfff;
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px dashed #47798d;
+}
+
+.floor-warning-text {
+    color: #d5edf5;
+    text-align: left;
+    line-height: 1.7;
+    margin-bottom: 20px;
+}
+
+.floor-warning-button {
+    border-color: #8adfff;
+    color: #8adfff;
+    font-weight: bold;
+    min-width: 180px;
+}
+
+.floor-warning-hint {
+    margin-top: 12px;
+    color: #658491;
+    font-size: 0.75rem;
+}
+
+
+/* --- MAGMA DEPTHS --- */
+#game-container.floor-magma {
+    border-color: #ff6b35;
+    box-shadow: 0 0 28px rgba(255, 72, 24, 0.38);
+}
+
+#floor-warning.floor-warning-magma {
+    background: #110603;
+    border-color: #ff6b35;
+    box-shadow: 0 0 65px rgba(255, 72, 24, 0.5);
+    color: #ffe2d5;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-title {
+    color: #ff7a3d;
+    border-bottom-color: #8a321c;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-text {
+    color: #ffd8c8;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-button {
+    border-color: #ff6b35;
+    color: #ff8a4c;
+}
+
+#floor-warning.floor-warning-magma .floor-warning-hint {
+    color: #9a5a45;
+}
+
+
+/* --- UNSTABLE DEPTHS --- */
+#game-container.floor-unstable {
+    border-color: #b98a58;
+    box-shadow: 0 0 28px rgba(185, 138, 88, 0.36);
+}
+
+#floor-warning.floor-warning-unstable {
+    background: #0d0906;
+    border-color: #c69762;
+    box-shadow: 0 0 65px rgba(185, 138, 88, 0.46);
+    color: #f1dcc6;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-title {
+    color: #f0bd7a;
+    border-bottom-color: #755438;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-text {
+    color: #ead4bd;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-button {
+    border-color: #d7a56d;
+    color: #f0bd7a;
+}
+
+#floor-warning.floor-warning-unstable .floor-warning-hint {
+    color: #8b6b4e;
 }

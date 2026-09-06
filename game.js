@@ -9,6 +9,38 @@ const CONFIG = {
         maxRooms: 28, minRoomSize: 6, maxRoomSize: 14, viewRadius: 9,
         colors: { wall: '#222', wallVisible: '#444', floor: '#888', fog: '#222' }
     },
+    FLOORS: {
+        cycle: ['FROZEN', 'MAGMA', 'UNSTABLE'],
+        FROZEN: {
+            enabled: true,
+            label: 'HIELO',
+            slipChance: 0.35,
+            driftChance: 0.25,
+            extraStepsMin: 1,
+            extraStepsMax: 2,
+            animationMs: 90,
+            colors: { wall: '#25465f', wallVisible: '#6e9fb8', floor: '#bdefff', fog: '#17303f' },
+            warningTitle: '⚠ PROFUNDIDAD HELADA',
+            warningText: 'EL FRÍO DOMINA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• El hielo puede hacerte resbalar y desviarte.<br>• El equipo polar con crampones reduce ambos peligros.'
+        },
+        MAGMA: {
+            enabled: true,
+            label: 'MAGMA',
+            thirstMultiplier: 2,
+            colors: { wall: '#42130d', wallVisible: '#9c3520', floor: '#d56832', fog: '#210b08' },
+            warningTitle: '⚠ CÁMARA MAGMÁTICA',
+            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• La malla térmica reduce la presión del calor y permite descansar.'
+        },
+        UNSTABLE: {
+            enabled: true,
+            label: 'INESTABLE',
+            fallHpLoss: 0.75,
+            collapseAnimationMs: 180,
+            colors: { wall: '#302820', wallVisible: '#725d49', floor: '#b08b67', fog: '#241d17' },
+            warningTitle: '⚠ ESTRATO INESTABLE',
+            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• Si vuelves a pisarla, el suelo cede y caes al siguiente nivel.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
+        }
+    },
     PLAYER: {
         startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 6,
         survival: { hungerRate: 10, thirstRate: 6, starvationDmg: 2, dehydrationDmg: 3 },
@@ -37,10 +69,10 @@ const CONFIG = {
     },
     ENTITIES: {
         enemies: [
-            // Behavior: 'ERRATIC' (Murciélago), 'COWARD' (Goblin), 'REGEN' (Trasgo/Troll)
-            { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'ERRATIC' },
-            { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'COWARD' },
-            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'REGEN' }
+            // Cada criatura tendrá una regla reconocible y una pista táctica en la leyenda.
+            { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'DIVER', diveChance: 0.35, role: 'Acechador de grietas', lore: 'Caza por eco entre las fisuras y se deja caer cuando percibe una abertura.', tactic: 'PICADO: a 2 casillas puede acercarse y atacar en la misma acción. RÁPIDO rompe su ritmo.' },
+            { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'THIEF', stealGold: 20, greedRange: 6, fleeHp: 0.30, role: 'Saqueador de las profundidades', lore: 'No busca una pelea justa: escucha monedas, calcula una ruta y solo entonces enseña los dientes.', tactic: 'CODICIA: persigue oro cercano. ROBO: si te hiere puede birlar 20 oro y huir hacia una escalera. Mátalo antes de que escape para recuperarlo.' },
+            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
         ],
         items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
         chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, colors: { closed: '#DAA520', open: '#555' } },
@@ -69,9 +101,10 @@ const GameState = {
     current: STATE_ENUM.CONTROLS,
     seed: 0, rng: null, level: 1, maxLevel: 1, score: 0, moves: 0,
     entryMethod: 'start', deathCause: "Desconocido",
+    floor: { type: 'NORMAL' },
     map: [], seen: [], visible: [], rooms: [],
     stairs: { up: {x:0, y:0}, down: {x:0, y:0} },
-    persistence: {}, discoveredTypes: new Set(),
+    persistence: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
     entities: { enemies: [], items: [], chests: [], shops: [] },
     player: {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
@@ -91,6 +124,8 @@ const GameState = {
         actionIndex: 0,
         currentActions: [],
         shopStock: [],
+        floorWarningOpen: false,
+        movementLocked: false,
     }
 };
 
@@ -98,6 +133,9 @@ const DOM = {
     container: document.getElementById('game-container'),
     log: document.getElementById('log'),
     combatStatus: document.getElementById('combat-status'),
+    floorWarning: document.getElementById('floor-warning'),
+    floorWarningTitle: document.getElementById('floor-warning-title'),
+    floorWarningText: document.getElementById('floor-warning-text'),
     menus: {
         controls: document.getElementById('controls-menu'),
         inventory: document.getElementById('inventory-menu'),
@@ -191,6 +229,211 @@ const VisualFX = {
     }
 };
 
+const FloorSystem = {
+    typeForLevel: (level) => {
+        if (level < 3 || level % 3 !== 0) return 'NORMAL';
+        const cycle = CONFIG.FLOORS.cycle;
+        const slot = (Math.floor(level / 3) - 1) % cycle.length;
+        const type = cycle[slot];
+        const config = CONFIG.FLOORS[type];
+        return config && config.enabled ? type : 'NORMAL';
+    },
+    config: () => CONFIG.FLOORS[GameState.floor.type] || null,
+    is: (type) => GameState.floor.type === type,
+    prepareLevel: () => {
+        GameState.floor = { type: FloorSystem.typeForLevel(GameState.level) };
+        DOM.container.classList.remove('floor-frozen', 'floor-magma', 'floor-unstable');
+        if (FloorSystem.is('FROZEN')) DOM.container.classList.add('floor-frozen');
+        else if (FloorSystem.is('MAGMA')) DOM.container.classList.add('floor-magma');
+        else if (FloorSystem.is('UNSTABLE')) DOM.container.classList.add('floor-unstable');
+    },
+    getPalette: () => {
+        const config = FloorSystem.config();
+        return config && config.colors ? config.colors : CONFIG.MAP.colors;
+    },
+    armorTraits: () => {
+        const armor = GameState.player.equipment.armor;
+        return armor && armor.traits ? armor.traits : {};
+    },
+    slipChance: () => {
+        if (!FloorSystem.is('FROZEN')) return 0;
+        const config = CONFIG.FLOORS.FROZEN;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().slipResist) || 0));
+        return config.slipChance * (1 - resist);
+    },
+    shouldSlip: () => FloorSystem.is('FROZEN') && Utils.random() < FloorSystem.slipChance(),
+    resolveSlipDirection: (dx, dy) => {
+        if (!FloorSystem.is('FROZEN') || Utils.random() >= CONFIG.FLOORS.FROZEN.driftChance) return [dx, dy];
+        const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
+        const index = dirs.findIndex(([x, y]) => x === dx && y === dy);
+        if (index === -1) return [dx, dy];
+        const shift = Utils.random() < 0.5 ? -1 : 1;
+        return dirs[(index + shift + dirs.length) % dirs.length];
+    },
+    extraSlipSteps: () => {
+        const config = CONFIG.FLOORS.FROZEN;
+        const span = config.extraStepsMax - config.extraStepsMin + 1;
+        return config.extraStepsMin + Math.floor(Utils.random() * span);
+    },
+    waitSlipFrame: () => new Promise(resolve => window.setTimeout(resolve, CONFIG.FLOORS.FROZEN.animationMs)),
+    renderSlipFrame: async () => {
+        MapSystem.updateFog();
+        Renderer.draw();
+        UISystem.updateHUD();
+        await FloorSystem.waitSlipFrame();
+    },
+    canSlideTo: (x, y) => {
+        if (MapSystem.isBlocked(x, y)) return false;
+        if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
+        if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
+        if (GameState.entities.chests.some(c => c.x === x && c.y === y)) return false;
+        return true;
+    },
+    thirstRate: () => {
+        const baseRate = CONFIG.PLAYER.survival.thirstRate;
+        if (!FloorSystem.is('MAGMA')) return baseRate;
+        const config = CONFIG.FLOORS.MAGMA;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().thirstResist) || 0));
+        const pressure = 1 + (config.thirstMultiplier - 1) * (1 - resist);
+        return Math.max(1, Math.round(baseRate / pressure));
+    },
+    restHealing: () => {
+        if (FloorSystem.is('FROZEN')) return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
+        if (FloorSystem.is('MAGMA')) return Math.max(0, Number(FloorSystem.armorTraits().magmaRestHeal) || 0);
+        return 2;
+    },
+    unstableKey: (kind, x, y) => `${kind}_${x},${y}`,
+    isCracked: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('CRACK', x, y)),
+    isHole: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('HOLE', x, y)),
+    isStableUnstableTile: (x, y) => {
+        return (x === GameState.stairs.up.x && y === GameState.stairs.up.y) ||
+               (x === GameState.stairs.down.x && y === GameState.stairs.down.y);
+    },
+    markCracked: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y) || FloorSystem.isHole(x, y)) return;
+        MapSystem.markTaken(FloorSystem.unstableKey('CRACK', x, y));
+    },
+    markHole: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y)) return;
+        MapSystem.markTaken(FloorSystem.unstableKey('HOLE', x, y));
+    },
+    fallHpLoss: () => {
+        if (!FloorSystem.is('UNSTABLE')) return 0;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().fallDamageResist) || 0));
+        return CONFIG.FLOORS.UNSTABLE.fallHpLoss * (1 - resist);
+    },
+    recoveryPositions: (count) => {
+        const positions = [];
+        const px = GameState.player.x;
+        const py = GameState.player.y;
+        for (let radius = 1; radius <= 7 && positions.length < count; radius++) {
+            for (let dy = -radius; dy <= radius && positions.length < count; dy++) {
+                for (let dx = -radius; dx <= radius && positions.length < count; dx++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+                    const x = px + dx;
+                    const y = py + dy;
+                    if (MapSystem.isBlocked(x, y)) continue;
+                    if (EntityFactory.isOccupied(x, y)) continue;
+                    if (x === GameState.stairs.up.x && y === GameState.stairs.up.y) continue;
+                    if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) continue;
+                    if (positions.some(p => p.x === x && p.y === y)) continue;
+                    positions.push({ x, y });
+                }
+            }
+        }
+        return positions;
+    },
+    scatterRecovery: (items) => {
+        if (!items.length) return;
+        if (!GameState.recoveryDrops[GameState.level]) GameState.recoveryDrops[GameState.level] = [];
+        const positions = FloorSystem.recoveryPositions(items.length);
+        items.forEach((item, index) => {
+            const pos = positions[index] || { x: GameState.player.x, y: GameState.player.y };
+            const recoveryDropId = `RECOVERY_${GameState.level}_${++GameState.recoveryDropSeq}`;
+            const dropped = { ...item, x: pos.x, y: pos.y, recoveryDropId };
+            GameState.recoveryDrops[GameState.level].push({ ...dropped });
+            GameState.entities.items.push(dropped);
+        });
+    },
+    restoreRecoveryDrops: () => {
+        const drops = GameState.recoveryDrops[GameState.level] || [];
+        drops.forEach(drop => {
+            if (!GameState.entities.items.some(item => item.recoveryDropId === drop.recoveryDropId)) {
+                GameState.entities.items.push({ ...drop });
+            }
+        });
+    },
+    removeRecoveryDrop: (id) => {
+        if (!id) return;
+        const drops = GameState.recoveryDrops[GameState.level];
+        if (!drops) return;
+        const index = drops.findIndex(drop => drop.recoveryDropId === id);
+        if (index !== -1) drops.splice(index, 1);
+    },
+    fallPlayer: () => {
+        const traits = FloorSystem.armorTraits();
+        const keepEquipped = Boolean(traits.retainEquippedOnFall);
+        const hpLoss = FloorSystem.fallHpLoss();
+        const itemsToScatter = [...GameState.player.inventory];
+        if (!keepEquipped) {
+            if (GameState.player.equipment.weapon) itemsToScatter.push(GameState.player.equipment.weapon);
+            if (GameState.player.equipment.armor) itemsToScatter.push(GameState.player.equipment.armor);
+            GameState.player.equipment.weapon = null;
+            GameState.player.equipment.armor = null;
+        }
+        GameState.player.inventory = [];
+
+        GameState.player.hp = Math.max(1, Math.ceil(GameState.player.hp * (1 - hpLoss)));
+
+        GameState.level++;
+        GameState.entryMethod = 'falling';
+        MapSystem.initLevel();
+        FloorSystem.scatterRecovery(itemsToScatter);
+        Renderer.draw();
+        UISystem.updateHUD();
+
+        Utils.log(keepEquipped ? '¡CAÍDA! El arnés salva tu equipo, pero la mochila sale despedida.' : '¡CAÍDA! Tu equipo y mochila quedan dispersos por el nivel.', '#d7a56d');
+        VisualFX.floatText(GameState.player.x, GameState.player.y, `-${Math.round(hpLoss * 100)}% HP`, '#ff6b35', 'incoming');
+    },
+    collapsePlayerTile: async (x, y) => {
+        FloorSystem.markHole(x, y);
+        Utils.log('¡CRAC! El suelo desaparece bajo tus pies.', '#d7a56d');
+        VisualFX.floatText(x, y, '¡CRAC!', '#f0bd7a');
+        MapSystem.updateFog();
+        Renderer.draw();
+        UISystem.updateHUD();
+        await new Promise(resolve => window.setTimeout(resolve, CONFIG.FLOORS.UNSTABLE.collapseAnimationMs));
+        FloorSystem.fallPlayer();
+    },
+    showWarning: () => {
+        const config = FloorSystem.config();
+        if (!config || !config.warningTitle || !DOM.floorWarning) return;
+        DOM.floorWarningTitle.textContent = config.warningTitle;
+        DOM.floorWarningText.innerHTML = config.warningText;
+        DOM.floorWarning.classList.remove('floor-warning-frozen', 'floor-warning-magma', 'floor-warning-unstable');
+        DOM.floorWarning.classList.add(`floor-warning-${GameState.floor.type.toLowerCase()}`);
+        DOM.floorWarning.classList.remove('hidden');
+        GameState.ui.floorWarningOpen = true;
+    },
+    closeWarning: () => {
+        if (DOM.floorWarning) DOM.floorWarning.classList.add('hidden');
+        GameState.ui.floorWarningOpen = false;
+        if (GameState.current === STATE_ENUM.PLAYING) DOM.container.focus();
+    },
+    onEnter: () => {
+        if (FloorSystem.is('FROZEN')) {
+            Utils.log('El aire corta como cristal. El suelo está helado.', '#8adfff');
+            FloorSystem.showWarning();
+        } else if (FloorSystem.is('MAGMA')) {
+            Utils.log('El aire quema los pulmones. La sed será tu mayor enemigo.', '#ff6b35');
+            FloorSystem.showWarning();
+        } else if (FloorSystem.is('UNSTABLE')) {
+            Utils.log('La piedra cruje bajo tus botas. No confíes en el camino de vuelta.', '#d7a56d');
+            FloorSystem.showWarning();
+        }
+    }
+};
+
 // ============================================================================
 // 4. NETWORK (API PHP)
 // ============================================================================
@@ -278,6 +521,7 @@ const MapSystem = {
         if (GameState.level > GameState.maxLevel) GameState.maxLevel = GameState.level;
         GameState.map = []; GameState.seen = []; GameState.visible = []; GameState.rooms = [];
         GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+        FloorSystem.prepareLevel();
         if (!GameState.persistence[GameState.level]) GameState.persistence[GameState.level] = [];
         for(let y=0; y<CONFIG.GRID.rows; y++) {
             GameState.seen.push(new Array(CONFIG.GRID.cols).fill(false));
@@ -285,11 +529,18 @@ const MapSystem = {
             GameState.map.push(new Array(CONFIG.GRID.cols).fill('#'));
         }
         MapSystem.generateDungeon(); EntityFactory.spawnAll();
-        const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
-        GameState.player.x = stairs.x; GameState.player.y = stairs.y;
+        FloorSystem.restoreRecoveryDrops();
+        if (GameState.entryMethod === 'falling') {
+            const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
+            GameState.player.x = landing.x; GameState.player.y = landing.y;
+        } else {
+            const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
+            GameState.player.x = stairs.x; GameState.player.y = stairs.y;
+        }
         GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null };
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
+        FloorSystem.onEnter();
     },
     generateDungeon: () => {
         for (let i = 0; i < CONFIG.MAP.maxRooms; i++) {
@@ -334,7 +585,7 @@ const MapSystem = {
             }
         }
     },
-    isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#'; },
+    isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#' || FloorSystem.isHole(x, y); },
     isTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; return GameState.persistence[GameState.level].includes(key); },
     markTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; if (!GameState.persistence[GameState.level].includes(key)) GameState.persistence[GameState.level].push(key); },
 };
@@ -376,6 +627,8 @@ const EntityFactory = {
             }
         });
 
+        EntityFactory.spawnFloorSpecial();
+
         if (CONFIG.ENTITIES.shops.levels.includes(GameState.level)) {
             const pos = EntityFactory.getRoomPos();
             if (pos) GameState.entities.shops.push({ x: pos.x, y: pos.y, name: 'Mercader' });
@@ -394,6 +647,52 @@ const EntityFactory = {
             });
         }
     },
+    spawnFloorSpecial: () => {
+        if (!FloorSystem.is('FROZEN') && !FloorSystem.is('MAGMA') && !FloorSystem.is('UNSTABLE')) return;
+        const pos = EntityFactory.getEmptyPos();
+        if (!pos || MapSystem.isTaken(pos.x, pos.y)) return;
+
+        if (FloorSystem.is('FROZEN')) {
+            GameState.entities.items.push({
+                x: pos.x,
+                y: pos.y,
+                type: 'armor',
+                specialId: 'FROZEN_CRAMPONS',
+                name: 'Arnés polar con crampones',
+                value: 1,
+                symbol: ']',
+                color: '#8adfff',
+                qualityColor: '#bdefff',
+                traits: { slipResist: 0.75, frozenRestHeal: 1 }
+            });
+        } else if (FloorSystem.is('MAGMA')) {
+            GameState.entities.items.push({
+                x: pos.x,
+                y: pos.y,
+                type: 'armor',
+                specialId: 'MAGMA_THERMAL',
+                name: 'Malla térmica de salamandra',
+                value: 1,
+                symbol: ']',
+                color: '#ff6b35',
+                qualityColor: '#ffb347',
+                traits: { heatResist: 0.6, thirstResist: 0.6, magmaRestHeal: 1 }
+            });
+        } else {
+            GameState.entities.items.push({
+                x: pos.x,
+                y: pos.y,
+                type: 'armor',
+                specialId: 'UNSTABLE_HARNESS',
+                name: 'Arnés ligero de espeleólogo',
+                value: 1,
+                symbol: ']',
+                color: '#d7a56d',
+                qualityColor: '#f0bd7a',
+                traits: { fallDamageResist: 0.5, retainEquippedOnFall: true }
+            });
+        }
+    },
     spawnEnemy: () => {
         let pos = EntityFactory.getEmptyPos(); if (!pos) return;
         const possible = CONFIG.ENTITIES.enemies.filter(e => e.minLevel <= GameState.level);
@@ -405,6 +704,17 @@ const EntityFactory = {
             x: pos.x, y: pos.y,
             typeId: type.id,
             behavior: type.behavior,
+            diveChance: Number(type.diveChance) || 0,
+            stealGold: Number(type.stealGold) || 0,
+            greedRange: Number(type.greedRange) || 0,
+            fleeHp: Number(type.fleeHp) || 0.30,
+            stolenGold: 0,
+            territoryRadius: Number(type.territoryRadius) || 0,
+            pressureRange: Number(type.pressureRange) || 0,
+            smashMult: Number(type.smashMult) || 1,
+            homeRegen: Number(type.homeRegen) || 0,
+            homeX: pos.x, homeY: pos.y,
+            _trollPressurePrimed: false,
             name: name, symbol: type.symbol,
             color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
             hp: hpVar.value, maxHp: hpVar.value,
@@ -423,7 +733,7 @@ const EntityFactory = {
         while (limit-- > 0) {
             const x = Math.floor(Utils.random() * (CONFIG.GRID.cols - 2)) + 1;
             const y = Math.floor(Utils.random() * (CONFIG.GRID.rows - 2)) + 1;
-            if (GameState.map[y][x] === '.' && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (GameState.map[y][x] === '.' && !MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
         }
         return null;
     },
@@ -434,7 +744,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
         }
         return null;
     },
@@ -445,7 +755,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
         }
         return null;
     },
@@ -464,6 +774,9 @@ const GameLogic = {
         GameState.ui.actionIndex = 0;
         GameState.ui.currentActions = [];
         GameState.ui.shopStock = [];
+        GameState.ui.floorWarningOpen = false;
+        GameState.ui.movementLocked = false;
+        FloorSystem.closeWarning();
         Network.isSaving = false;
 
         GameState.seed = seedInput !== null ? seedInput : Math.floor(Math.random() * 999999);
@@ -475,7 +788,7 @@ const GameLogic = {
             equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
             combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
         };
-        GameState.persistence = {}; GameState.discoveredTypes.clear(); Renderer.resetLegend();
+        GameState.persistence = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
 
         // Una partida nueva entra por las escaleras que comunican con la superficie.
@@ -504,57 +817,102 @@ const GameLogic = {
         Renderer.draw();
         UISystem.updateHUD();
     },
-    movePlayer: (dx, dy) => {
-        let nx = GameState.player.x + dx; let ny = GameState.player.y + dy;
-        
-        // 1. Chequeo de Muros
+    movePlayer: async (dx, dy) => {
+        if (GameState.ui.movementLocked) return false;
+
+        const nx = GameState.player.x + dx;
+        const ny = GameState.player.y + dy;
+
         if (MapSystem.isBlocked(nx, ny)) return false;
-        
-        // 2. Chequeo de Tiendas
         if (GameState.entities.shops.some(s => s.x === nx && s.y === ny)) { ShopSystem.open(); return false; }
-        
-        // 3. Chequeo de Cofres
-        let chest = GameState.entities.chests.find(c => c.x === nx && c.y === ny);
-        if (chest) { if (!chest.isOpen) Utils.log("Cofre cerrado. Presiona ESPACIO.", CONFIG.ENTITIES.chests.colors.closed); else Utils.log("Cofre vacío.", "#777"); return false; }
-        
-        // 4. Chequeo de Enemigos → Bump Attack (forma natural de pelear)
-        let enemy = GameState.entities.enemies.find(e => e.x === nx && e.y === ny);
-        if (enemy) { 
+
+        const chest = GameState.entities.chests.find(c => c.x === nx && c.y === ny);
+        if (chest) {
+            if (!chest.isOpen) Utils.log('Cofre cerrado. Presiona ESPACIO.', CONFIG.ENTITIES.chests.colors.closed);
+            else Utils.log('Cofre vacío.', '#777');
+            return false;
+        }
+
+        const enemy = GameState.entities.enemies.find(e => e.x === nx && e.y === ny);
+        if (enemy) {
             CombatSystem.bumpAttack(enemy);
             GameLogic.endTurn(true);
-            return false; 
+            return false;
         }
 
-        // --- MOVIMIENTO REALIZADO ---
-        GameState.player.x = nx; GameState.player.y = ny;
-        GameState.player.combat.waitBonus = 0; 
-        GameState.player.combat.isDefending = false; 
+        const previousX = GameState.player.x;
+        const previousY = GameState.player.y;
+        const willCollapse = FloorSystem.is('UNSTABLE') && FloorSystem.isCracked(nx, ny) && !FloorSystem.isStableUnstableTile(nx, ny);
+        if (FloorSystem.is('UNSTABLE')) FloorSystem.markCracked(previousX, previousY);
+        GameLogic.enterPlayerTile(nx, ny);
 
-        // 5. RECOGER ITEMS (AQUÍ ES DONDE VA EL CÓDIGO NUEVO)
-        for(let i = GameState.entities.items.length - 1; i >= 0; i--) {
-            let item = GameState.entities.items[i];
-            if (item.x === nx && item.y === ny) {
-                if (item.type === 'GOLD') { 
-                    GameState.score += item.value; 
-                    
-                    // --- NUEVO: EFECTO VISUAL ---
-                    VisualFX.floatText(nx, ny, `+$${item.value}`, "#ffd700"); 
-                    // ----------------------------
-                    
-                    Utils.log("¡Oro!", "#ffd700"); 
-                    GameState.entities.items.splice(i, 1); 
-                    MapSystem.markTaken(nx, ny); 
+        if (willCollapse) {
+            GameState.ui.movementLocked = true;
+            try {
+                await FloorSystem.collapsePlayerTile(nx, ny);
+            } finally {
+                GameState.ui.movementLocked = false;
+            }
+            return true;
+        }
+
+        if (FloorSystem.shouldSlip()) {
+            GameState.ui.movementLocked = true;
+            try {
+                const [slideDx, slideDy] = FloorSystem.resolveSlipDirection(dx, dy);
+                const extraSteps = FloorSystem.extraSlipSteps();
+                let movedExtra = 0;
+
+                // Dibuja primero la casilla elegida por el jugador y después cada
+                // casilla extra: el resbalón se percibe como movimiento, no teleportación.
+                await FloorSystem.renderSlipFrame();
+
+                for (let step = 0; step < extraSteps; step++) {
+                    const sx = GameState.player.x + slideDx;
+                    const sy = GameState.player.y + slideDy;
+                    if (!FloorSystem.canSlideTo(sx, sy)) break;
+                    GameLogic.enterPlayerTile(sx, sy);
+                    movedExtra++;
+                    await FloorSystem.renderSlipFrame();
                 }
-                else { 
-                    // Nota: También puedes añadir FX aquí si quieres ver el nombre del item flotando
-                    // VisualFX.floatText(nx, ny, item.name, item.color);
-                    InventorySystem.pickup(item, i, nx, ny); 
+
+                if (movedExtra > 0) {
+                    const deviated = slideDx !== dx || slideDy !== dy;
+                    Utils.log(deviated ? '¡El hielo te hace resbalar y te desvía!' : '¡Resbalas sobre el hielo!', '#8adfff');
+                    VisualFX.floatText(GameState.player.x, GameState.player.y, deviated ? '¡DESVÍO!' : '¡RESBALA!', '#8adfff');
+                } else {
+                    Utils.log('Pierdes pie, pero algo detiene el resbalón.', '#8adfff');
                 }
+            } finally {
+                GameState.ui.movementLocked = false;
             }
         }
-        
+
         GameLogic.endTurn(true);
         return true;
+    },
+    enterPlayerTile: (x, y) => {
+        GameState.player.x = x;
+        GameState.player.y = y;
+        GameState.player.combat.waitBonus = 0;
+        GameState.player.combat.isDefending = false;
+        GameLogic.collectItemsAt(x, y);
+    },
+    collectItemsAt: (x, y) => {
+        for (let i = GameState.entities.items.length - 1; i >= 0; i--) {
+            const item = GameState.entities.items[i];
+            if (item.x !== x || item.y !== y) continue;
+
+            if (item.type === 'GOLD') {
+                GameState.score += item.value;
+                VisualFX.floatText(x, y, `+$${item.value}`, '#ffd700');
+                Utils.log('¡Oro!', '#ffd700');
+                GameState.entities.items.splice(i, 1);
+                MapSystem.markTaken(x, y);
+            } else {
+                InventorySystem.pickup(item, i, x, y);
+            }
+        }
     },
     updateEnemies: () => {
         GameState.entities.enemies.forEach(enemy => {
@@ -576,9 +934,27 @@ const GameLogic = {
             while(e.energy >= 1.0 && actions < 5) {
                 e.energy -= 1.0; actions++;
                 dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
-                
+
+                // Un Goblin que ya tiene botín deja de combatir: intenta alcanzar
+                // cualquiera de las dos escaleras y convertir el robo en pérdida real.
+                if (e.behavior === 'THIEF' && (e.stolenGold || 0) > 0) {
+                    if (GameLogic.moveGoblinToEscape(e)) break;
+                    continue;
+                }
+
+                // Antes de buscar al jugador, el Goblin se desvía por oro cercano.
+                if (e.behavior === 'THIEF' && GameLogic.moveGoblinTowardGold(e)) continue;
+
+                // El Trasgo no usa la persecución genérica: defiende su guarida,
+                // telegráfica APLASTAR y vuelve a casa si sales de su territorio.
+                if (e.behavior === 'WARDEN') {
+                    GameLogic.handleTrollAction(e);
+                    continue;
+                }
+
                 if (dist <= 1) { 
-                    if (e.behavior === 'COWARD' && e.hp < e.maxHp * 0.3) {
+                    const fleeThreshold = Number(e.fleeHp) || 0.30;
+                    if ((e.behavior === 'COWARD' || e.behavior === 'THIEF') && e.hp < e.maxHp * fleeThreshold) {
                          if(!GameLogic.moveEnemyAway(e)) CombatSystem.enemyAttack(e); 
                     } else {
                         CombatSystem.enemyAttack(e); 
@@ -587,13 +963,211 @@ const GameLogic = {
                 }
 
                 if (dist < 10) {
-                    if (e.behavior === 'ERRATIC' && Utils.random() < 0.5) { GameLogic.moveEnemyRandom(e); } 
-                    else if (e.behavior === 'COWARD' && e.hp < e.maxHp * 0.3) { GameLogic.moveEnemyAway(e); }
-                    else { GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y); }
+                    if (e.behavior === 'DIVER' && dist === 2 && Utils.random() < e.diveChance) {
+                        GameLogic.performBatDive(e);
+                    } else if (e.behavior === 'DIVER' && Utils.random() < 0.45) {
+                        GameLogic.moveEnemyRandom(e);
+                    } else if ((e.behavior === 'COWARD' || e.behavior === 'THIEF') && e.hp < e.maxHp * (Number(e.fleeHp) || 0.30)) {
+                        GameLogic.moveEnemyAway(e);
+                    } else {
+                        GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y);
+                    }
                 }
             }
-            if (e.behavior === 'REGEN' && !e.tookDamage && e.hp < e.maxHp) { e.hp += 1; }
         });
+        GameState.entities.enemies = GameState.entities.enemies.filter(enemy => !enemy._escaped);
+    },
+    trollDistanceFromHome: (e, x = e.x, y = e.y) => {
+        if (!e) return Infinity;
+        return Math.max(Math.abs((e.homeX ?? e.x) - x), Math.abs((e.homeY ?? e.y) - y));
+    },
+    playerInTrollTerritory: (e) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+        const radius = Math.max(1, Number(e.territoryRadius) || 5);
+        return GameLogic.trollDistanceFromHome(e, GameState.player.x, GameState.player.y) <= radius;
+    },
+    moveTrollWithinTerritory: (e, targetX, targetY) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+        let bestMove = null;
+        let minD = Infinity;
+        const radius = Math.max(1, Number(e.territoryRadius) || 5);
+        const moves = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+        moves.sort(() => Utils.random() - 0.5);
+        for (const [dx, dy] of moves) {
+            const tx = e.x + dx;
+            const ty = e.y + dy;
+            if (GameLogic.trollDistanceFromHome(e, tx, ty) > radius) continue;
+            if (!GameLogic.isValidEnemyMove(tx, ty)) continue;
+            const d = Math.max(Math.abs(targetX - tx), Math.abs(targetY - ty));
+            if (d < minD) { minD = d; bestMove = { x: tx, y: ty }; }
+        }
+        if (!bestMove) return false;
+        e.x = bestMove.x;
+        e.y = bestMove.y;
+        return true;
+    },
+    regenerateTrollAtHome: (e) => {
+        if (!e || e.behavior !== 'WARDEN' || e.x !== e.homeX || e.y !== e.homeY || e.hp >= e.maxHp) return 0;
+        const before = e.hp;
+        e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Number(e.homeRegen) || 2));
+        const healed = e.hp - before;
+        if (healed > 0) VisualFX.floatText(e.x, e.y, `+${healed}`, '#55bbff');
+        return healed;
+    },
+    performTrollSmash: (e) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+        const dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+        if (dist > 1) return false;
+
+        const originalAtk = e.atk;
+        const mult = Math.max(1, Number(e.smashMult) || 1.5);
+        e.atk = Math.max(1, Math.round(originalAtk * mult));
+        e._trollPressurePrimed = false;
+        Utils.log(`${e.name} descarga todo su peso: ¡APLASTAR!`, '#ff8c00');
+        VisualFX.floatText(e.x, e.y, '¡APLASTAR!', '#ff8c00');
+        try {
+            CombatSystem.enemyAttack(e);
+        } finally {
+            e.atk = originalAtk;
+        }
+        return true;
+    },
+    handleTrollAction: (e) => {
+        if (!e || e.behavior !== 'WARDEN') return false;
+
+        if (!GameLogic.playerInTrollTerritory(e)) {
+            e._trollPressurePrimed = false;
+            if (e.x !== e.homeX || e.y !== e.homeY) {
+                GameLogic.moveTrollWithinTerritory(e, e.homeX, e.homeY);
+            }
+            GameLogic.regenerateTrollAtHome(e);
+            return true;
+        }
+
+        const dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+        const pressureRange = Math.max(1, Number(e.pressureRange) || 2);
+
+        if (dist > pressureRange) {
+            e._trollPressurePrimed = false;
+        } else if (e._trollPressurePrimed && dist <= 1) {
+            return GameLogic.performTrollSmash(e);
+        } else if (!e._trollPressurePrimed) {
+            e._trollPressurePrimed = true;
+            Utils.log(`${e.name} golpea el suelo y RUGE. Si sigues cerca, va a aplastarte.`, '#ff8c00');
+            VisualFX.floatText(e.x, e.y, '¡RUGE!', '#ff8c00');
+        }
+
+        if (dist <= 1) CombatSystem.enemyAttack(e);
+        else GameLogic.moveTrollWithinTerritory(e, GameState.player.x, GameState.player.y);
+        return true;
+    },
+    findNearestGroundGold: (e, range = 6) => {
+        if (!e) return null;
+        let best = null;
+        let bestDist = Infinity;
+        GameState.entities.items.forEach(item => {
+            if (!item || item.type !== 'GOLD') return;
+            const dist = Math.max(Math.abs(item.x - e.x), Math.abs(item.y - e.y));
+            if (dist <= range && dist < bestDist) {
+                best = item;
+                bestDist = dist;
+            }
+        });
+        return best;
+    },
+    collectGoblinGoldAt: (e) => {
+        if (!e || e.behavior !== 'THIEF') return false;
+        const idx = GameState.entities.items.findIndex(item => item.type === 'GOLD' && item.x === e.x && item.y === e.y);
+        if (idx === -1) return false;
+
+        const item = GameState.entities.items[idx];
+        const amount = Math.max(0, Number(item.value) || 0);
+        if (amount <= 0) return false;
+
+        e.stolenGold = (e.stolenGold || 0) + amount;
+        GameState.entities.items.splice(idx, 1);
+        MapSystem.markTaken(item.x, item.y);
+        Utils.log(`${e.name} recoge ${amount} oro y sale corriendo!`, e.color || '#00ff00');
+        VisualFX.floatText(e.x, e.y, `+$${amount}`, e.color || '#00ff00');
+        return true;
+    },
+    moveGoblinTowardGold: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) > 0) return false;
+        const target = GameLogic.findNearestGroundGold(e, Number(e.greedRange) || 6);
+        if (!target) return false;
+
+        if (e.x !== target.x || e.y !== target.y) {
+            GameLogic.moveEnemyTowards(e, target.x, target.y);
+        }
+        GameLogic.collectGoblinGoldAt(e);
+        return true;
+    },
+    goblinStealGold: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) > 0 || GameState.score <= 0) return 0;
+        const amount = Math.min(Number(e.stealGold) || 20, GameState.score);
+        if (amount <= 0) return 0;
+
+        GameState.score -= amount;
+        e.stolenGold = (e.stolenGold || 0) + amount;
+        Utils.log(`¡${e.name} te roba ${amount} oro! Va hacia una escalera.`, '#7fff00');
+        VisualFX.floatText(GameState.player.x, GameState.player.y, `-$${amount}`, '#7fff00', 'incoming');
+        UISystem.updateHUD();
+        return amount;
+    },
+    nearestEscapeStair: (e) => {
+        if (!e) return null;
+        const candidates = [GameState.stairs.up, GameState.stairs.down].filter(Boolean);
+        if (candidates.length === 0) return null;
+        candidates.sort((a, b) => {
+            const da = Math.max(Math.abs(a.x - e.x), Math.abs(a.y - e.y));
+            const db = Math.max(Math.abs(b.x - e.x), Math.abs(b.y - e.y));
+            return da - db;
+        });
+        return candidates.find(s => s.x !== GameState.player.x || s.y !== GameState.player.y) || candidates[0];
+    },
+    moveGoblinToEscape: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) <= 0) return false;
+        const isOnStairs = () => [GameState.stairs.up, GameState.stairs.down].some(s => s && s.x === e.x && s.y === e.y);
+
+        if (!isOnStairs()) {
+            const target = GameLogic.nearestEscapeStair(e);
+            if (target) GameLogic.moveEnemyTowards(e, target.x, target.y);
+        }
+
+        if (isOnStairs()) {
+            e._escaped = true;
+            Utils.log(`${e.name} escapa con ${e.stolenGold} oro.`, '#55aa22');
+            VisualFX.floatText(e.x, e.y, '¡ESCAPA!', '#55aa22');
+            return true;
+        }
+        return false;
+    },
+    dropGoblinLoot: (e) => {
+        if (!e || e.behavior !== 'THIEF' || (e.stolenGold || 0) <= 0) return 0;
+        const amount = e.stolenGold;
+        e.stolenGold = 0;
+        GameState.entities.items.push({
+            x: e.x, y: e.y, type: 'GOLD', value: amount,
+            name: 'Bolsa de oro robado', symbol: '$', color: '#ffd700', stolenFromGoblin: true
+        });
+        Utils.log(`El Goblin deja caer una bolsa con ${amount} oro.`, '#ffd700');
+        return amount;
+    },
+    performBatDive: (e) => {
+        if (!e) return false;
+        const beforeX = e.x;
+        const beforeY = e.y;
+        GameLogic.moveEnemyTowards(e, GameState.player.x, GameState.player.y);
+        if (e.x === beforeX && e.y === beforeY) return false;
+
+        const dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
+        if (dist <= 1) {
+            Utils.log(`${e.name} se descuelga en picado!`, e.color || '#a64dff');
+            VisualFX.floatText(e.x, e.y, '¡PICADO!', e.color || '#a64dff');
+            CombatSystem.enemyAttack(e);
+            return true;
+        }
+        return false;
     },
     moveEnemyTowards: (e, targetX, targetY) => {
         let bestMove = null; let minD = 999; 
@@ -631,6 +1205,9 @@ const GameLogic = {
     },
     isValidEnemyMove: (x, y) => {
         if (MapSystem.isBlocked(x, y)) return false;
+        // En el estrato inestable los enemigos tratan las grietas como paredes:
+        // no pisan suelo debilitado y nunca provocan una caída de nivel.
+        if (FloorSystem.isCracked(x, y)) return false;
         if (x === GameState.player.x && y === GameState.player.y) return false;
         if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
         if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
@@ -643,7 +1220,8 @@ const GameLogic = {
         const s = CONFIG.PLAYER.survival;
         GameState.moves++;
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
-        if (GameState.moves % s.thirstRate === 0) GameState.player.water--;
+        const thirstRate = FloorSystem.thirstRate();
+        if (GameState.moves % thirstRate === 0) GameState.player.water--;
 
         if (GameState.player.food <= 0) {
             GameState.player.food = 0;
@@ -673,8 +1251,22 @@ const GameLogic = {
         if (GameState.player.x === GameState.stairs.down.x && GameState.player.y === GameState.stairs.down.y) { GameState.level++; GameState.entryMethod = 'descending'; MapSystem.initLevel(); }
         else if (GameState.player.x === GameState.stairs.up.x && GameState.player.y === GameState.stairs.up.y) { if (GameState.level === 1) GameLogic.win(); else { GameState.level--; GameState.entryMethod = 'ascending'; MapSystem.initLevel(); } }
         else {
-            if (GameState.player.food > 0 && GameState.player.water > 0) { GameState.player.hp = Math.min(GameState.player.hp + 2, GameState.player.maxHp); Utils.log("Descansas..."); GameLogic.endTurn(true); }
-            else { Utils.log("¡Demasiada hambre para descansar!", "#f00"); }
+            if (GameState.player.food > 0 && GameState.player.water > 0) {
+                const healing = FloorSystem.restHealing();
+                if (healing > 0) {
+                    GameState.player.hp = Math.min(GameState.player.hp + healing, GameState.player.maxHp);
+                    if (FloorSystem.is('FROZEN')) Utils.log(`El equipo polar te permite recuperar ${healing} HP.`, '#8adfff');
+                    else if (FloorSystem.is('MAGMA')) Utils.log(`La malla térmica te permite recuperar ${healing} HP.`, '#ff8a4c');
+                    else Utils.log('Descansas...', '#ccc');
+                } else if (FloorSystem.is('FROZEN')) {
+                    Utils.log('El frío es demasiado intenso: descansar no recupera vida.', '#8adfff');
+                } else if (FloorSystem.is('MAGMA')) {
+                    Utils.log('El calor es insoportable: descansar no recupera vida.', '#ff6b35');
+                }
+                GameLogic.endTurn(true);
+            } else {
+                Utils.log('¡Demasiada hambre para descansar!', '#f00');
+            }
         }
     },
     openChest: (idx) => {
@@ -825,6 +1417,7 @@ const CombatSystem = {
             CombatSystem.gainXp(e.xp); GameState.score += 25;
             if (!GameState.player.stats.kills[e.name]) GameState.player.stats.kills[e.name] = 0; GameState.player.stats.kills[e.name]++;
 
+            GameLogic.dropGoblinLoot(e);
             let currentIdx = GameState.entities.enemies.indexOf(e);
             if(currentIdx !== -1) GameState.entities.enemies.splice(currentIdx, 1);
 
@@ -920,6 +1513,7 @@ const CombatSystem = {
             if (!GameState.player.stats.kills[enemy.name]) GameState.player.stats.kills[enemy.name] = 0;
             GameState.player.stats.kills[enemy.name]++;
 
+            GameLogic.dropGoblinLoot(enemy);
             let idx = GameState.entities.enemies.indexOf(enemy);
             if (idx !== -1) GameState.entities.enemies.splice(idx, 1);
 
@@ -956,6 +1550,7 @@ const CombatSystem = {
         }
 
         GameState.player.hp -= dmg;
+        if (dmg > 0 && GameState.player.hp > 0) GameLogic.goblinStealGold(e);
         if (GameState.player.hp <= 0) GameLogic.die(e.name);
 
         if (isSavageCounter && e) {
@@ -992,6 +1587,7 @@ const InventorySystem = {
         if (!forced && arrIndex >= 0) {
             GameState.entities.items.splice(arrIndex, 1);
             MapSystem.markTaken(x, y);
+            FloorSystem.removeRecoveryDrop(item.recoveryDropId);
         }
         UISystem.updateHUD();
 
@@ -1093,6 +1689,7 @@ window.ShopSystem = ShopSystem;
 const Renderer = {
     draw: () => {
         let html = "";
+        const palette = FloorSystem.getPalette();
         for (let y = 0; y < CONFIG.GRID.rows; y++) {
             for (let x = 0; x < CONFIG.GRID.cols; x++) {
                 if (GameState.visible[y][x]) Renderer.checkDiscovery(x, y);
@@ -1101,7 +1698,11 @@ const Renderer = {
                 if (x === GameState.player.x && y === GameState.player.y) { char = "@"; color = "color:#ff0; font-weight:bold"; } 
                 else if (isVis) {
                     let enemy = GameState.entities.enemies.find(e => e.x === x && e.y === y);
-                    if (enemy) { char = enemy.isSleeping ? "z" : enemy.symbol; color = `color:${enemy.isSleeping ? '#888' : enemy.color}; font-weight:bold`; } 
+                    if (enemy) {
+                        char = enemy.isSleeping ? "z" : enemy.symbol;
+                        const enemyColor = enemy.isSleeping ? '#888' : (enemy._trollPressurePrimed ? '#ff8c00' : enemy.color);
+                        color = `color:${enemyColor}; font-weight:bold`;
+                    }
                     else {
                         let shop = GameState.entities.shops.find(s => s.x === x && s.y === y);
                         if (shop) { char = "S"; color = "color:#ffd700; font-weight:bold"; }
@@ -1118,8 +1719,10 @@ const Renderer = {
                     }
                 }
                 if (!color) {
-                    if (char === '#') { char = "█"; color = isVis ? `color:${CONFIG.MAP.colors.wallVisible}` : `color:${CONFIG.MAP.colors.wall}`; }
-                    else { char = "."; color = isVis ? `color:${CONFIG.MAP.colors.floor}` : `color:${CONFIG.MAP.colors.fog}`; }
+                    if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
+                    else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
+                    else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
+                    else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
                 html += `<span style="${color}">${char}</span>`;
             } html += "\n";
@@ -1130,7 +1733,18 @@ const Renderer = {
         let e = GameState.entities.enemies.find(e => e.x === x && e.y === y);
         if (e) {
             let def = CONFIG.ENTITIES.enemies.find(def => def.id === e.typeId);
-            if(def) { id = def.id; data = {symbol:def.symbol, color:def.color, name:def.name, stats:`HP:${def.hp}`}; type = 'monster'; }
+            if(def) {
+                id = def.id;
+                data = {
+                    symbol: def.symbol,
+                    color: def.color,
+                    name: def.name,
+                    stats: def.role ? `HP:${def.hp} · ${def.role}` : `HP:${def.hp}`,
+                    lore: def.lore || '',
+                    tactic: def.tactic || ''
+                };
+                type = 'monster';
+            }
         }
         else if (GameState.entities.shops.some(s => s.x === x && s.y === y)) { 
             id = 'SHOP'; data = {symbol:'S', color:'#ffd700', name:'Tienda', stats:'Comercio'}; 
@@ -1145,6 +1759,9 @@ const Renderer = {
                 else if (item.type === 'food') { id = 'FOOD'; data = {symbol:'%', color:'#ffaa00', name:'Ración', stats:'Comida'}; } 
                 else if (item.type === 'water') { id = 'WATER'; data = {symbol:'~', color:'#00ffff', name:'Agua', stats:'Bebida'}; } 
                 else if (item.type === 'weapon') { id = 'WEAPON_DROP'; data = {symbol:'!', color:'#ff00ff', name:'Arma', stats:'Ataque'}; } 
+                else if (item.specialId === 'FROZEN_CRAMPONS') { id = 'FROZEN_CRAMPONS'; data = {symbol:']', color:'#8adfff', name:'Arnés polar', stats:'DEF:1 · Hielo/agarre'}; }
+                else if (item.specialId === 'MAGMA_THERMAL') { id = 'MAGMA_THERMAL'; data = {symbol:']', color:'#ff6b35', name:'Malla térmica', stats:'DEF:1 · Calor/sed'}; }
+                else if (item.specialId === 'UNSTABLE_HARNESS') { id = 'UNSTABLE_HARNESS'; data = {symbol:']', color:'#d7a56d', name:'Arnés ligero', stats:'DEF:1 · Caída/equipo'}; }
                 else if (item.type === 'armor') { id = 'ARMOR_DROP'; data = {symbol:']', color:'#4682b4', name:'Malla', stats:'Defensa'}; }
             }
             else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { id = 'STAIRS_DOWN'; data = {symbol:'>', color:'#fff', name:'Bajada', stats:'Profundidad'}; }
@@ -1159,7 +1776,7 @@ const Renderer = {
     addToLegend: (type, data) => {
         const panel = document.getElementById(type === 'monster' ? 'legend-monsters' : 'legend-items');
         const div = document.createElement('div'); div.className = 'legend-item';
-        div.innerHTML = `<div class="legend-symbol" style="color: ${data.color}">${data.symbol}</div><div class="legend-desc"><span class="legend-name">${data.name}</span><span class="legend-stats">${data.stats}</span></div>`;
+        div.innerHTML = `<div class="legend-symbol" style="color: ${data.color}">${data.symbol}</div><div class="legend-desc"><span class="legend-name">${data.name}</span><span class="legend-stats">${data.stats}</span>${data.lore ? `<span class="legend-lore">${data.lore}</span>` : ''}${data.tactic ? `<span class="legend-tactic">${data.tactic}</span>` : ''}</div>`;
         panel.appendChild(div);
     },
     resetLegend: () => { document.getElementById('legend-monsters').innerHTML = '<div class="legend-title">Amenazas</div>'; document.getElementById('legend-items').innerHTML = '<div class="legend-title">Entorno</div>'; }
@@ -1177,6 +1794,18 @@ const UISystem = {
 
         if (!DOM.combatStatus) return;
         const parts = [];
+        if (FloorSystem.is('FROZEN')) parts.push('<span style="color:#8adfff">HIELO</span>');
+        if (FloorSystem.is('MAGMA')) {
+            const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
+            parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+        }
+        if (FloorSystem.is('UNSTABLE')) parts.push('<span style="color:#d7a56d">INESTABLE · NO RETROCEDAS</span>');
+        const primedTroll = GameState.entities.enemies.find(e =>
+            e.behavior === 'WARDEN' &&
+            e._trollPressurePrimed &&
+            GameState.visible[e.y] && GameState.visible[e.y][e.x]
+        );
+        if (primedTroll) parts.push('<span style="color:#ff8c00">RUGIDO · APLASTAR INMINENTE</span>');
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
             const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
@@ -1254,8 +1883,15 @@ const StateController = {
 
 document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
+    if (GameState.ui.movementLocked) return;
 
     const key = e.key.toLowerCase();
+
+    if (GameState.ui.floorWarningOpen) {
+        e.preventDefault();
+        if (['enter', ' ', 'escape'].includes(key)) FloorSystem.closeWarning();
+        return;
+    }
 
     if (e.target && e.target.tagName === 'INPUT') {
         if (e.key === 'Enter') {
@@ -1350,6 +1986,7 @@ window.showMenuScores = () => {
     if (willShow) Network.fetchScores('menu-leaderboard');
 };
 window.closeShop = () => StateController.change(STATE_ENUM.PLAYING);
+window.closeFloorWarning = () => FloorSystem.closeWarning();
 window.harakiri = () => { if(confirm("¿Rendirse?")) GameLogic.die("Harakiri"); };
 
 GameLogic.init();

@@ -15,4 +15,9 @@ assert.equal(source.includes('messageBuffer'), false, 'No debe reaparecer el buf
 assert.equal(source.includes('freePosition'), false, 'No debe reaparecer la liberación de persistencia obsoleta');
 assert.equal(source.includes("if (!['quick', 'savage'].includes(attackType)) return;"), true, 'Targeting debe aceptar solo Rápido y Salvaje');
 
+assert.equal(source.includes("behavior: 'WARDEN'"), true, 'El Trasgo debe conservar su identidad de guardián territorial');
+assert.equal(source.includes('handleTrollAction: (e) =>'), true, 'Debe existir la IA territorial del Trasgo');
+assert.equal(source.includes("behavior: 'REGEN'"), false, 'El Trasgo no debe volver a la regeneración genérica');
+assert.equal(source.includes('RUGIDO · APLASTAR INMINENTE'), true, 'El APLASTAR del Trasgo debe permanecer telegráfico en el HUD');
+
 console.log('✓ estructura del núcleo protegida');
