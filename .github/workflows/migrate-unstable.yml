@@ -42,3 +42,5 @@ jobs:
           git add game.js style.css tests/regression.test.cjs
           git commit -m "Add Unstable Depths floor mechanics"
           git push origin HEAD:dev
+
+# one-shot trigger
