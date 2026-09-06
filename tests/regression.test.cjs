@@ -1027,6 +1027,96 @@ test('una partida nueva limpia todos los stocks persistentes de mercader', () =>
     assert.equal(Object.keys(GameState.shopStocks).length, 0);
 });
 
+
+test('Frozen genera una Cámara de Escarcha opcional con cofre especial', () => {
+    freshGame(2501);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+
+    const zone = GameState.floor.riskZone;
+    assert.ok(zone);
+    assert.equal(zone.type, 'FROZEN_VAULT');
+    assert.equal(FloorSystem.isFrozenVaultTile(GameState.stairs.up.x, GameState.stairs.up.y), false);
+    assert.equal(FloorSystem.isFrozenVaultTile(GameState.stairs.down.x, GameState.stairs.down.y), false);
+
+    const chest = GameState.entities.chests.find(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(chest);
+    assert.equal(FloorSystem.isFrozenVaultTile(chest.x, chest.y), true);
+});
+
+test('la Cámara de Escarcha duplica el riesgo de resbalón y respeta los crampones', () => {
+    freshGame(2502);
+    GameState.floor = { type: 'FROZEN', riskZone: { type: 'FROZEN_VAULT', x1: 10, y1: 10, x2: 15, y2: 15 } };
+    GameState.player.equipment.armor = null;
+
+    GameState.player.x = 5;
+    GameState.player.y = 5;
+    assert.equal(FloorSystem.slipChance(), 0.35);
+
+    GameState.player.x = 12;
+    GameState.player.y = 12;
+    assert.equal(FloorSystem.slipChance(), 0.70);
+
+    GameState.player.equipment.armor = { traits: { slipResist: 0.75 } };
+    assert.equal(FloorSystem.slipChance(), 0.175);
+});
+
+test('el cofre de escarcha nunca usa la trampa normal y entrega equipo mejorado', () => {
+    freshGame(2503);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.hp = 80;
+    GameState.player.inventory = [];
+
+    const chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(chestIndex >= 0);
+    const originalRandom = Utils.random;
+    Utils.random = () => 0;
+    try {
+        GameLogic.openChest(chestIndex);
+        assert.equal(GameState.player.hp, 80);
+        assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        assert.equal(GameState.player.inventory.length, 1);
+        assert.ok(GameState.player.inventory[0].name.includes('escarcha'));
+        assert.ok(['weapon', 'armor'].includes(GameState.player.inventory[0].type));
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('el cofre de escarcha permanece abierto al volver a la planta', () => {
+    freshGame(2504);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.inventory = [];
+
+    let chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(chestIndex >= 0);
+    const chest = GameState.entities.chests[chestIndex];
+    const coords = [chest.x, chest.y];
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        GameLogic.openChest(chestIndex);
+    } finally {
+        Utils.random = originalRandom;
+    }
+
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    const restored = GameState.entities.chests.find(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(restored);
+    assert.deepEqual([restored.x, restored.y], coords);
+    assert.equal(restored.isOpen, true);
+});
+
 (async () => {
     let passed = 0;
     for (const { name, fn } of tests) {

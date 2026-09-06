@@ -19,6 +19,18 @@ const CONFIG = {
             extraStepsMin: 1,
             extraStepsMax: 2,
             animationMs: 90,
+            vault: {
+                enabled: true,
+                slipChance: 0.70,
+                driftChance: 0.45,
+                extraStepsMin: 2,
+                extraStepsMax: 3,
+                rewardBonus: 2,
+                tileColor: '#e8fbff',
+                tileBackground: '#174d63',
+                fogColor: '#31596a',
+                chestColor: '#8df3ff'
+            },
             colors: { wall: '#25465f', wallVisible: '#6e9fb8', floor: '#bdefff', fog: '#17303f' },
             warningTitle: '⚠ PROFUNDIDAD HELADA',
             warningText: 'EL FRÍO DOMINA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• El hielo puede hacerte resbalar y desviarte.<br>• El equipo polar con crampones reduce ambos peligros.'
@@ -251,6 +263,37 @@ const FloorSystem = {
         const config = FloorSystem.config();
         return config && config.colors ? config.colors : CONFIG.MAP.colors;
     },
+    prepareRiskZone: () => {
+        GameState.floor.riskZone = null;
+        const vault = CONFIG.FLOORS.FROZEN.vault;
+        if (!FloorSystem.is('FROZEN') || !vault || !vault.enabled || GameState.rooms.length < 3) return;
+
+        const candidates = GameState.rooms.filter((room, index) => index > 0 && index < GameState.rooms.length - 1);
+        if (candidates.length === 0) return;
+
+        const up = GameState.stairs.up;
+        const room = candidates.reduce((best, current) => {
+            const currentDist = Math.abs(current.center.x - up.x) + Math.abs(current.center.y - up.y);
+            const bestDist = Math.abs(best.center.x - up.x) + Math.abs(best.center.y - up.y);
+            return currentDist > bestDist ? current : best;
+        });
+
+        const insetX = room.w >= 5 ? 1 : 0;
+        const insetY = room.h >= 5 ? 1 : 0;
+        GameState.floor.riskZone = {
+            type: 'FROZEN_VAULT',
+            x1: room.x + insetX,
+            y1: room.y + insetY,
+            x2: room.x + room.w - 1 - insetX,
+            y2: room.y + room.h - 1 - insetY
+        };
+    },
+    isRiskZoneTile: (x, y, type = null) => {
+        const zone = GameState.floor && GameState.floor.riskZone;
+        if (!zone || (type && zone.type !== type)) return false;
+        return x >= zone.x1 && x <= zone.x2 && y >= zone.y1 && y <= zone.y2;
+    },
+    isFrozenVaultTile: (x, y) => FloorSystem.is('FROZEN') && FloorSystem.isRiskZoneTile(x, y, 'FROZEN_VAULT'),
     armorTraits: () => {
         const armor = GameState.player.equipment.armor;
         return armor && armor.traits ? armor.traits : {};
@@ -258,12 +301,16 @@ const FloorSystem = {
     slipChance: () => {
         if (!FloorSystem.is('FROZEN')) return 0;
         const config = CONFIG.FLOORS.FROZEN;
+        const inVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+        const baseChance = inVault ? config.vault.slipChance : config.slipChance;
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().slipResist) || 0));
-        return config.slipChance * (1 - resist);
+        return baseChance * (1 - resist);
     },
     shouldSlip: () => FloorSystem.is('FROZEN') && Utils.random() < FloorSystem.slipChance(),
     resolveSlipDirection: (dx, dy) => {
-        if (!FloorSystem.is('FROZEN') || Utils.random() >= CONFIG.FLOORS.FROZEN.driftChance) return [dx, dy];
+        const config = CONFIG.FLOORS.FROZEN;
+        const driftChance = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y) ? config.vault.driftChance : config.driftChance;
+        if (!FloorSystem.is('FROZEN') || Utils.random() >= driftChance) return [dx, dy];
         const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
         const index = dirs.findIndex(([x, y]) => x === dx && y === dy);
         if (index === -1) return [dx, dy];
@@ -272,8 +319,11 @@ const FloorSystem = {
     },
     extraSlipSteps: () => {
         const config = CONFIG.FLOORS.FROZEN;
-        const span = config.extraStepsMax - config.extraStepsMin + 1;
-        return config.extraStepsMin + Math.floor(Utils.random() * span);
+        const inVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+        const min = inVault ? config.vault.extraStepsMin : config.extraStepsMin;
+        const max = inVault ? config.vault.extraStepsMax : config.extraStepsMax;
+        const span = max - min + 1;
+        return min + Math.floor(Utils.random() * span);
     },
     waitSlipFrame: () => new Promise(resolve => window.setTimeout(resolve, CONFIG.FLOORS.FROZEN.animationMs)),
     renderSlipFrame: async () => {
@@ -528,7 +578,7 @@ const MapSystem = {
             GameState.visible.push(new Array(CONFIG.GRID.cols).fill(false));
             GameState.map.push(new Array(CONFIG.GRID.cols).fill('#'));
         }
-        MapSystem.generateDungeon(); EntityFactory.spawnAll();
+        MapSystem.generateDungeon(); FloorSystem.prepareRiskZone(); EntityFactory.spawnAll();
         FloorSystem.restoreRecoveryDrops();
         if (GameState.entryMethod === 'falling') {
             const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
@@ -628,6 +678,7 @@ const EntityFactory = {
         });
 
         EntityFactory.spawnFloorSpecial();
+        EntityFactory.spawnRiskReward();
 
         if (CONFIG.ENTITIES.shops.levels.includes(GameState.level)) {
             const pos = EntityFactory.getRoomPos();
@@ -646,6 +697,30 @@ const EntityFactory = {
                 isOpen: MapSystem.isTaken(chestKey)
             });
         }
+    },
+    spawnRiskReward: () => {
+        const zone = GameState.floor.riskZone;
+        if (!FloorSystem.is('FROZEN') || !zone || zone.type !== 'FROZEN_VAULT') return;
+
+        const candidates = [];
+        for (let y = zone.y1; y <= zone.y2; y++) {
+            for (let x = zone.x1; x <= zone.x2; x++) {
+                if (MapSystem.isBlocked(x, y) || EntityFactory.isStartEnd(x, y) || EntityFactory.isOccupied(x, y)) continue;
+                candidates.push({ x, y, dist: Math.abs(x - GameState.stairs.up.x) + Math.abs(y - GameState.stairs.up.y) });
+            }
+        }
+        candidates.sort((a, b) => b.dist - a.dist);
+        const pos = candidates[0];
+        if (!pos) return;
+
+        const chestKey = `CHEST_${pos.x},${pos.y}`;
+        GameState.entities.chests.push({
+            x: pos.x,
+            y: pos.y,
+            name: 'Cofre de escarcha',
+            specialId: 'FROZEN_VAULT_CHEST',
+            isOpen: MapSystem.isTaken(chestKey)
+        });
     },
     spawnFloorSpecial: () => {
         if (!FloorSystem.is('FROZEN') && !FloorSystem.is('MAGMA') && !FloorSystem.is('UNSTABLE')) return;
@@ -892,11 +967,17 @@ const GameLogic = {
         return true;
     },
     enterPlayerTile: (x, y) => {
+        const wasFrozenVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
         GameState.player.x = x;
         GameState.player.y = y;
         GameState.player.combat.waitBonus = 0;
         GameState.player.combat.isDefending = false;
         GameLogic.collectItemsAt(x, y);
+        const inFrozenVault = FloorSystem.isFrozenVaultTile(x, y);
+        if (!wasFrozenVault && inFrozenVault) {
+            Utils.log('Entras en una Cámara de Escarcha. El hielo aquí es mucho más traicionero.', '#8df3ff');
+            VisualFX.floatText(x, y, '¡RIESGO!', '#8df3ff');
+        }
     },
     collectItemsAt: (x, y) => {
         for (let i = GameState.entities.items.length - 1; i >= 0; i--) {
@@ -1275,6 +1356,20 @@ const GameLogic = {
 
         chest.isOpen = true;
         MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
+
+        if (chest.specialId === 'FROZEN_VAULT_CHEST') {
+            const vault = CONFIG.FLOORS.FROZEN.vault;
+            const weaponReward = Utils.random() < 0.5;
+            if (weaponReward) {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + vault.rewardBonus, 'Arma de escarcha', '!', '#8df3ff');
+            } else {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + vault.rewardBonus, 'Malla de escarcha', ']', '#8df3ff');
+            }
+            const reward = GameState.entities.items.pop();
+            Utils.log('El cofre de escarcha se abre sin trampa. Dentro hay equipo excepcional.', vault.chestColor);
+            InventorySystem.pickup(reward, -1, -1, -1, true);
+            return;
+        }
 
         if (Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
             Utils.log('¡TRAMPA! El cofre explota.', '#f00');
@@ -1792,7 +1887,12 @@ const Renderer = {
                         if (shop) { char = "S"; color = "color:#ffd700; font-weight:bold"; }
                         else {
                             let chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
-                            if (chest) { char = chest.isOpen ? "_" : "="; color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : CONFIG.ENTITIES.chests.colors.closed}; font-weight:bold`; } 
+                            if (chest) {
+                                const frozenVaultChest = chest.specialId === 'FROZEN_VAULT_CHEST';
+                                char = chest.isOpen ? "_" : (frozenVaultChest ? "*" : "=");
+                                const closedColor = frozenVaultChest ? CONFIG.FLOORS.FROZEN.vault.chestColor : CONFIG.ENTITIES.chests.colors.closed;
+                                color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
+                            }
                             else {
                                 let item = GameState.entities.items.find(i => i.x === x && i.y === y);
                                 if (item) { char = item.symbol; color = `color:${item.color}; font-weight:bold`; }
@@ -1806,6 +1906,11 @@ const Renderer = {
                     if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
                     else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
                     else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
+                    else if (FloorSystem.isFrozenVaultTile(x, y)) {
+                        const vault = CONFIG.FLOORS.FROZEN.vault;
+                        char = "·";
+                        color = isVis ? `color:${vault.tileColor}; background:${vault.tileBackground}` : `color:${vault.fogColor}`;
+                    }
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
                 html += `<span style="${color}">${char}</span>`;
@@ -1833,8 +1938,13 @@ const Renderer = {
         else if (GameState.entities.shops.some(s => s.x === x && s.y === y)) { 
             id = 'SHOP'; data = {symbol:'S', color:'#ffd700', name:'Tienda', stats:'Comercio'}; 
         }
-        else if (GameState.entities.chests.some(c => c.x === x && c.y === y)) { 
-            id = 'CHEST'; data = {symbol:'=', color:CONFIG.ENTITIES.chests.colors.closed, name:'Cofre', stats:'Botín'}; 
+        else if (GameState.entities.chests.some(c => c.x === x && c.y === y)) {
+            const chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
+            if (chest && chest.specialId === 'FROZEN_VAULT_CHEST') {
+                id = 'FROZEN_VAULT_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.FROZEN.vault.chestColor, name:'Cofre de escarcha', stats:'Botín excepcional'};
+            } else {
+                id = 'CHEST'; data = {symbol:'=', color:CONFIG.ENTITIES.chests.colors.closed, name:'Cofre', stats:'Botín'};
+            }
         }
         else {
             let item = GameState.entities.items.find(i => i.x === x && i.y === y);
@@ -1878,7 +1988,10 @@ const UISystem = {
 
         if (!DOM.combatStatus) return;
         const parts = [];
-        if (FloorSystem.is('FROZEN')) parts.push('<span style="color:#8adfff">HIELO</span>');
+        if (FloorSystem.is('FROZEN')) {
+            const inVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+            parts.push(`<span style="color:#8adfff">${inVault ? 'HIELO · CÁMARA DE ESCARCHA' : 'HIELO'}</span>`);
+        }
         if (FloorSystem.is('MAGMA')) {
             const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
             parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
