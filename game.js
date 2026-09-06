@@ -472,6 +472,16 @@ const GameLogic = {
         return true;
     },
     updateEnemies: () => {
+        GameState.entities.enemies.forEach(enemy => {
+            if (enemy._rogueQuickStaggerPending) {
+                enemy.energy = (enemy.energy || 0) - 1;
+                enemy._rogueQuickStaggerPending = false;
+                enemy._rogueQuickStaggerImmune = true;
+            } else if (enemy._rogueQuickStaggerImmune) {
+                enemy._rogueQuickStaggerImmune = false;
+            }
+        });
+
         GameState.entities.enemies.forEach(e => {
             e.tookDamage = false; 
             let dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
@@ -704,19 +714,19 @@ const CombatSystem = {
     applyDamage: (enemyIdx, type, bonus) => {
         let e = GameState.entities.enemies[enemyIdx];
         if (!e) return;
-        
-        e.tookDamage = true; 
+
+        e.tookDamage = true;
         if (e.isSleeping) { e.isSleeping = false; Utils.log(`¡${e.name} despierta!`, "#fa0"); }
 
         let conf = CONFIG.COMBAT[type];
         let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
         let baseDmg = GameState.player.baseAtk + weaponVal + bonus;
-        
+
         baseDmg = Math.floor(baseDmg * conf.dmgMult);
-        
+
         let vari = conf.var || CONFIG.COMBAT.variability;
         let varianceMult = 1.0 + (Utils.random() * (vari * 2) - vari);
-        
+
         let finalDmg = Math.round(baseDmg * varianceMult);
         if (finalDmg < 1) finalDmg = 1;
 
@@ -728,23 +738,29 @@ const CombatSystem = {
         }
 
         e.hp -= finalDmg;
-        
-        // --- VISUAL FX: Daño al enemigo ---
+
         let dmgColor = isCrit ? "#ff00ff" : "#ffffff";
         let dmgText = isCrit ? `¡${finalDmg}!` : `${finalDmg}`;
         VisualFX.floatText(e.x, e.y, dmgText, dmgColor);
-        // ----------------------------------
-
         Utils.log(`Golpeas a ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
 
         if (e.hp <= 0) {
             CombatSystem.gainXp(e.xp); GameState.score += 25;
             if (!GameState.player.stats.kills[e.name]) GameState.player.stats.kills[e.name] = 0; GameState.player.stats.kills[e.name]++;
-            
+
             let currentIdx = GameState.entities.enemies.indexOf(e);
             if(currentIdx !== -1) GameState.entities.enemies.splice(currentIdx, 1);
-            
+
             Utils.log(`${e.name} muere.`, "#ff0");
+        }
+
+        const enemySurvives = e.hp > 0 && GameState.entities.enemies.includes(e);
+        if (type === 'quick' && enemySurvives && !e._rogueQuickStaggerImmune) {
+            e._rogueQuickStaggerPending = true;
+            Utils.log(`${e.name} queda descolocado.`, '#00ffff');
+        }
+        if (type === 'savage' && enemySurvives) {
+            e._rogueSavageCounterPending = true;
         }
     },
 
@@ -769,6 +785,7 @@ const CombatSystem = {
             return;
         }
 
+        const cooldownBefore = GameState.player.combat.cooldowns.area;
         GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
         Utils.log("¡Barrido!", "#0ff");
 
@@ -780,7 +797,6 @@ const CombatSystem = {
             let ey = GameState.player.y + d[1];
             let idx = GameState.entities.enemies.findIndex(e => e.x === ex && e.y === ey);
             if (idx !== -1) {
-                // Usamos daño de área (más bajo pero golpea varios)
                 CombatSystem.applyDamage(idx, 'area', 0);
                 hit = true;
             }
@@ -789,6 +805,15 @@ const CombatSystem = {
         if (!hit) Utils.log("El barrido no golpea a nadie.", "#777");
 
         GameLogic.endTurn(true);
+
+        if (
+            cooldownBefore === 0 &&
+            GameState.current !== STATE_ENUM.GAMEOVER &&
+            GameState.player.combat.cooldowns.area === CONFIG.COMBAT.area.cooldown - 1
+        ) {
+            GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
+            UISystem.updateHUD();
+        }
     },
 
     // Bump Attack - Mejorado: forma principal y natural de combatir
@@ -826,15 +851,18 @@ const CombatSystem = {
     },
 
     enemyAttack: (e) => {
+        if (GameState.current === STATE_ENUM.GAMEOVER) return;
+        const isSavageCounter = Boolean(e && e._rogueSavageCounterPending);
+
         let armorVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         if (GameState.player.combat.isDefending) {
-            armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult); 
+            armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult);
         }
 
         let dmg = Math.max(0, e.atk - armorVal);
         let variance = 1.0 + (Utils.random() * 0.2 - 0.1);
         dmg = Math.round(dmg * variance);
-        if (dmg < 0) dmg = 0; 
+        if (dmg < 0) dmg = 0;
 
         let enemyCritChance = GameState.player.combat.isDefending ? 0.0 : 0.05;
         if (Utils.random() < enemyCritChance) {
@@ -842,7 +870,6 @@ const CombatSystem = {
             Utils.log(`¡CRÍTICO de ${e.name}!`, "#f00");
         }
 
-        // --- VISUAL FX: Daño al Jugador ---
         if (dmg > 0) {
             VisualFX.floatText(GameState.player.x, GameState.player.y, `-${dmg}`, "#ff0000");
             Utils.log(`${e.name} te hiere: -${dmg} HP`, "#f44");
@@ -850,10 +877,14 @@ const CombatSystem = {
             VisualFX.floatText(GameState.player.x, GameState.player.y, "BLOCK", "#4682b4");
             Utils.log(`Bloqueas a ${e.name}`, "#888");
         }
-        // ----------------------------------
 
-        GameState.player.hp -= dmg; 
+        GameState.player.hp -= dmg;
         if (GameState.player.hp <= 0) GameLogic.die(e.name);
+
+        if (isSavageCounter && e) {
+            e._rogueSavageCounterPending = false;
+            e.energy = (e.energy || 0) - 1;
+        }
     },
 
     gainXp: (amount) => {
@@ -1314,13 +1345,6 @@ GameLogic.init();
         if (target) target.innerHTML = h;
     };
 
-    // Ningún enemigo puede seguir atacando después de que la partida haya terminado.
-    const originalEnemyAttack = CombatSystem.enemyAttack.bind(CombatSystem);
-    CombatSystem.enemyAttack = (enemy) => {
-        if (GameState.current === STATE_ENUM.GAMEOVER) return;
-        originalEnemyAttack(enemy);
-    };
-
     // Tirar un objeto no debe borrar el registro de un objeto ya recogido en esa casilla.
     InventorySystem.dropItem = (idx) => {
         const item = GameState.player.inventory[idx];
@@ -1613,74 +1637,6 @@ GameLogic.init();
             parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
         }
         combatStatus.innerHTML = parts.join('');
-    };
-
-    // Rápido sacrifica daño a cambio de tempo: si el objetivo sobrevive, pierde una acción.
-    // Para que no pueda bloquearse indefinidamente al mismo enemigo, no se puede descolocar
-    // en dos turnos consecutivos.
-    const stabilizedApplyDamage = CombatSystem.applyDamage.bind(CombatSystem);
-    CombatSystem.applyDamage = (enemyIdx, type, bonus) => {
-        const enemy = GameState.entities.enemies[enemyIdx];
-        const result = stabilizedApplyDamage(enemyIdx, type, bonus);
-        const enemySurvives = enemy && enemy.hp > 0 && GameState.entities.enemies.includes(enemy);
-
-        if (type === 'quick' && enemySurvives && !enemy._rogueQuickStaggerImmune) {
-            enemy._rogueQuickStaggerPending = true;
-            Utils.log(`${enemy.name} queda descolocado.`, '#00ffff');
-        }
-
-        if (type === 'savage' && enemySurvives) {
-            enemy._rogueSavageCounterPending = true;
-        }
-        return result;
-    };
-
-    // Aplicamos el descoloque justo antes de que se actualicen los enemigos. Restar una unidad
-    // de energía elimina una acción con la velocidad actual (1.0). La inmunidad dura un turno.
-    const stabilizedUpdateEnemies = GameLogic.updateEnemies.bind(GameLogic);
-    GameLogic.updateEnemies = () => {
-        GameState.entities.enemies.forEach(enemy => {
-            if (enemy._rogueQuickStaggerPending) {
-                enemy.energy = (enemy.energy || 0) - 1;
-                enemy._rogueQuickStaggerPending = false;
-                enemy._rogueQuickStaggerImmune = true;
-            } else if (enemy._rogueQuickStaggerImmune) {
-                enemy._rogueQuickStaggerImmune = false;
-            }
-        });
-        return stabilizedUpdateEnemies();
-    };
-
-    // Un ataque Salvaje ya incluye un contraataque inmediato. Ese golpe consume la acción
-    // normal del enemigo para evitar que el mismo enemigo ataque dos veces en el mismo turno.
-    const stabilizedEnemyAttack = CombatSystem.enemyAttack.bind(CombatSystem);
-    CombatSystem.enemyAttack = (enemy) => {
-        const isSavageCounter = Boolean(enemy && enemy._rogueSavageCounterPending);
-        const result = stabilizedEnemyAttack(enemy);
-
-        if (isSavageCounter && enemy) {
-            enemy._rogueSavageCounterPending = false;
-            enemy.energy = (enemy.energy || 0) - 1;
-        }
-        return result;
-    };
-
-    // El núcleo descontaba un turno de enfriamiento en el mismo turno en que se usaba Barrido.
-    // Restauramos el valor anunciado para que sean realmente 5 turnos completos.
-    const stabilizedAreaAttack = CombatSystem.performAreaAttack.bind(CombatSystem);
-    CombatSystem.performAreaAttack = () => {
-        const cooldownBefore = GameState.player.combat.cooldowns.area;
-        const result = stabilizedAreaAttack();
-
-        if (
-            cooldownBefore === 0 &&
-            GameState.current !== STATE_ENUM.GAMEOVER &&
-            GameState.player.combat.cooldowns.area === CONFIG.COMBAT.area.cooldown - 1
-        ) {
-            GameState.player.combat.cooldowns.area = CONFIG.COMBAT.area.cooldown;
-            UISystem.updateHUD();
-        }
-        return result;
     };
 
     UISystem.updateHUD();
