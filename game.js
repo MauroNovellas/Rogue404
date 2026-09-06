@@ -77,7 +77,7 @@ const CONFIG = {
         items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
         chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, colors: { closed: '#DAA520', open: '#555' } },
         shops: {
-            levels: [3, 6, 9, 12], priceMultiplier: 1.0,
+            levels: [3, 6, 9, 12], priceMultiplier: 1.0, sellMultiplier: 0.5,
             inventory: [
                 { id: 'WEAPON', name: 'Espada',      type: 'weapon', value: 3,  price: 200, icon: '!', color: '#ff00ff' },
                 { id: 'ARMOR',  name: 'Malla',       type: 'armor',  value: 2,  price: 200, icon: ']', color: '#4682b4' },
@@ -104,7 +104,7 @@ const GameState = {
     floor: { type: 'NORMAL' },
     map: [], seen: [], visible: [], rooms: [],
     stairs: { up: {x:0, y:0}, down: {x:0, y:0} },
-    persistence: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
+    persistence: {}, shopStocks: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
     entities: { enemies: [], items: [], chests: [], shops: [] },
     player: {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
@@ -788,7 +788,7 @@ const GameLogic = {
             equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
             combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
         };
-        GameState.persistence = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
+        GameState.persistence = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
 
         // Una partida nueva entra por las escaleras que comunican con la superficie.
@@ -1650,35 +1650,119 @@ const InventorySystem = {
 };
 
 const ShopSystem = {
+    stockKey: () => String(GameState.level),
+    createStock: () => {
+        const tier = (GameState.level / 3) - 1;
+        const priceMult = CONFIG.ENTITIES.shops.priceMultiplier * Math.pow(4, tier);
+        const powerMult = Math.pow(2, tier);
+        return CONFIG.ENTITIES.shops.inventory.map(baseItem => {
+            const variance = Utils.applyVariance(baseItem.value);
+            const finalVal = Math.floor(variance.value * powerMult);
+            const finalPrice = Math.floor(baseItem.price * priceMult * variance.multiplier);
+            return {
+                ...baseItem,
+                name: `${baseItem.name} [${variance.label}]${tier > 0 ? ' +'+Math.ceil(tier) : ''}`,
+                value: finalVal,
+                price: finalPrice,
+                qualityColor: variance.color
+            };
+        });
+    },
+    getStock: () => {
+        const key = ShopSystem.stockKey();
+        if (!Array.isArray(GameState.shopStocks[key])) {
+            GameState.shopStocks[key] = ShopSystem.createStock();
+        }
+        return GameState.shopStocks[key];
+    },
+    baseDefinitionFor: (item) => {
+        if (!item) return null;
+        return CONFIG.ENTITIES.shops.inventory.find(baseItem => baseItem.type === item.type) || null;
+    },
+    estimateValue: (item) => {
+        if (!item) return 0;
+        if (Number.isFinite(item.buyPrice) && item.buyPrice > 0) return Math.round(item.buyPrice);
+        const base = ShopSystem.baseDefinitionFor(item);
+        if (!base) return 0;
+        const value = Math.max(1, Number(item.value) || 1);
+        return Math.max(1, Math.round(base.price * (value / base.value)));
+    },
+    sellPrice: (item) => {
+        const estimated = ShopSystem.estimateValue(item);
+        if (estimated <= 0) return 0;
+        return Math.max(1, Math.floor(estimated * CONFIG.ENTITIES.shops.sellMultiplier));
+    },
     open: () => {
         StateController.change(STATE_ENUM.SHOP);
-        const container = document.getElementById('shop-items-container'); container.innerHTML = "";
-        const tier = (GameState.level / 3) - 1; const priceMult = CONFIG.ENTITIES.shops.priceMultiplier * Math.pow(4, tier); const powerMult = Math.pow(2, tier);
-        GameState.ui.shopStock = [];
-        CONFIG.ENTITIES.shops.inventory.forEach(baseItem => {
-            if (MapSystem.isTaken(`SHOP_${baseItem.id}`)) return;
-            let v = Utils.applyVariance(baseItem.value);
-            let finalVal = Math.floor(v.value * powerMult); let finalPrice = Math.floor(baseItem.price * priceMult * v.multiplier);
-            let item = { ...baseItem, name: `${baseItem.name} [${v.label}]${tier > 0 ? ' +'+Math.ceil(tier) : ''}`, value: finalVal, price: finalPrice, qualityColor: v.color };
-            GameState.ui.shopStock.push(item);
-        });
-        if (GameState.ui.shopStock.length === 0) container.innerHTML = "<div>Sin existencias</div>";
-        else {
-            GameState.ui.shopStock.forEach((item, i) => {
-                let div = document.createElement('div'); div.className = 'shop-item-row';
+        const container = document.getElementById('shop-items-container');
+        container.innerHTML = '<div style="color:#ffd700; font-weight:bold; margin:4px 0 8px;">COMPRAR</div>';
+
+        const stock = ShopSystem.getStock();
+        GameState.ui.shopStock = stock;
+        if (stock.length === 0) {
+            const empty = document.createElement('div');
+            empty.innerHTML = '<div style="color:#777; margin-bottom:8px;">Sin existencias</div>';
+            container.appendChild(empty);
+        } else {
+            stock.forEach((item, i) => {
+                const div = document.createElement('div');
+                div.className = 'shop-item-row';
                 div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color}">${item.icon}</span> <span style="color:${item.qualityColor}">${item.name}</span> <small>(${item.type === 'weapon' || item.type === 'armor' ? 'Poder' : 'Recupera'}: ${item.value})</small></div><div class="shop-item-price" style="color:${item.price > GameState.score ? '#f00' : '#ff0'}">${item.price} G</div><button class="btn-buy" onclick="ShopSystem.buy(${i})">Comprar</button>`;
+                container.appendChild(div);
+            });
+        }
+
+        const sellTitle = document.createElement('div');
+        sellTitle.innerHTML = '<div style="color:#33ff00; font-weight:bold; margin:14px 0 8px; border-top:1px dashed #555; padding-top:10px;">VENDER · 50%</div>';
+        container.appendChild(sellTitle);
+
+        if (GameState.player.inventory.length === 0) {
+            const emptyBag = document.createElement('div');
+            emptyBag.innerHTML = '<div style="color:#777;">No llevas nada vendible en la mochila</div>';
+            container.appendChild(emptyBag);
+        } else {
+            GameState.player.inventory.forEach((item, i) => {
+                const price = ShopSystem.sellPrice(item);
+                const div = document.createElement('div');
+                div.className = 'shop-item-row';
+                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color || '#fff'}">${item.symbol || '?'}</span> <span style="color:${item.qualityColor || '#fff'}">${item.name}</span> <small>(Valor: ${item.value})</small></div><div class="shop-item-price" style="color:#33ff00">${price} G</div><button class="btn-buy" onclick="ShopSystem.sell(${i})" ${price <= 0 ? 'disabled' : ''}>Vender</button>`;
                 container.appendChild(div);
             });
         }
     },
     buy: (idx) => {
-        let item = GameState.ui.shopStock[idx]; if (!item) return;
-        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) { alert("Mochila llena"); return; }
-        if (GameState.score < item.price) { alert("Sin dinero"); return; }
+        const stock = ShopSystem.getStock();
+        const item = stock[idx];
+        if (!item) return;
+        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) { alert('Mochila llena'); return; }
+        if (GameState.score < item.price) { alert('Sin dinero'); return; }
+
         GameState.score -= item.price;
-        GameState.player.inventory.push({ type: item.type, name: item.name, value: item.value, symbol: item.icon, color: item.color, qualityColor: item.qualityColor });
-        MapSystem.markTaken(`SHOP_${item.id}`); Utils.log(`Comprado: ${item.name}`, "#ffd700");
-        UISystem.updateHUD(); ShopSystem.open();
+        GameState.player.inventory.push({
+            type: item.type,
+            name: item.name,
+            value: item.value,
+            symbol: item.icon,
+            color: item.color,
+            qualityColor: item.qualityColor,
+            buyPrice: item.price
+        });
+        stock.splice(idx, 1);
+        Utils.log(`Comprado: ${item.name}`, '#ffd700');
+        UISystem.updateHUD();
+        ShopSystem.open();
+    },
+    sell: (idx) => {
+        const item = GameState.player.inventory[idx];
+        if (!item) return;
+        const price = ShopSystem.sellPrice(item);
+        if (price <= 0) return;
+
+        GameState.player.inventory.splice(idx, 1);
+        GameState.score += price;
+        Utils.log(`Vendido: ${item.name} (+${price} G)`, '#33ff00');
+        UISystem.updateHUD();
+        ShopSystem.open();
     }
 };
 window.ShopSystem = ShopSystem;
