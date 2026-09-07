@@ -135,7 +135,7 @@ const exhaustUnknownAround = (x, y) => {
     assert.equal(player.memory.navigationLevel, 2);
 
     // 3) Un ping-pong con una frontera alternativa crea un escape persistente
-    // y el siguiente turno sigue ese destino en vez de volver al azar.
+    // y los siguientes turnos mantienen ese destino hasta alcanzarlo.
     context.GameState.seen = seen();
     context.GameState.level = 3;
     context.GameState.player.x = 1;
@@ -169,9 +169,16 @@ const exhaustUnknownAround = (x, y) => {
     stepHook = async () => ({ type: 'WANDER', target: 'no_deberia_usarse' });
     decision = await player.step();
     assert.equal(decision.type, 'ESCAPE_MOVE');
+    assert.equal(context.GameState.player.x, 2);
+    assert.equal(context.GameState.player.y, 1);
+    assert.equal(player.memory.escapeTarget.x, 3);
+
+    decision = await player.step();
+    assert.equal(decision.type, 'ESCAPE_MOVE');
     assert.equal(context.GameState.player.x, 3);
     assert.equal(context.GameState.player.y, 1);
     assert.equal(player.memory.escapeTarget.x, 3);
+    assert.equal(player.memory.loopBreaks, 1);
 
     const diagnostic = player.navigationDiagnostics();
     assert.equal(diagnostic.loopBreaks, 1);
