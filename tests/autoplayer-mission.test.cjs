@@ -93,6 +93,7 @@ vm.runInContext(source, context, { filename: 'autoplayer-mission.js' });
     context.GameState.level = 2;
     context.GameState.player.x = 1;
     context.GameState.player.y = 1;
+    context.GameState.stairs.up = { x: 3, y: 3 };
     context.GameState.seen = Array.from({ length: rows }, () => Array(cols).fill(false));
     context.GameState.seen[1][1] = true;
     player.reset();
@@ -106,10 +107,11 @@ vm.runInContext(source, context, { filename: 'autoplayer-mission.js' });
     assert.ok(player.memory.navigationEvents.some(event => event.type === 'SEARCH_RESET'));
 
     // 3) Si tras reabrir no aparece frontera, usa cobertura conocida menos visitada
-    // en lugar del fallback aleatorio.
+    // en lugar del fallback aleatorio. La escalera queda deliberadamente fuera de lo conocido.
     context.GameState.level = 2;
     context.GameState.player.x = 1;
     context.GameState.player.y = 1;
+    context.GameState.stairs.up = { x: 9, y: 9 };
     context.GameState.seen = Array.from({ length: rows }, () => Array(cols).fill(true));
     player.reset();
     player.phase = 'ASCEND';
