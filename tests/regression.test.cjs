@@ -376,6 +376,59 @@ test('el suelo se agrieta al abandonarlo y retroceder provoca caída con pérdid
     }
 });
 
+test('un pasillo de una casilla permite ida y vuelta y colapsa al intentar una tercera pasada', async () => {
+    freshGame(19051);
+    GameState.level = 9;
+    GameState.floor = { type: 'UNSTABLE' };
+    GameState.persistence[9] = [];
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('#'));
+    GameState.seen = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(true));
+    GameState.visible = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(true));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.stairs.up = { x: 60, y: 20 };
+    GameState.stairs.down = { x: 61, y: 20 };
+
+    for (let y = 9; y <= 11; y++) {
+        for (let x = 8; x <= 10; x++) GameState.map[y][x] = '.';
+        for (let x = 15; x <= 17; x++) GameState.map[y][x] = '.';
+    }
+    for (let x = 11; x <= 14; x++) GameState.map[10][x] = '.';
+
+    GameState.player.x = 10;
+    GameState.player.y = 10;
+    GameState.player.hp = 100;
+    GameState.player.inventory = [];
+    GameState.player.equipment = { weapon: null, armor: null };
+
+    assert.equal(FloorSystem.isNarrowUnstableTile(10, 10), false);
+    assert.equal(FloorSystem.isNarrowUnstableTile(11, 10), true);
+
+    const originalEndTurn = GameLogic.endTurn;
+    const originalTimeout = context.setTimeout;
+    GameLogic.endTurn = () => {};
+    context.setTimeout = (fn) => { fn(); return 1; };
+    context.window.setTimeout = context.setTimeout;
+    try {
+        for (let i = 0; i < 5; i++) await GameLogic.movePlayer(1, 0);
+        for (let i = 0; i < 5; i++) await GameLogic.movePlayer(-1, 0);
+
+        assert.equal(GameState.level, 9);
+        assert.deepEqual([GameState.player.x, GameState.player.y], [10, 10]);
+        assert.equal(FloorSystem.hasNarrowGrace(10, 10), true);
+        assert.equal(FloorSystem.isCriticalCrack(11, 10), true);
+        assert.equal(FloorSystem.isHole(11, 10), false);
+
+        await GameLogic.movePlayer(1, 0);
+        assert.equal(GameState.level, 10);
+        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.persistence[9].includes('HOLE_11,10'), true);
+    } finally {
+        GameLogic.endTurn = originalEndTurn;
+        context.setTimeout = originalTimeout;
+        context.window.setTimeout = originalTimeout;
+    }
+});
+
 test('la resistencia a caída se calcula antes de soltar una armadura no retenida', () => {
     freshGame(19055);
     GameState.level = 9;
@@ -1025,6 +1078,308 @@ test('una partida nueva limpia todos los stocks persistentes de mercader', () =>
     assert.ok(Object.keys(GameState.shopStocks).length > 0);
     GameLogic.init(2406);
     assert.equal(Object.keys(GameState.shopStocks).length, 0);
+});
+
+
+test('Frozen genera una Cámara de Escarcha opcional con cofre especial', () => {
+    freshGame(2501);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+
+    const zone = GameState.floor.riskZone;
+    assert.ok(zone);
+    assert.equal(zone.type, 'FROZEN_VAULT');
+    assert.equal(FloorSystem.isFrozenVaultTile(GameState.stairs.up.x, GameState.stairs.up.y), false);
+    assert.equal(FloorSystem.isFrozenVaultTile(GameState.stairs.down.x, GameState.stairs.down.y), false);
+
+    const chest = GameState.entities.chests.find(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(chest);
+    assert.equal(FloorSystem.isFrozenVaultTile(chest.x, chest.y), true);
+});
+
+test('la Cámara de Escarcha duplica el riesgo de resbalón y respeta los crampones', () => {
+    freshGame(2502);
+    GameState.floor = { type: 'FROZEN', riskZone: { type: 'FROZEN_VAULT', x1: 10, y1: 10, x2: 15, y2: 15 } };
+    GameState.player.equipment.armor = null;
+
+    GameState.player.x = 5;
+    GameState.player.y = 5;
+    assert.equal(FloorSystem.slipChance(), 0.35);
+
+    GameState.player.x = 12;
+    GameState.player.y = 12;
+    assert.equal(FloorSystem.slipChance(), 0.70);
+
+    GameState.player.equipment.armor = { traits: { slipResist: 0.75 } };
+    assert.equal(FloorSystem.slipChance(), 0.175);
+});
+
+test('el cofre de escarcha nunca usa la trampa normal y entrega equipo mejorado', () => {
+    freshGame(2503);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.hp = 80;
+    GameState.player.inventory = [];
+
+    const chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(chestIndex >= 0);
+    const originalRandom = Utils.random;
+    Utils.random = () => 0;
+    try {
+        GameLogic.openChest(chestIndex);
+        assert.equal(GameState.player.hp, 80);
+        assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        assert.equal(GameState.player.inventory.length, 1);
+        assert.ok(GameState.player.inventory[0].name.includes('escarcha'));
+        assert.ok(['weapon', 'armor'].includes(GameState.player.inventory[0].type));
+    } finally {
+        Utils.random = originalRandom;
+    }
+});
+
+test('el cofre de escarcha permanece abierto al volver a la planta', () => {
+    freshGame(2504);
+    GameState.level = 3;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.inventory = [];
+
+    let chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(chestIndex >= 0);
+    const chest = GameState.entities.chests[chestIndex];
+    const coords = [chest.x, chest.y];
+    const originalRandom = Utils.random;
+    Utils.random = () => 0.5;
+    try {
+        GameLogic.openChest(chestIndex);
+    } finally {
+        Utils.random = originalRandom;
+    }
+
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    const restored = GameState.entities.chests.find(entry => entry.specialId === 'FROZEN_VAULT_CHEST');
+    assert.ok(restored);
+    assert.deepEqual([restored.x, restored.y], coords);
+    assert.equal(restored.isOpen, true);
+});
+
+
+test('Magma genera una Cámara de Fumarola opcional con cofre especial', () => {
+    freshGame(2601);
+    GameState.level = 6;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+
+    const zone = GameState.floor.riskZone;
+    assert.ok(zone);
+    assert.equal(zone.type, 'MAGMA_FUMAROLE');
+    assert.equal(FloorSystem.isMagmaFumaroleTile(GameState.stairs.up.x, GameState.stairs.up.y), false);
+    assert.equal(FloorSystem.isMagmaFumaroleTile(GameState.stairs.down.x, GameState.stairs.down.y), false);
+
+    const chest = GameState.entities.chests.find(entry => entry.specialId === 'MAGMA_FUMAROLE_CHEST');
+    assert.ok(chest);
+    assert.equal(FloorSystem.isMagmaFumaroleTile(chest.x, chest.y), true);
+});
+
+test('la Cámara de Fumarola cuesta 2 de agua por turno y la malla térmica lo reduce a 1', () => {
+    freshGame(2602);
+    GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 10, y1: 10, x2: 15, y2: 15 } };
+    GameState.player.x = 12;
+    GameState.player.y = 12;
+    GameState.player.equipment.armor = null;
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 2);
+
+    GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 1);
+
+    GameState.player.x = 5;
+    GameState.player.y = 5;
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 0);
+});
+
+test('la supervivencia cobra el agua extra de la Fumarola en cada acción', () => {
+    freshGame(2603);
+    GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 10, y1: 10, x2: 15, y2: 15 } };
+    GameState.player.x = 12;
+    GameState.player.y = 12;
+    GameState.player.water = 20;
+    GameState.player.food = 20;
+    GameState.moves = 1;
+    GameState.player.equipment.armor = null;
+    GameLogic.processSurvival();
+    assert.equal(GameState.player.water, 18);
+
+    GameState.player.water = 20;
+    GameState.moves = 1;
+    GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
+    GameLogic.processSurvival();
+    assert.equal(GameState.player.water, 19);
+});
+
+test('el cofre de brasa evita trampas, da equipo mejorado y persiste abierto', () => {
+    freshGame(2604);
+    GameState.level = 6;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.hp = 80;
+    GameState.player.inventory = [];
+
+    let chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'MAGMA_FUMAROLE_CHEST');
+    assert.ok(chestIndex >= 0);
+    const chest = GameState.entities.chests[chestIndex];
+    const coords = [chest.x, chest.y];
+    const originalRandom = Utils.random;
+    Utils.random = () => 0;
+    try {
+        GameLogic.openChest(chestIndex);
+        assert.equal(GameState.player.hp, 80);
+        assert.equal(chest.isOpen, true);
+        assert.equal(GameState.player.inventory.length, 1);
+        assert.ok(GameState.player.inventory[0].name.includes('obsidiana'));
+        assert.equal(GameState.player.inventory[0].type, 'weapon');
+    } finally {
+        Utils.random = originalRandom;
+    }
+
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    const restored = GameState.entities.chests.find(entry => entry.specialId === 'MAGMA_FUMAROLE_CHEST');
+    assert.ok(restored);
+    assert.deepEqual([restored.x, restored.y], coords);
+    assert.equal(restored.isOpen, true);
+});
+
+
+test('Inestable genera un Pasaje de Falla ciego con cofre especial y sin spawns ordinarios', () => {
+    freshGame(2601);
+    GameState.level = 9;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+
+    const zone = GameState.floor.riskZone;
+    assert.ok(zone);
+    assert.equal(zone.type, 'UNSTABLE_RIFT');
+    assert.equal(zone.tiles.length, CONFIG.FLOORS.UNSTABLE.rift.length);
+    assert.ok(zone.tiles.length >= 3);
+    assert.equal(FloorSystem.isUnstableRiftTile(GameState.stairs.up.x, GameState.stairs.up.y), false);
+    assert.equal(FloorSystem.isUnstableRiftTile(GameState.stairs.down.x, GameState.stairs.down.y), false);
+
+    const chest = GameState.entities.chests.find(entry => entry.specialId === 'UNSTABLE_RIFT_CHEST');
+    assert.ok(chest);
+    assert.deepEqual([chest.x, chest.y], [zone.chest.x, zone.chest.y]);
+    assert.equal(FloorSystem.isUnstableRiftTile(chest.x, chest.y), true);
+
+    const reserved = zone.tiles.map(tile => `${tile.x},${tile.y}`);
+    assert.equal(GameState.entities.enemies.some(e => reserved.includes(`${e.x},${e.y}`)), false);
+    assert.equal(GameState.entities.items.some(item => reserved.includes(`${item.x},${item.y}`)), false);
+    assert.equal(GameState.entities.shops.some(shop => reserved.includes(`${shop.x},${shop.y}`)), false);
+    assert.equal(GameLogic.isValidEnemyMove(zone.tiles[0].x, zone.tiles[0].y), false);
+});
+
+test('el Pasaje de Falla permite una retirada completa y cae al intentar entrar por tercera vez', async () => {
+    freshGame(2602);
+    GameState.level = 9;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.entities.enemies = [];
+    GameState.player.hp = 100;
+    GameState.player.inventory = [];
+    GameState.player.equipment = { weapon: null, armor: null };
+
+    const zone = GameState.floor.riskZone;
+    assert.ok(zone && zone.tiles.length >= 3);
+    GameState.player.x = zone.anchor.x;
+    GameState.player.y = zone.anchor.y;
+
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(zone.dx, zone.dy);
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(-zone.dx, -zone.dy);
+
+    assert.equal(GameState.level, 9);
+    assert.deepEqual([GameState.player.x, GameState.player.y], [zone.anchor.x, zone.anchor.y]);
+    assert.equal(FloorSystem.isCriticalCrack(zone.tiles[0].x, zone.tiles[0].y), true);
+
+    await GameLogic.movePlayer(zone.dx, zone.dy);
+    assert.equal(GameState.level, 10);
+    assert.equal(GameState.player.hp, 25);
+});
+
+test('el Cofre de Falla evita trampas, entrega equipo superior y persiste abierto', () => {
+    freshGame(2603);
+    GameState.level = 9;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.player.hp = 80;
+    GameState.player.inventory = [];
+
+    let chestIndex = GameState.entities.chests.findIndex(entry => entry.specialId === 'UNSTABLE_RIFT_CHEST');
+    assert.ok(chestIndex >= 0);
+    const chest = GameState.entities.chests[chestIndex];
+    const coords = [chest.x, chest.y];
+    const originalRandom = Utils.random;
+    Utils.random = () => 0;
+    try {
+        GameLogic.openChest(chestIndex);
+        assert.equal(GameState.player.hp, 80);
+        assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        assert.equal(GameState.player.inventory.length, 1);
+        assert.ok(GameState.player.inventory[0].name.includes('falla'));
+        assert.equal(GameState.player.inventory[0].type, 'weapon');
+    } finally {
+        Utils.random = originalRandom;
+    }
+
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    const restored = GameState.entities.chests.find(entry => entry.specialId === 'UNSTABLE_RIFT_CHEST');
+    assert.ok(restored);
+    assert.deepEqual([restored.x, restored.y], coords);
+    assert.equal(restored.isOpen, true);
+});
+
+test('el arnés protege si fuerzas una tercera entrada al Pasaje de Falla', async () => {
+    freshGame(2604);
+    GameState.level = 9;
+    GameState.entryMethod = 'descending';
+    MapSystem.initLevel();
+    FloorSystem.closeWarning();
+    GameState.entities.enemies = [];
+    GameState.player.hp = 100;
+    GameState.player.inventory = [{ type: 'food', name: 'Ración de prueba', value: 10, symbol: '%', color: '#ffaa00' }];
+    GameState.player.equipment.weapon = { type: 'weapon', name: 'Hoja de prueba', value: 2, symbol: '!', color: '#fff' };
+    GameState.player.equipment.armor = {
+        type: 'armor', specialId: 'UNSTABLE_HARNESS', name: 'Arnés ligero de espeleólogo', value: 1,
+        symbol: ']', color: '#d7a56d', traits: { fallDamageResist: 0.5, retainEquippedOnFall: true }
+    };
+
+    const zone = GameState.floor.riskZone;
+    GameState.player.x = zone.anchor.x;
+    GameState.player.y = zone.anchor.y;
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(zone.dx, zone.dy);
+    for (let i = 0; i < zone.tiles.length - 1; i++) await GameLogic.movePlayer(-zone.dx, -zone.dy);
+    assert.equal(GameState.level, 9);
+
+    await GameLogic.movePlayer(zone.dx, zone.dy);
+
+    assert.equal(GameState.level, 10);
+    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.equipment.weapon.name, 'Hoja de prueba');
+    assert.equal(GameState.player.equipment.armor.specialId, 'UNSTABLE_HARNESS');
+    assert.equal(GameState.player.inventory.length, 0);
+    assert.ok((GameState.recoveryDrops[10] || []).some(item => item.name === 'Ración de prueba'));
 });
 
 (async () => {

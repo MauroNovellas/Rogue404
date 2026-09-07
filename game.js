@@ -19,6 +19,18 @@ const CONFIG = {
             extraStepsMin: 1,
             extraStepsMax: 2,
             animationMs: 90,
+            vault: {
+                enabled: true,
+                slipChance: 0.70,
+                driftChance: 0.45,
+                extraStepsMin: 2,
+                extraStepsMax: 3,
+                rewardBonus: 2,
+                tileColor: '#e8fbff',
+                tileBackground: '#174d63',
+                fogColor: '#31596a',
+                chestColor: '#8df3ff'
+            },
             colors: { wall: '#25465f', wallVisible: '#6e9fb8', floor: '#bdefff', fog: '#17303f' },
             warningTitle: '⚠ PROFUNDIDAD HELADA',
             warningText: 'EL FRÍO DOMINA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• El hielo puede hacerte resbalar y desviarte.<br>• El equipo polar con crampones reduce ambos peligros.'
@@ -27,18 +39,36 @@ const CONFIG = {
             enabled: true,
             label: 'MAGMA',
             thirstMultiplier: 2,
+            fumarole: {
+                enabled: true,
+                waterCostPerTurn: 2,
+                rewardBonus: 3,
+                tileColor: '#ffd29a',
+                tileBackground: '#5a180c',
+                fogColor: '#6f2b19',
+                chestColor: '#ff5a2b'
+            },
             colors: { wall: '#42130d', wallVisible: '#9c3520', floor: '#d56832', fog: '#210b08' },
             warningTitle: '⚠ CÁMARA MAGMÁTICA',
-            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• La malla térmica reduce la presión del calor y permite descansar.'
+            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• Las cámaras de fumarola consumen agua cada turno, pero esconden botín superior.<br>• La malla térmica reduce la presión del calor y permite descansar.'
         },
         UNSTABLE: {
             enabled: true,
             label: 'INESTABLE',
             fallHpLoss: 0.75,
             collapseAnimationMs: 180,
+            rift: {
+                enabled: true,
+                length: 5,
+                rewardBonus: 4,
+                tileColor: '#f3c58d',
+                tileBackground: '#3a281c',
+                fogColor: '#594536',
+                chestColor: '#ffd27a'
+            },
             colors: { wall: '#302820', wallVisible: '#725d49', floor: '#b08b67', fog: '#241d17' },
             warningTitle: '⚠ ESTRATO INESTABLE',
-            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• Si vuelves a pisarla, el suelo cede y caes al siguiente nivel.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
+            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• En zonas abiertas, volver a pisar una grieta provoca la caída.<br>• Los pasillos de una sola casilla permiten una segunda pasada: ╬ indica suelo crítico y una nueva entrada lo hará ceder.<br>• Los Pasajes de Falla usan esta misma regla y permiten una retirada antes de volverse letales.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
         }
     },
     PLAYER: {
@@ -251,6 +281,141 @@ const FloorSystem = {
         const config = FloorSystem.config();
         return config && config.colors ? config.colors : CONFIG.MAP.colors;
     },
+    prepareRiskZone: () => {
+        GameState.floor.riskZone = null;
+        if (FloorSystem.is('UNSTABLE')) {
+            FloorSystem.prepareUnstablePassage();
+            return;
+        }
+
+        let zoneConfig = null;
+        let zoneType = null;
+
+        if (FloorSystem.is('FROZEN')) {
+            zoneConfig = CONFIG.FLOORS.FROZEN.vault;
+            zoneType = 'FROZEN_VAULT';
+        } else if (FloorSystem.is('MAGMA')) {
+            zoneConfig = CONFIG.FLOORS.MAGMA.fumarole;
+            zoneType = 'MAGMA_FUMAROLE';
+        }
+
+        if (!zoneConfig || !zoneConfig.enabled || GameState.rooms.length < 3) return;
+        const candidates = GameState.rooms.filter((room, index) => index > 0 && index < GameState.rooms.length - 1);
+        if (candidates.length === 0) return;
+
+        const up = GameState.stairs.up;
+        const room = candidates.reduce((best, current) => {
+            const currentDist = Math.abs(current.center.x - up.x) + Math.abs(current.center.y - up.y);
+            const bestDist = Math.abs(best.center.x - up.x) + Math.abs(best.center.y - up.y);
+            return currentDist > bestDist ? current : best;
+        });
+
+        const insetX = room.w >= 5 ? 1 : 0;
+        const insetY = room.h >= 5 ? 1 : 0;
+        GameState.floor.riskZone = {
+            type: zoneType,
+            x1: room.x + insetX,
+            y1: room.y + insetY,
+            x2: room.x + room.w - 1 - insetX,
+            y2: room.y + room.h - 1 - insetY
+        };
+    },
+    prepareUnstablePassage: () => {
+        const config = CONFIG.FLOORS.UNSTABLE.rift;
+        if (!config || !config.enabled) return;
+
+        const length = Math.max(3, Number(config.length) || 5);
+        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+        const candidates = [];
+        const isStair = (x, y) =>
+            (x === GameState.stairs.up.x && y === GameState.stairs.up.y) ||
+            (x === GameState.stairs.down.x && y === GameState.stairs.down.y);
+
+        // Busca una pared maciza junto a cualquier suelo ya conectado y talla un
+        // corredor ciego. Los laterales deben seguir siendo roca para impedir
+        // salidas alternativas: el regreso usa exactamente las huellas de entrada.
+        for (let y = 2; y < CONFIG.GRID.rows - 2; y++) {
+            for (let x = 2; x < CONFIG.GRID.cols - 2; x++) {
+                if (GameState.map[y][x] !== '.' || isStair(x, y)) continue;
+                const distFromUp = Math.abs(x - GameState.stairs.up.x) + Math.abs(y - GameState.stairs.up.y);
+                if (distFromUp < 6) continue;
+
+                for (const [dx, dy] of dirs) {
+                    const sideX = -dy;
+                    const sideY = dx;
+                    const path = [];
+                    let valid = true;
+
+                    for (let step = 1; step <= length; step++) {
+                        const tx = x + dx * step;
+                        const ty = y + dy * step;
+                        if (tx <= 1 || tx >= CONFIG.GRID.cols - 2 || ty <= 1 || ty >= CONFIG.GRID.rows - 2) {
+                            valid = false;
+                            break;
+                        }
+                        if (GameState.map[ty][tx] !== '#') {
+                            valid = false;
+                            break;
+                        }
+
+                        for (const side of [-1, 1]) {
+                            const sx = tx + sideX * side;
+                            const sy = ty + sideY * side;
+                            if (GameState.map[sy][sx] !== '#') {
+                                valid = false;
+                                break;
+                            }
+                        }
+                        if (!valid) break;
+                        path.push({ x: tx, y: ty });
+                    }
+
+                    if (!valid || path.length !== length) continue;
+                    const beyondX = x + dx * (length + 1);
+                    const beyondY = y + dy * (length + 1);
+                    if (beyondX <= 0 || beyondX >= CONFIG.GRID.cols - 1 || beyondY <= 0 || beyondY >= CONFIG.GRID.rows - 1) continue;
+                    if (GameState.map[beyondY][beyondX] !== '#') continue;
+
+                    candidates.push({
+                        anchor: { x, y },
+                        dx, dy,
+                        path,
+                        distFromUp
+                    });
+                }
+            }
+        }
+
+        candidates.sort((a, b) =>
+            b.distFromUp - a.distFromUp ||
+            a.anchor.y - b.anchor.y ||
+            a.anchor.x - b.anchor.x ||
+            a.dy - b.dy ||
+            a.dx - b.dx
+        );
+        const chosen = candidates[0];
+        if (!chosen) return;
+
+        chosen.path.forEach(tile => { GameState.map[tile.y][tile.x] = '.'; });
+        const chest = chosen.path[chosen.path.length - 1];
+        GameState.floor.riskZone = {
+            type: 'UNSTABLE_RIFT',
+            tiles: chosen.path.map(tile => ({ ...tile })),
+            anchor: { ...chosen.anchor },
+            dx: chosen.dx,
+            dy: chosen.dy,
+            chest: { ...chest }
+        };
+    },
+    isRiskZoneTile: (x, y, type = null) => {
+        const zone = GameState.floor && GameState.floor.riskZone;
+        if (!zone || (type && zone.type !== type)) return false;
+        if (Array.isArray(zone.tiles)) return zone.tiles.some(tile => tile.x === x && tile.y === y);
+        return x >= zone.x1 && x <= zone.x2 && y >= zone.y1 && y <= zone.y2;
+    },
+    isFrozenVaultTile: (x, y) => FloorSystem.is('FROZEN') && FloorSystem.isRiskZoneTile(x, y, 'FROZEN_VAULT'),
+    isMagmaFumaroleTile: (x, y) => FloorSystem.is('MAGMA') && FloorSystem.isRiskZoneTile(x, y, 'MAGMA_FUMAROLE'),
+    isUnstableRiftTile: (x, y) => FloorSystem.is('UNSTABLE') && FloorSystem.isRiskZoneTile(x, y, 'UNSTABLE_RIFT'),
     armorTraits: () => {
         const armor = GameState.player.equipment.armor;
         return armor && armor.traits ? armor.traits : {};
@@ -258,12 +423,16 @@ const FloorSystem = {
     slipChance: () => {
         if (!FloorSystem.is('FROZEN')) return 0;
         const config = CONFIG.FLOORS.FROZEN;
+        const inVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+        const baseChance = inVault ? config.vault.slipChance : config.slipChance;
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().slipResist) || 0));
-        return config.slipChance * (1 - resist);
+        return baseChance * (1 - resist);
     },
     shouldSlip: () => FloorSystem.is('FROZEN') && Utils.random() < FloorSystem.slipChance(),
     resolveSlipDirection: (dx, dy) => {
-        if (!FloorSystem.is('FROZEN') || Utils.random() >= CONFIG.FLOORS.FROZEN.driftChance) return [dx, dy];
+        const config = CONFIG.FLOORS.FROZEN;
+        const driftChance = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y) ? config.vault.driftChance : config.driftChance;
+        if (!FloorSystem.is('FROZEN') || Utils.random() >= driftChance) return [dx, dy];
         const dirs = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
         const index = dirs.findIndex(([x, y]) => x === dx && y === dy);
         if (index === -1) return [dx, dy];
@@ -272,8 +441,11 @@ const FloorSystem = {
     },
     extraSlipSteps: () => {
         const config = CONFIG.FLOORS.FROZEN;
-        const span = config.extraStepsMax - config.extraStepsMin + 1;
-        return config.extraStepsMin + Math.floor(Utils.random() * span);
+        const inVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+        const min = inVault ? config.vault.extraStepsMin : config.extraStepsMin;
+        const max = inVault ? config.vault.extraStepsMax : config.extraStepsMax;
+        const span = max - min + 1;
+        return min + Math.floor(Utils.random() * span);
     },
     waitSlipFrame: () => new Promise(resolve => window.setTimeout(resolve, CONFIG.FLOORS.FROZEN.animationMs)),
     renderSlipFrame: async () => {
@@ -297,6 +469,12 @@ const FloorSystem = {
         const pressure = 1 + (config.thirstMultiplier - 1) * (1 - resist);
         return Math.max(1, Math.round(baseRate / pressure));
     },
+    magmaRiskWaterCost: () => {
+        if (!FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y)) return 0;
+        const config = CONFIG.FLOORS.MAGMA.fumarole;
+        const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().heatResist) || 0));
+        return Math.max(0, Math.ceil(config.waterCostPerTurn * (1 - resist)));
+    },
     restHealing: () => {
         if (FloorSystem.is('FROZEN')) return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
         if (FloorSystem.is('MAGMA')) return Math.max(0, Number(FloorSystem.armorTraits().magmaRestHeal) || 0);
@@ -304,14 +482,48 @@ const FloorSystem = {
     },
     unstableKey: (kind, x, y) => `${kind}_${x},${y}`,
     isCracked: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('CRACK', x, y)),
+    isCriticalCrack: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('CRITICAL', x, y)),
+    hasNarrowGrace: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('NARROW', x, y)),
     isHole: (x, y) => FloorSystem.is('UNSTABLE') && MapSystem.isTaken(FloorSystem.unstableKey('HOLE', x, y)),
     isStableUnstableTile: (x, y) => {
         return (x === GameState.stairs.up.x && y === GameState.stairs.up.y) ||
                (x === GameState.stairs.down.x && y === GameState.stairs.down.y);
     },
-    markCracked: (x, y) => {
+    // Una casilla es estrecha cuando no forma parte de ningún bloque transitable 2x2.
+    // Esto cubre corredores rectos, esquinas, puertas y pequeños cuellos de botella.
+    isNarrowUnstableTile: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE')) return false;
+        if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return false;
+        if (!GameState.map[y] || GameState.map[y][x] === '#') return false;
+        const open = (tx, ty) =>
+            tx >= 0 && tx < CONFIG.GRID.cols && ty >= 0 && ty < CONFIG.GRID.rows &&
+            GameState.map[ty] && GameState.map[ty][tx] !== '#';
+        const origins = [[-1,-1], [0,-1], [-1,0], [0,0]];
+        const belongsToOpen2x2 = origins.some(([ox, oy]) =>
+            open(x + ox, y + oy) &&
+            open(x + ox + 1, y + oy) &&
+            open(x + ox, y + oy + 1) &&
+            open(x + ox + 1, y + oy + 1)
+        );
+        return !belongsToOpen2x2;
+    },
+    usesNarrowDurability: (x, y) => FloorSystem.isNarrowUnstableTile(x, y) || FloorSystem.hasNarrowGrace(x, y),
+    markCracked: (x, y, nextX = null, nextY = null) => {
         if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y) || FloorSystem.isHole(x, y)) return;
+        const alreadyCracked = FloorSystem.isCracked(x, y);
+        const entersNarrow = nextX !== null && nextY !== null && FloorSystem.isNarrowUnstableTile(nextX, nextY);
+        const narrowDurability = FloorSystem.isNarrowUnstableTile(x, y) || entersNarrow || FloorSystem.hasNarrowGrace(x, y);
+
+        // El umbral de una sala también recibe la gracia del corredor. Sin esto,
+        // el jugador podría recorrer el túnel entero y caer justo al regresar a la sala.
+        if (narrowDurability) MapSystem.markTaken(FloorSystem.unstableKey('NARROW', x, y));
+        if (alreadyCracked && narrowDurability) MapSystem.markTaken(FloorSystem.unstableKey('CRITICAL', x, y));
         MapSystem.markTaken(FloorSystem.unstableKey('CRACK', x, y));
+    },
+    shouldCollapseOnEntry: (x, y) => {
+        if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y) || !FloorSystem.isCracked(x, y)) return false;
+        if (!FloorSystem.usesNarrowDurability(x, y)) return true;
+        return FloorSystem.isCriticalCrack(x, y);
     },
     markHole: (x, y) => {
         if (!FloorSystem.is('UNSTABLE') || FloorSystem.isStableUnstableTile(x, y)) return;
@@ -528,7 +740,7 @@ const MapSystem = {
             GameState.visible.push(new Array(CONFIG.GRID.cols).fill(false));
             GameState.map.push(new Array(CONFIG.GRID.cols).fill('#'));
         }
-        MapSystem.generateDungeon(); EntityFactory.spawnAll();
+        MapSystem.generateDungeon(); FloorSystem.prepareRiskZone(); EntityFactory.spawnAll();
         FloorSystem.restoreRecoveryDrops();
         if (GameState.entryMethod === 'falling') {
             const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
@@ -628,6 +840,7 @@ const EntityFactory = {
         });
 
         EntityFactory.spawnFloorSpecial();
+        EntityFactory.spawnRiskReward();
 
         if (CONFIG.ENTITIES.shops.levels.includes(GameState.level)) {
             const pos = EntityFactory.getRoomPos();
@@ -646,6 +859,48 @@ const EntityFactory = {
                 isOpen: MapSystem.isTaken(chestKey)
             });
         }
+    },
+    spawnRiskReward: () => {
+        const zone = GameState.floor.riskZone;
+        if (!zone) return;
+
+        let chestName = null;
+        let specialId = null;
+        if (FloorSystem.is('FROZEN') && zone.type === 'FROZEN_VAULT') {
+            chestName = 'Cofre de escarcha';
+            specialId = 'FROZEN_VAULT_CHEST';
+        } else if (FloorSystem.is('MAGMA') && zone.type === 'MAGMA_FUMAROLE') {
+            chestName = 'Cofre de brasa';
+            specialId = 'MAGMA_FUMAROLE_CHEST';
+        } else if (FloorSystem.is('UNSTABLE') && zone.type === 'UNSTABLE_RIFT') {
+            chestName = 'Cofre de falla';
+            specialId = 'UNSTABLE_RIFT_CHEST';
+        } else {
+            return;
+        }
+
+        let pos = zone.chest ? { ...zone.chest } : null;
+        if (!pos) {
+            const candidates = [];
+            for (let y = zone.y1; y <= zone.y2; y++) {
+                for (let x = zone.x1; x <= zone.x2; x++) {
+                    if (MapSystem.isBlocked(x, y) || EntityFactory.isStartEnd(x, y) || EntityFactory.isOccupied(x, y)) continue;
+                    candidates.push({ x, y, dist: Math.abs(x - GameState.stairs.up.x) + Math.abs(y - GameState.stairs.up.y) });
+                }
+            }
+            candidates.sort((a, b) => b.dist - a.dist);
+            pos = candidates[0];
+        }
+        if (!pos) return;
+
+        const chestKey = `CHEST_${pos.x},${pos.y}`;
+        GameState.entities.chests.push({
+            x: pos.x,
+            y: pos.y,
+            name: chestName,
+            specialId,
+            isOpen: MapSystem.isTaken(chestKey)
+        });
     },
     spawnFloorSpecial: () => {
         if (!FloorSystem.is('FROZEN') && !FloorSystem.is('MAGMA') && !FloorSystem.is('UNSTABLE')) return;
@@ -733,7 +988,7 @@ const EntityFactory = {
         while (limit-- > 0) {
             const x = Math.floor(Utils.random() * (CONFIG.GRID.cols - 2)) + 1;
             const y = Math.floor(Utils.random() * (CONFIG.GRID.rows - 2)) + 1;
-            if (GameState.map[y][x] === '.' && !MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (GameState.map[y][x] === '.' && !MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y) && !FloorSystem.isUnstableRiftTile(x, y)) return { x, y };
         }
         return null;
     },
@@ -842,8 +1097,8 @@ const GameLogic = {
 
         const previousX = GameState.player.x;
         const previousY = GameState.player.y;
-        const willCollapse = FloorSystem.is('UNSTABLE') && FloorSystem.isCracked(nx, ny) && !FloorSystem.isStableUnstableTile(nx, ny);
-        if (FloorSystem.is('UNSTABLE')) FloorSystem.markCracked(previousX, previousY);
+        const willCollapse = FloorSystem.shouldCollapseOnEntry(nx, ny);
+        if (FloorSystem.is('UNSTABLE')) FloorSystem.markCracked(previousX, previousY, nx, ny);
         GameLogic.enterPlayerTile(nx, ny);
 
         if (willCollapse) {
@@ -892,11 +1147,29 @@ const GameLogic = {
         return true;
     },
     enterPlayerTile: (x, y) => {
+        const wasFrozenVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+        const wasMagmaFumarole = FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y);
+        const wasUnstableRift = FloorSystem.isUnstableRiftTile(GameState.player.x, GameState.player.y);
         GameState.player.x = x;
         GameState.player.y = y;
         GameState.player.combat.waitBonus = 0;
         GameState.player.combat.isDefending = false;
         GameLogic.collectItemsAt(x, y);
+        const inFrozenVault = FloorSystem.isFrozenVaultTile(x, y);
+        const inMagmaFumarole = FloorSystem.isMagmaFumaroleTile(x, y);
+        const inUnstableRift = FloorSystem.isUnstableRiftTile(x, y);
+        if (!wasFrozenVault && inFrozenVault) {
+            Utils.log('Entras en una Cámara de Escarcha. El hielo aquí es mucho más traicionero.', '#8df3ff');
+            VisualFX.floatText(x, y, '¡RIESGO!', '#8df3ff');
+        }
+        if (!wasMagmaFumarole && inMagmaFumarole) {
+            Utils.log('Entras en una Cámara de Fumarola. Cada turno quema parte de tu reserva de agua.', '#ff7a3d');
+            VisualFX.floatText(x, y, '¡SED!', '#ff7a3d');
+        }
+        if (!wasUnstableRift && inUnstableRift) {
+            Utils.log('Entras en un Pasaje de Falla. El corredor soporta una retirada; una tercera pasada será fatal.', '#ffd27a');
+            VisualFX.floatText(x, y, '¡2 PASADAS!', '#ffd27a');
+        }
     },
     collectItemsAt: (x, y) => {
         for (let i = GameState.entities.items.length - 1; i >= 0; i--) {
@@ -1205,6 +1478,7 @@ const GameLogic = {
     },
     isValidEnemyMove: (x, y) => {
         if (MapSystem.isBlocked(x, y)) return false;
+        if (FloorSystem.isUnstableRiftTile(x, y)) return false;
         // En el estrato inestable los enemigos tratan las grietas como paredes:
         // no pisan suelo debilitado y nunca provocan una caída de nivel.
         if (FloorSystem.isCracked(x, y)) return false;
@@ -1222,6 +1496,11 @@ const GameLogic = {
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
         const thirstRate = FloorSystem.thirstRate();
         if (GameState.moves % thirstRate === 0) GameState.player.water--;
+        const magmaRiskCost = FloorSystem.magmaRiskWaterCost();
+        if (magmaRiskCost > 0) {
+            GameState.player.water -= magmaRiskCost;
+            VisualFX.floatText(GameState.player.x, GameState.player.y, `-${magmaRiskCost} AGUA`, '#57d7ff', 'incoming');
+        }
 
         if (GameState.player.food <= 0) {
             GameState.player.food = 0;
@@ -1275,6 +1554,48 @@ const GameLogic = {
 
         chest.isOpen = true;
         MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
+
+        if (chest.specialId === 'FROZEN_VAULT_CHEST') {
+            const vault = CONFIG.FLOORS.FROZEN.vault;
+            const weaponReward = Utils.random() < 0.5;
+            if (weaponReward) {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + vault.rewardBonus, 'Arma de escarcha', '!', '#8df3ff');
+            } else {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + vault.rewardBonus, 'Malla de escarcha', ']', '#8df3ff');
+            }
+            const reward = GameState.entities.items.pop();
+            Utils.log('El cofre de escarcha se abre sin trampa. Dentro hay equipo excepcional.', vault.chestColor);
+            InventorySystem.pickup(reward, -1, -1, -1, true);
+            return;
+        }
+
+        if (chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
+            const fumarole = CONFIG.FLOORS.MAGMA.fumarole;
+            const weaponReward = Utils.random() < 0.5;
+            if (weaponReward) {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + fumarole.rewardBonus, 'Arma de obsidiana', '!', fumarole.chestColor);
+            } else {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + fumarole.rewardBonus, 'Malla volcánica', ']', fumarole.chestColor);
+            }
+            const reward = GameState.entities.items.pop();
+            Utils.log('El cofre de brasa cede al calor. Dentro hay equipo excepcional.', fumarole.chestColor);
+            InventorySystem.pickup(reward, -1, -1, -1, true);
+            return;
+        }
+
+        if (chest.specialId === 'UNSTABLE_RIFT_CHEST') {
+            const rift = CONFIG.FLOORS.UNSTABLE.rift;
+            const weaponReward = Utils.random() < 0.5;
+            if (weaponReward) {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + rift.rewardBonus, 'Hoja de falla', '!', rift.chestColor);
+            } else {
+                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + rift.rewardBonus, 'Malla tectónica', ']', rift.chestColor);
+            }
+            const reward = GameState.entities.items.pop();
+            Utils.log('El cofre de falla se abre. El pasaje aguantará la retirada, pero quedará al límite.', rift.chestColor);
+            InventorySystem.pickup(reward, -1, -1, -1, true);
+            return;
+        }
 
         if (Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
             Utils.log('¡TRAMPA! El cofre explota.', '#f00');
@@ -1792,7 +2113,19 @@ const Renderer = {
                         if (shop) { char = "S"; color = "color:#ffd700; font-weight:bold"; }
                         else {
                             let chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
-                            if (chest) { char = chest.isOpen ? "_" : "="; color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : CONFIG.ENTITIES.chests.colors.closed}; font-weight:bold`; } 
+                            if (chest) {
+                                const frozenVaultChest = chest.specialId === 'FROZEN_VAULT_CHEST';
+                                const magmaFumaroleChest = chest.specialId === 'MAGMA_FUMAROLE_CHEST';
+                                const unstableRiftChest = chest.specialId === 'UNSTABLE_RIFT_CHEST';
+                                const specialRiskChest = frozenVaultChest || magmaFumaroleChest || unstableRiftChest;
+                                char = chest.isOpen ? "_" : (specialRiskChest ? "*" : "=");
+                                const closedColor = frozenVaultChest
+                                    ? CONFIG.FLOORS.FROZEN.vault.chestColor
+                                    : (magmaFumaroleChest
+                                        ? CONFIG.FLOORS.MAGMA.fumarole.chestColor
+                                        : (unstableRiftChest ? CONFIG.FLOORS.UNSTABLE.rift.chestColor : CONFIG.ENTITIES.chests.colors.closed));
+                                color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
+                            }
                             else {
                                 let item = GameState.entities.items.find(i => i.x === x && i.y === y);
                                 if (item) { char = item.symbol; color = `color:${item.color}; font-weight:bold`; }
@@ -1805,7 +2138,23 @@ const Renderer = {
                 if (!color) {
                     if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
                     else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
+                    else if (FloorSystem.isCriticalCrack(x, y)) { char = "╬"; color = isVis ? 'color:#ff8a4c' : 'color:#70422d'; }
                     else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
+                    else if (FloorSystem.isFrozenVaultTile(x, y)) {
+                        const vault = CONFIG.FLOORS.FROZEN.vault;
+                        char = "·";
+                        color = isVis ? `color:${vault.tileColor}; background:${vault.tileBackground}` : `color:${vault.fogColor}`;
+                    }
+                    else if (FloorSystem.isMagmaFumaroleTile(x, y)) {
+                        const fumarole = CONFIG.FLOORS.MAGMA.fumarole;
+                        char = "·";
+                        color = isVis ? `color:${fumarole.tileColor}; background:${fumarole.tileBackground}` : `color:${fumarole.fogColor}`;
+                    }
+                    else if (FloorSystem.isUnstableRiftTile(x, y)) {
+                        const rift = CONFIG.FLOORS.UNSTABLE.rift;
+                        char = "·";
+                        color = isVis ? `color:${rift.tileColor}; background:${rift.tileBackground}` : `color:${rift.fogColor}`;
+                    }
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
                 html += `<span style="${color}">${char}</span>`;
@@ -1833,8 +2182,17 @@ const Renderer = {
         else if (GameState.entities.shops.some(s => s.x === x && s.y === y)) { 
             id = 'SHOP'; data = {symbol:'S', color:'#ffd700', name:'Tienda', stats:'Comercio'}; 
         }
-        else if (GameState.entities.chests.some(c => c.x === x && c.y === y)) { 
-            id = 'CHEST'; data = {symbol:'=', color:CONFIG.ENTITIES.chests.colors.closed, name:'Cofre', stats:'Botín'}; 
+        else if (GameState.entities.chests.some(c => c.x === x && c.y === y)) {
+            const chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
+            if (chest && chest.specialId === 'FROZEN_VAULT_CHEST') {
+                id = 'FROZEN_VAULT_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.FROZEN.vault.chestColor, name:'Cofre de escarcha', stats:'Botín excepcional'};
+            } else if (chest && chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
+                id = 'MAGMA_FUMAROLE_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.MAGMA.fumarole.chestColor, name:'Cofre de brasa', stats:'Botín excepcional'};
+            } else if (chest && chest.specialId === 'UNSTABLE_RIFT_CHEST') {
+                id = 'UNSTABLE_RIFT_CHEST'; data = {symbol:'*', color:CONFIG.FLOORS.UNSTABLE.rift.chestColor, name:'Cofre de falla', stats:'Botín excepcional · ruta frágil'};
+            } else {
+                id = 'CHEST'; data = {symbol:'=', color:CONFIG.ENTITIES.chests.colors.closed, name:'Cofre', stats:'Botín'};
+            }
         }
         else {
             let item = GameState.entities.items.find(i => i.x === x && i.y === y);
@@ -1878,12 +2236,23 @@ const UISystem = {
 
         if (!DOM.combatStatus) return;
         const parts = [];
-        if (FloorSystem.is('FROZEN')) parts.push('<span style="color:#8adfff">HIELO</span>');
-        if (FloorSystem.is('MAGMA')) {
-            const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
-            parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+        if (FloorSystem.is('FROZEN')) {
+            const inVault = FloorSystem.isFrozenVaultTile(GameState.player.x, GameState.player.y);
+            parts.push(`<span style="color:#8adfff">${inVault ? 'HIELO · CÁMARA DE ESCARCHA' : 'HIELO'}</span>`);
         }
-        if (FloorSystem.is('UNSTABLE')) parts.push('<span style="color:#d7a56d">INESTABLE · NO RETROCEDAS</span>');
+        if (FloorSystem.is('MAGMA')) {
+            const inFumarole = FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y);
+            if (inFumarole) {
+                parts.push(`<span style="color:#ff6b35">MAGMA · FUMAROLA · -${FloorSystem.magmaRiskWaterCost()} AGUA/T</span>`);
+            } else {
+                const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
+                parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+            }
+        }
+        if (FloorSystem.is('UNSTABLE')) {
+            const inRift = FloorSystem.isUnstableRiftTile(GameState.player.x, GameState.player.y);
+            parts.push(`<span style="color:#d7a56d">${inRift ? 'INESTABLE · PASAJE FRÁGIL · 2 PASADAS' : 'INESTABLE · NO RETROCEDAS'}</span>`);
+        }
         const primedTroll = GameState.entities.enemies.find(e =>
             e.behavior === 'WARDEN' &&
             e._trollPressurePrimed &&
