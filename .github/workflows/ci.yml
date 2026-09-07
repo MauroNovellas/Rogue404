@@ -25,6 +25,7 @@ jobs:
         run: |
           node --check game.js
           node --check dev-tools.js
+          node --check autoplayer.js
 
       - name: PHP syntax
         run: php -l rogue_api.php
