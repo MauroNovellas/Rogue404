@@ -128,15 +128,15 @@ vm.runInContext(source, context, { filename: 'autoplayer-audit.js' });
         startSeed: 1,
         profiles: ['greedy', 'novice'],
         goalDepth: 3,
-        maxActions: 100,
+        maxActions: 400,
         onProgress: info => progress.push(`${info.completed}/${info.total}:${info.seed}:${info.profile}`)
     });
 
     assert.equal(JSON.stringify(calls), JSON.stringify([
-        '1:greedy:3:100',
-        '1:novice:3:100',
-        '2:greedy:3:100',
-        '2:novice:3:100'
+        '1:greedy:3:400',
+        '1:novice:3:400',
+        '2:greedy:3:400',
+        '2:novice:3:400'
     ]));
     assert.equal(progress.at(-1), '4/4:2:novice');
     assert.equal(audit.results.greedy[0].loopBreaks, 4);
