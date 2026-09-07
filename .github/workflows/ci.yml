@@ -28,7 +28,9 @@ jobs:
           node --check autoplayer.js
           node --check autoplayer-profiles.js
           node --check autoplayer-navigation.js
+          node --check autoplayer-mission.js
           node --check autoplayer-audit.js
+          node --check autoplayer-audit-1.2.js
 
       - name: PHP syntax
         run: php -l rogue_api.php
@@ -48,5 +50,11 @@ jobs:
       - name: AutoPlayer navigation tests
         run: node tests/autoplayer-navigation.test.cjs
 
+      - name: AutoPlayer mission tests
+        run: node tests/autoplayer-mission.test.cjs
+
       - name: AutoPlayer audit tests
         run: node tests/autoplayer-audit.test.cjs
+
+      - name: AutoPlayer audit 1.2 tests
+        run: node tests/autoplayer-audit-1.2.test.cjs
