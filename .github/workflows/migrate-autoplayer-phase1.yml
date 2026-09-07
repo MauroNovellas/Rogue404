@@ -1,0 +1,46 @@
+name: Migrate AutoPlayer phase 1
+
+on:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.event.head_commit.message == 'Run AutoPlayer phase 1 migration'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Apply guarded migration
+        run: python3 .github/scripts/migrate-autoplayer-phase1.py
+
+      - name: Validate JavaScript
+        run: |
+          node --check game.js
+          node --check dev-tools.js
+          node --check autoplayer.js
+
+      - name: Structural guards
+        run: node tests/structure.test.cjs
+
+      - name: Full regression suite
+        run: node tests/regression.test.cjs
+
+      - name: Diff hygiene
+        run: git diff --check
+
+      - name: Commit AutoPlayer integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/ci.yml tests/regression.test.cjs
+          git commit -m "Integrate AutoPlayer simulation laboratory"
+          git push origin HEAD:dev
