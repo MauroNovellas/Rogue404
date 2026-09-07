@@ -5,7 +5,7 @@
     if (!window.AutoPlayer || !window.AutoSimulation) return;
 
     const REAL_SET_TIMEOUT = window.setTimeout.bind(window);
-    const AUDIT_VERSION = '1.0';
+    const AUDIT_VERSION = '1.1';
     const PROFILE_ORDER = ['prudent', 'explorer', 'greedy', 'aggressive', 'novice'];
     const PRESETS = {
         smoke: { label: 'SMOKE', runs: 10, goalDepth: 3, maxActions: 1800 },
@@ -29,14 +29,36 @@
         return [...new Set(requested.filter(profile => available.has(profile)))];
     };
 
+    const emptyNav = () => ({
+        phase: null,
+        stagnantSteps: 0,
+        loopBreaks: 0,
+        recentPositions: [],
+        actionableFrontiers: null,
+        escapeTarget: null,
+        escapeSteps: 0,
+        escapeFailures: 0,
+        blockedEscapeTargets: 0,
+        currentObjective: null,
+        loopFingerprints: [],
+        decisionTrace: []
+    });
+
     const navigationSnapshot = () => {
-        if (typeof AutoPlayer.navigationDiagnostics !== 'function') {
-            return { stagnantSteps: 0, loopBreaks: 0, recentPositions: [], actionableFrontiers: null };
-        }
+        if (typeof AutoPlayer.navigationDiagnostics !== 'function') return emptyNav();
         try {
-            return AutoPlayer.navigationDiagnostics();
+            return { ...emptyNav(), ...AutoPlayer.navigationDiagnostics() };
         } catch (_) {
-            return { stagnantSteps: 0, loopBreaks: 0, recentPositions: [], actionableFrontiers: null };
+            return emptyNav();
+        }
+    };
+
+    const safeClone = (value) => {
+        if (value === null || value === undefined) return value ?? null;
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (_) {
+            return String(value);
         }
     };
 
@@ -50,16 +72,31 @@
         }
     };
 
+    const longThresholdFor = (run, maxActions) => {
+        const depth = Math.max(1, Number(run.goalDepth) || 1);
+        return Math.max(200, Math.floor(Math.min(maxActions * 0.55, depth * 280)));
+    };
+
     const enrichRun = (run, maxActions) => {
         const nav = navigationSnapshot();
+        const longThreshold = longThresholdFor(run, maxActions);
         return {
             ...run,
+            phase: nav.phase || null,
             loopBreaks: Number(nav.loopBreaks) || 0,
             stagnantSteps: Number(nav.stagnantSteps) || 0,
             actionableFrontiers: Number.isFinite(nav.actionableFrontiers) ? nav.actionableFrontiers : null,
             recentPositions: Array.isArray(nav.recentPositions) ? nav.recentPositions.slice(-8) : [],
+            escapeTarget: safeClone(nav.escapeTarget),
+            escapeSteps: Number(nav.escapeSteps) || 0,
+            escapeFailures: Number(nav.escapeFailures) || 0,
+            blockedEscapeTargets: Number(nav.blockedEscapeTargets) || 0,
+            currentObjective: safeClone(nav.currentObjective),
+            loopFingerprints: Array.isArray(nav.loopFingerprints) ? safeClone(nav.loopFingerprints) : [],
+            decisionTrace: Array.isArray(nav.decisionTrace) ? safeClone(nav.decisionTrace.slice(-8)) : [],
             lastDecision: safeDecision(),
-            suspiciousLong: !run.success && Number(run.actions) >= Math.floor(maxActions * 0.80)
+            longThreshold,
+            suspiciousLong: !run.success && Number(run.actions) >= longThreshold
         };
     };
 
@@ -69,7 +106,8 @@
         const loops = runs.reduce((sum, run) => sum + (Number(run.loopBreaks) || 0), 0);
         const runsWithLoops = runs.filter(run => (Number(run.loopBreaks) || 0) > 0).length;
         const suspiciousLong = runs.filter(run => run.suspiciousLong).length;
-        return { ...base, stuck, loops, runsWithLoops, suspiciousLong };
+        const escapeFailures = runs.reduce((sum, run) => sum + (Number(run.escapeFailures) || 0), 0);
+        return { ...base, stuck, loops, runsWithLoops, suspiciousLong, escapeFailures };
     };
 
     const causesFor = (runs) => runs.reduce((acc, run) => {
@@ -132,6 +170,17 @@
     const fmt = (value, digits = 1) => Number(value || 0).toFixed(digits);
     const pct = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
 
+    const compactTrace = (run) => (run.decisionTrace || []).slice(-6).map(entry => ({
+        a: entry.action,
+        p: entry.phase,
+        l: entry.level,
+        from: entry.before,
+        to: entry.after,
+        d: entry.decision && entry.decision.type,
+        target: entry.decision && (entry.decision.target || entry.decision.escapeTarget || null),
+        reason: entry.decision && entry.decision.reason
+    }));
+
     const reportFor = (audit) => {
         const lines = [];
         lines.push('ROGUE404 AUDIT');
@@ -148,20 +197,26 @@
             const summary = audit.summaries[profile];
             lines.push(`${profileLabel(profile)} (${profile})`);
             lines.push(`  success=${pct(summary.successRate)} depth=${fmt(summary.avgMaxDepth, 2)} actions=${fmt(summary.avgActions)} gold=${fmt(summary.avgScore)} kills=${fmt(summary.avgKills, 2)}`);
-            lines.push(`  hp=${fmt(summary.avgHp)} food=${fmt(summary.avgFood)} water=${fmt(summary.avgWater)} stuck=${summary.stuck} loop_breaks=${summary.loops} loop_runs=${summary.runsWithLoops} long_runs=${summary.suspiciousLong}`);
+            lines.push(`  hp=${fmt(summary.avgHp)} food=${fmt(summary.avgFood)} water=${fmt(summary.avgWater)} stuck=${summary.stuck} loop_breaks=${summary.loops} loop_runs=${summary.runsWithLoops} escape_failures=${summary.escapeFailures} long_runs=${summary.suspiciousLong}`);
             lines.push(`  causes=${JSON.stringify(causesFor(audit.results[profile]))}`);
         });
 
         lines.push('');
         lines.push('=== NAVIGATION INCIDENTS ===');
         if (audit.analysis.stuck.length === 0) lines.push('STUCK: none');
-        else audit.analysis.stuck.slice(0, 20).forEach(run => lines.push(`STUCK seed=${run.seed} profile=${run.profile} level=${run.finalLevel} depth=${run.maxDepth} actions=${run.actions} loops=${run.loopBreaks} last=${JSON.stringify(run.lastDecision)}`));
+        else audit.analysis.stuck.slice(0, 20).forEach(run => {
+            lines.push(`STUCK seed=${run.seed} profile=${run.profile} level=${run.finalLevel} depth=${run.maxDepth} actions=${run.actions} phase=${run.phase} loops=${run.loopBreaks} objective=${JSON.stringify(run.currentObjective)} escape=${JSON.stringify(run.escapeTarget)} last=${JSON.stringify(run.lastDecision)}`);
+            lines.push(`  BLACKBOX ${JSON.stringify(compactTrace(run))}`);
+        });
 
         if (audit.analysis.loopHeavy.length === 0) lines.push('HEAVY LOOPS (>=3 breaks): none');
-        else audit.analysis.loopHeavy.slice(0, 20).forEach(run => lines.push(`LOOP seed=${run.seed} profile=${run.profile} breaks=${run.loopBreaks} depth=${run.maxDepth} actions=${run.actions} recent=${JSON.stringify(run.recentPositions)}`));
+        else audit.analysis.loopHeavy.slice(0, 20).forEach(run => {
+            lines.push(`LOOP seed=${run.seed} profile=${run.profile} breaks=${run.loopBreaks} depth=${run.maxDepth} actions=${run.actions} phase=${run.phase} escape_failures=${run.escapeFailures} recent=${JSON.stringify(run.recentPositions)} fingerprints=${JSON.stringify(run.loopFingerprints)}`);
+            lines.push(`  BLACKBOX ${JSON.stringify(compactTrace(run))}`);
+        });
 
         if (audit.analysis.longRuns.length === 0) lines.push('SUSPICIOUS LONG RUNS: none');
-        else audit.analysis.longRuns.slice(0, 20).forEach(run => lines.push(`LONG seed=${run.seed} profile=${run.profile} actions=${run.actions}/${audit.maxActions} depth=${run.maxDepth} cause=${run.cause}`));
+        else audit.analysis.longRuns.slice(0, 20).forEach(run => lines.push(`LONG seed=${run.seed} profile=${run.profile} actions=${run.actions}/${audit.maxActions} threshold=${run.longThreshold} depth=${run.maxDepth} cause=${run.cause} phase=${run.phase} objective=${JSON.stringify(run.currentObjective)}`));
 
         lines.push('');
         lines.push('=== SEED SIGNALS ===');
@@ -176,7 +231,7 @@
         audit.profiles.forEach(profile => {
             lines.push(`${profileLabel(profile)}:`);
             worstRuns(audit.results[profile]).forEach(run => {
-                lines.push(`  seed=${run.seed} success=${run.success} depth=${run.maxDepth} actions=${run.actions} cause=${run.cause} loops=${run.loopBreaks}`);
+                lines.push(`  seed=${run.seed} success=${run.success} depth=${run.maxDepth} actions=${run.actions} cause=${run.cause} loops=${run.loopBreaks} phase=${run.phase}`);
             });
         });
 
