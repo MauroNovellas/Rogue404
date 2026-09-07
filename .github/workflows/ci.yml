@@ -26,6 +26,7 @@ jobs:
           node --check game.js
           node --check dev-tools.js
           node --check autoplayer.js
+          node --check autoplayer-profiles.js
 
       - name: PHP syntax
         run: php -l rogue_api.php
@@ -38,3 +39,6 @@ jobs:
 
       - name: Gameplay regression tests
         run: node tests/regression.test.cjs
+
+      - name: AutoPlayer profile tests
+        run: node tests/autoplayer-profiles.test.cjs
