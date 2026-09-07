@@ -93,15 +93,16 @@ vm.runInContext(source, context, { filename: 'autoplayer-profiles.js' });
 
 (async () => {
     const definitions = context.AutoPlayer.profileDefinitions();
-    assert.deepEqual(
-        definitions.map(profile => profile.id),
-        ['prudent', 'explorer', 'greedy', 'aggressive', 'novice']
+    assert.equal(
+        definitions.map(profile => profile.id).join(','),
+        'prudent,explorer,greedy,aggressive,novice'
     );
 
     context.AutoPlayer.reset({ profile: 'novice', goalDepth: 6 });
     assert.equal(context.AutoPlayer.profileName, 'novice');
     assert.equal(context.AutoPlayer.profile().label, 'Novato');
-    assert.deepEqual(baseResetOptions, { profile: 'explorer', goalDepth: 6 });
+    assert.equal(baseResetOptions.profile, 'explorer');
+    assert.equal(baseResetOptions.goalDepth, 6);
 
     currentItems = [
         { type: 'GOLD', name: 'Oro', value: 20 },
@@ -110,13 +111,13 @@ vm.runInContext(source, context, { filename: 'autoplayer-profiles.js' });
     ];
 
     context.AutoPlayer.reset({ profile: 'prudent' });
-    assert.deepEqual(context.AutoPlayer.knownItemTargets().map(item => item.type), ['water']);
+    assert.equal(context.AutoPlayer.knownItemTargets().map(item => item.type).join(','), 'water');
 
     context.AutoPlayer.reset({ profile: 'greedy' });
-    assert.deepEqual(context.AutoPlayer.knownItemTargets().map(item => item.type), ['GOLD']);
+    assert.equal(context.AutoPlayer.knownItemTargets().map(item => item.type).join(','), 'GOLD');
 
     context.AutoPlayer.reset({ profile: 'aggressive' });
-    assert.deepEqual(context.AutoPlayer.knownItemTargets().map(item => item.type), ['weapon']);
+    assert.equal(context.AutoPlayer.knownItemTargets().map(item => item.type).join(','), 'weapon');
 
     currentChests = [
         { specialId: 'FROZEN_VAULT_CHEST', name: 'Cofre de Escarcha' },
@@ -124,7 +125,7 @@ vm.runInContext(source, context, { filename: 'autoplayer-profiles.js' });
     ];
 
     context.AutoPlayer.reset({ profile: 'prudent' });
-    assert.deepEqual(context.AutoPlayer.knownChestTargets().map(chest => chest.name), ['Cofre normal']);
+    assert.equal(context.AutoPlayer.knownChestTargets().map(chest => chest.name).join(','), 'Cofre normal');
 
     context.AutoPlayer.reset({ profile: 'greedy' });
     assert.equal(context.AutoPlayer.knownChestTargets().length, 2);
@@ -146,9 +147,9 @@ vm.runInContext(source, context, { filename: 'autoplayer-profiles.js' });
         maxActions: 123
     });
 
-    assert.deepEqual(
-        recordedRuns.map(run => `${run.seed}:${run.profile}`),
-        ['7:prudent', '7:aggressive', '8:prudent', '8:aggressive']
+    assert.equal(
+        recordedRuns.map(run => `${run.seed}:${run.profile}`).join(','),
+        '7:prudent,7:aggressive,8:prudent,8:aggressive'
     );
     assert.equal(comparison.summaries.prudent.runs, 2);
     assert.equal(comparison.summaries.aggressive.runs, 2);
