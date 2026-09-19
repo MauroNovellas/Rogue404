@@ -189,20 +189,29 @@ const Utils = {
     mulberry32: (a) => { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } },
     random: () => GameState.rng ? GameState.rng() : Math.random(),
     
-    // [LOG GHOST STYLE]
-    log: (msg, color="#ccc") => { 
+    // [REGISTRO DE LA MAZMORRA]
+    log: (msg, color="#ccc") => {
+        const emptyMsg = DOM.log.querySelector('.log-empty');
+        if (emptyMsg) emptyMsg.remove();
+
         // Evitamos spam idéntico consecutivo rápido
         const lastMsg = DOM.log.firstElementChild;
-        if (lastMsg && lastMsg.innerText === msg && lastMsg.style.opacity > 0.5) {
-             // Pequeño efecto de "pulso" si se repite
-             lastMsg.style.transform = "scale(1.1)";
-             setTimeout(() => lastMsg.style.transform = "scale(1)", 100);
+        if (lastMsg && lastMsg.dataset.message === msg && parseFloat(lastMsg.style.opacity || '1') > 0.5) {
+            // Pequeño efecto de "pulso" si se repite
+            lastMsg.style.transform = "scale(1.1)";
+            setTimeout(() => lastMsg.style.transform = "scale(1)", 100);
              return;
         }
 
         const div = document.createElement('div');
+        div.dataset.message = msg;
+        div.className = 'log-new';
         div.innerHTML = `<span style="color:${color}">${msg}</span>`;
         DOM.log.prepend(div); // Insertar arriba (visual abajo por flex-reverse)
+
+        [...DOM.log.children].forEach((entry, index) => {
+            if (index > 0) entry.classList.add('log-old');
+        });
         
         // Mantener limpio el DOM (max 6 mensajes)
         if (DOM.log.children.length > 6) DOM.log.lastElementChild.remove();
@@ -1198,7 +1207,7 @@ const GameLogic = {
             if (item.type === 'GOLD') {
                 GameState.score += item.value;
                 VisualFX.floatText(x, y, `+$${item.value}`, '#ffd700');
-                Utils.log('¡Oro!', '#ffd700');
+                Utils.log(`Recoges ${item.value} de oro.`, '#ffd700');
                 GameState.entities.items.splice(i, 1);
                 MapSystem.markTaken(x, y);
             } else {
@@ -1555,7 +1564,7 @@ const GameLogic = {
                     GameState.player.hp = Math.min(GameState.player.hp + healing, GameState.player.maxHp);
                     if (FloorSystem.is('FROZEN')) Utils.log(`El equipo polar te permite recuperar ${healing} HP.`, '#8adfff');
                     else if (FloorSystem.is('MAGMA')) Utils.log(`La malla térmica te permite recuperar ${healing} HP.`, '#ff8a4c');
-                    else Utils.log('Descansas...', '#ccc');
+                    else Utils.log(`Descansas y recuperas ${healing} HP.`, '#ccc');
                 } else if (FloorSystem.is('FROZEN')) {
                     Utils.log('El frío es demasiado intenso: descansar no recupera vida.', '#8adfff');
                 } else if (FloorSystem.is('MAGMA')) {
