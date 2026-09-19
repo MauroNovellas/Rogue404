@@ -191,7 +191,9 @@ const Utils = {
     
     // [REGISTRO DE LA MAZMORRA]
     log: (msg, color="#ccc") => {
-        const emptyMsg = DOM.log.querySelector('.log-empty');
+        const emptyMsg = typeof DOM.log.querySelector === 'function'
+            ? DOM.log.querySelector('.log-empty')
+            : null;
         if (emptyMsg) emptyMsg.remove();
 
         // Evitamos spam idéntico consecutivo rápido
