@@ -105,7 +105,12 @@ const CONFIG = {
             { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
         ],
         items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
-        chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, colors: { closed: '#DAA520', open: '#555' } },
+        chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, relicChance: 0.08, colors: { closed: '#DAA520', open: '#555' } },
+        relics: [
+            { id: 'BLOOD_CHALICE', name: 'Caliz de Sangre', color: '#ff3355', effect: 'heal', heal: 35, foodCost: 12, waterCost: 8, lore: 'Cura mucho, pero acelera el hambre y la sed.' },
+            { id: 'ECHO_BELL', name: 'Campana Hueca', color: '#b48cff', effect: 'stun', energyDrain: 1.5, lore: 'Aturde enemigos visibles; despierta lo que duerme.' },
+            { id: 'WARD_STONE', name: 'Piedra de Guardia', color: '#66d9ef', effect: 'guard', shieldBonus: 2, waterCost: 10, lore: 'Refuerza tu defensa y carga el siguiente golpe.' }
+        ],
         shops: {
             levels: [3, 6, 9, 12], priceMultiplier: 1.0, sellMultiplier: 0.5,
             inventory: [
@@ -982,6 +987,20 @@ const EntityFactory = {
         let v = Utils.applyVariance(baseVal);
         GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, name: `${baseName} [${v.label}]`, value: v.value, qualityColor: v.color, symbol: symbol, color: color });
     },
+    createRelicItem: (pos) => {
+        const relics = CONFIG.ENTITIES.relics;
+        const relic = relics[Math.floor(Utils.random() * relics.length)];
+        GameState.entities.items.push({
+            x: pos.x, y: pos.y,
+            type: 'relic',
+            relicId: relic.id,
+            name: relic.name,
+            value: 0,
+            symbol: '&',
+            color: relic.color,
+            qualityColor: relic.color
+        });
+    },
     createItem: (pos, type, val) => { GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, value: val, name: type === 'GOLD' ? 'Oro' : 'Item', symbol: '$', color: '#ffd700' }); },
     getEmptyPos: () => {
         let limit = 500;
@@ -1611,8 +1630,9 @@ const GameLogic = {
         else if (r < 0.5) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
         else if (r < 0.7) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', '#ff00ff');
         else if (r < 0.9) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', '#4682b4');
+        else if (r < 0.9 + CONFIG.ENTITIES.chests.relicChance) EntityFactory.createRelicItem({ x: 0, y: 0 });
 
-        if (r < 0.9) {
+        if (r < 0.9 + CONFIG.ENTITIES.chests.relicChance) {
             const newItem = GameState.entities.items.pop();
             InventorySystem.pickup(newItem, -1, -1, -1, true);
         } else {
@@ -1896,6 +1916,7 @@ const CombatSystem = {
 // 9. INVENTARIO Y TIENDA
 // ============================================================================
 const InventorySystem = {
+    relicDef: (item) => CONFIG.ENTITIES.relics.find(relic => relic.id === item.relicId) || null,
     pickup: (item, arrIndex, x, y, forced = false) => {
         if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) {
             Utils.log('¡Mochila llena!', '#f00');
@@ -1929,6 +1950,48 @@ const InventorySystem = {
         const actions = GameState.ui.currentActions; const selectedAction = actions[GameState.ui.actionIndex]; const itemIdx = GameState.ui.inventoryIndex;
         if (selectedAction.code === 'USE') InventorySystem.useItem(itemIdx); else if (selectedAction.code === 'DROP') InventorySystem.dropItem(itemIdx);
     },
+    useRelic: (item) => {
+        const relic = InventorySystem.relicDef(item);
+        if (!relic) return false;
+
+        if (relic.effect === 'heal') {
+            const before = GameState.player.hp;
+            GameState.player.hp = Math.min(GameState.player.maxHp, GameState.player.hp + relic.heal);
+            GameState.player.food = Math.max(0, GameState.player.food - (relic.foodCost || 0));
+            GameState.player.water = Math.max(0, GameState.player.water - (relic.waterCost || 0));
+            const healed = GameState.player.hp - before;
+            Utils.log(`${relic.name}: recuperas ${healed} HP, pero el cuerpo paga el precio.`, relic.color);
+            VisualFX.floatText(GameState.player.x, GameState.player.y, `+${healed} HP`, relic.color, 'pickup');
+            return true;
+        }
+
+        if (relic.effect === 'stun') {
+            let affected = 0;
+            GameState.entities.enemies.forEach(enemy => {
+                const visible = GameState.visible[enemy.y] && GameState.visible[enemy.y][enemy.x];
+                if (visible) {
+                    enemy.energy = Math.min(enemy.energy || 0, -Math.max(0.5, relic.energyDrain || 1));
+                    enemy._trollPressurePrimed = false;
+                    affected++;
+                    VisualFX.floatText(enemy.x, enemy.y, '¡ECO!', relic.color);
+                }
+                enemy.isSleeping = false;
+            });
+            Utils.log(`${relic.name}: ${affected || 'ningun'} enemigo visible queda desorientado.`, relic.color);
+            return true;
+        }
+
+        if (relic.effect === 'guard') {
+            GameState.player.combat.isDefending = true;
+            GameState.player.combat.waitBonus += relic.shieldBonus || 0;
+            GameState.player.water = Math.max(0, GameState.player.water - (relic.waterCost || 0));
+            Utils.log(`${relic.name}: adoptas una guardia ritual y cargas el golpe.`, relic.color);
+            VisualFX.floatText(GameState.player.x, GameState.player.y, 'GUARDIA', relic.color, 'pickup');
+            return true;
+        }
+
+        return false;
+    },
     useItem: (idx) => {
         let item = GameState.player.inventory[idx]; let consumed = false;
         if (item.type === 'food') { GameState.player.food = Math.min(GameState.player.food + item.value, 100); Utils.log(`Comes ${item.name}`, "#fa0"); consumed = true; }
@@ -1943,6 +2006,8 @@ const InventorySystem = {
             if (item.value > GameState.player.stats.maxArmor.val) GameState.player.stats.maxArmor = {name: item.name, val: item.value};
             Utils.log(`Vistes ${item.name}`, "#468"); consumed = true;
             if(old) GameState.player.inventory.push(old);
+        } else if (item.type === 'relic') {
+            consumed = InventorySystem.useRelic(item);
         }
         if (consumed) { 
             GameState.player.inventory.splice(idx, 1); 
@@ -2201,6 +2266,7 @@ const Renderer = {
                 else if (item.type === 'food') { id = 'FOOD'; data = {symbol:'%', color:'#ffaa00', name:'Ración', stats:'Comida'}; } 
                 else if (item.type === 'water') { id = 'WATER'; data = {symbol:'~', color:'#00ffff', name:'Agua', stats:'Bebida'}; } 
                 else if (item.type === 'weapon') { id = 'WEAPON_DROP'; data = {symbol:'!', color:'#ff00ff', name:'Arma', stats:'Ataque'}; } 
+                else if (item.type === 'relic') { id = 'RELIC_DROP'; data = {symbol:'&', color:item.color || '#b48cff', name:'Reliquia maldita', stats:'Uso unico · poder con coste'}; }
                 else if (item.specialId === 'FROZEN_CRAMPONS') { id = 'FROZEN_CRAMPONS'; data = {symbol:']', color:'#8adfff', name:'Arnés polar', stats:'DEF:1 · Hielo/agarre'}; }
                 else if (item.specialId === 'MAGMA_THERMAL') { id = 'MAGMA_THERMAL'; data = {symbol:']', color:'#ff6b35', name:'Malla térmica', stats:'DEF:1 · Calor/sed'}; }
                 else if (item.specialId === 'UNSTABLE_HARNESS') { id = 'UNSTABLE_HARNESS'; data = {symbol:']', color:'#d7a56d', name:'Arnés ligero', stats:'DEF:1 · Caída/equipo'}; }
@@ -2290,7 +2356,7 @@ const UISystem = {
         document.getElementById('action-title').innerText = item.name;
         list.innerHTML = "";
         let actions = [];
-        if (['food', 'water', 'weapon', 'armor'].includes(item.type)) actions.push({label: "Usar/Equipar", code: "USE"});
+        if (['food', 'water', 'weapon', 'armor', 'relic'].includes(item.type)) actions.push({label: item.type === 'relic' ? "Invocar" : "Usar/Equipar", code: "USE"});
         actions.push({label: "Tirar", code: "DROP"});
         GameState.ui.currentActions = actions;
         actions.forEach((act, idx) => {
