@@ -198,7 +198,7 @@ const Utils = {
 
         // Evitamos spam idéntico consecutivo rápido
         const lastMsg = DOM.log.firstElementChild;
-        if (lastMsg && lastMsg.dataset.message === msg && parseFloat(lastMsg.style.opacity || '1') > 0.5) {
+        if (lastMsg && lastMsg._logMessage === msg && parseFloat(lastMsg.style.opacity || '1') > 0.5) {
             // Pequeño efecto de "pulso" si se repite
             lastMsg.style.transform = "scale(1.1)";
             setTimeout(() => lastMsg.style.transform = "scale(1)", 100);
@@ -206,7 +206,7 @@ const Utils = {
         }
 
         const div = document.createElement('div');
-        div.dataset.message = msg;
+        div._logMessage = msg;
         div.className = 'log-new';
         div.innerHTML = `<span style="color:${color}">${msg}</span>`;
         DOM.log.prepend(div); // Insertar arriba (visual abajo por flex-reverse)
