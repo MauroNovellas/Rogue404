@@ -128,7 +128,7 @@ const CONFIG = {
 // ============================================================================
 const STATE_ENUM = {
     PLAYING: 'PLAYING', CONTROLS: 'CONTROLS', INVENTORY: 'INVENTORY',
-    MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER',
+    MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE',
     TARGETING: 'TARGETING'
 };
 
@@ -161,6 +161,7 @@ const GameState = {
         shopStock: [],
         floorWarningOpen: false,
         movementLocked: false,
+        rewardChoice: { options: [], index: 0 },
     }
 };
 
@@ -171,11 +172,18 @@ const DOM = {
     floorWarning: document.getElementById('floor-warning'),
     floorWarningTitle: document.getElementById('floor-warning-title'),
     floorWarningText: document.getElementById('floor-warning-text'),
+    context: {
+        objective: document.getElementById('context-objective'),
+        danger: document.getElementById('context-danger'),
+        resource: document.getElementById('context-resource'),
+        advice: document.getElementById('context-advice')
+    },
     menus: {
         controls: document.getElementById('controls-menu'),
         inventory: document.getElementById('inventory-menu'),
         main: document.getElementById('game-menu'),
         shop: document.getElementById('shop-menu'),
+        rewardChoice: document.getElementById('reward-choice'),
         gameOver: document.getElementById('game-over'),
         victory: document.getElementById('victory-screen'),
         action: document.getElementById('action-menu')
@@ -1555,7 +1563,11 @@ const GameLogic = {
         for(let d of dirs) {
             let tx = GameState.player.x + d[0], ty = GameState.player.y + d[1];
             let chestIdx = GameState.entities.chests.findIndex(c => c.x === tx && c.y === ty && !c.isOpen);
-            if (chestIdx !== -1) { GameLogic.openChest(chestIdx); GameLogic.endTurn(true); return; }
+            if (chestIdx !== -1) {
+                const turnConsumed = GameLogic.openChest(chestIdx);
+                if (turnConsumed !== false) GameLogic.endTurn(true);
+                return;
+            }
         }
         if (GameState.player.x === GameState.stairs.down.x && GameState.player.y === GameState.stairs.down.y) { GameState.level++; GameState.entryMethod = 'descending'; MapSystem.initLevel(); }
         else if (GameState.player.x === GameState.stairs.up.x && GameState.player.y === GameState.stairs.up.y) { if (GameState.level === 1) GameLogic.win(); else { GameState.level--; GameState.entryMethod = 'ascending'; MapSystem.initLevel(); } }
@@ -1636,20 +1648,60 @@ const GameLogic = {
         }
 
         Utils.log('Abres el cofre...', CONFIG.ENTITIES.chests.colors.closed);
-        const r = Utils.random();
-        if (r < 0.3) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
-        else if (r < 0.5) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
-        else if (r < 0.7) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', '#ff00ff');
-        else if (r < 0.9) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', '#4682b4');
-        else if (r < 0.9 + CONFIG.ENTITIES.chests.relicChance) EntityFactory.createRelicItem({ x: 0, y: 0 });
+        GameState.ui.rewardChoice = { options: GameLogic.buildChestRewardOptions(), index: 0 };
+        Utils.log('El cofre ofrece dos recompensas. Elige una.', CONFIG.ENTITIES.chests.colors.closed);
+        StateController.change(STATE_ENUM.REWARD_CHOICE);
+        return false;
+    },
+    buildChestRewardOptions: () => {
+        const options = [
+            { kind: 'food', name: 'Ración reforzada', detail: `+${CONFIG.ENTITIES.items.foodRestore + 10} comida`, color: '#ffaa00' },
+            { kind: 'water', name: 'Cantimplora llena', detail: `+${CONFIG.ENTITIES.items.drinkRestore + 10} agua`, color: '#00ffff' },
+            { kind: 'weapon', name: 'Arma rara', detail: `ATK +${CONFIG.COMBAT.baseWeaponVal + GameState.level}`, color: '#ff00ff' },
+            { kind: 'armor', name: 'Malla rara', detail: `DEF +${CONFIG.COMBAT.baseArmorVal + GameState.level}`, color: '#4682b4' },
+            { kind: 'relic', name: 'Reliquia maldita', detail: 'Poder único · coste oculto', color: '#b48cff' },
+            { kind: 'gold', name: 'Bolsa de oro', detail: '+75 oro', color: '#ffd700' }
+        ];
+        const firstIndex = Math.min(options.length - 1, Math.floor(Utils.random() * options.length));
+        const secondOffset = 1 + Math.floor(Utils.random() * (options.length - 1));
+        const first = options[firstIndex];
+        const second = options[(firstIndex + secondOffset) % options.length];
+        return [first, second];
+    },
+    chooseChestReward: (index) => {
+        const choice = GameState.ui.rewardChoice;
+        const reward = choice.options[index];
+        if (!reward) return;
 
-        if (r < 0.9 + CONFIG.ENTITIES.chests.relicChance) {
-            const newItem = GameState.entities.items.pop();
-            InventorySystem.pickup(newItem, -1, -1, -1, true);
-        } else {
-            GameState.score += 50;
-            Utils.log('¡Encuentras oro!', '#ffd700');
+        if (reward.kind === 'gold') {
+            GameState.score += 75;
+            Utils.log('Eliges la bolsa y recoges 75 de oro.', reward.color);
+        } else if (reward.kind === 'relic') {
+            EntityFactory.createRelicItem({ x: 0, y: 0 });
+            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
+        } else if (reward.kind === 'food') {
+            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore + 10, 'Ración reforzada', '%', reward.color);
+            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
+        } else if (reward.kind === 'water') {
+            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore + 10, 'Cantimplora llena', '~', reward.color);
+            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
+        } else if (reward.kind === 'weapon') {
+            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', reward.color);
+            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
+        } else if (reward.kind === 'armor') {
+            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', reward.color);
+            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
         }
+
+        GameState.ui.rewardChoice = { options: [], index: 0 };
+        StateController.change(STATE_ENUM.PLAYING);
+        GameLogic.endTurn(true);
+    },
+    cancelChestReward: () => {
+        GameState.ui.rewardChoice = { options: [], index: 0 };
+        Utils.log('Dejas atrás las recompensas del cofre.', '#888');
+        StateController.change(STATE_ENUM.PLAYING);
+        GameLogic.endTurn(true);
     },
     die: (cause) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
@@ -1918,7 +1970,9 @@ const CombatSystem = {
             GameState.player.nextXp = Math.floor(GameState.player.nextXp * CONFIG.PLAYER.leveling.xpScaling);
             GameState.player.maxHp += CONFIG.PLAYER.leveling.statGain.hp; GameState.player.hp = GameState.player.maxHp;
             GameState.player.baseAtk += CONFIG.PLAYER.leveling.statGain.atk;
-            Utils.log(`¡NIVEL UP! Nivel ${GameState.player.level}`, "#3f0");
+            Utils.log(`¡NIVEL UP! Nivel ${GameState.player.level}: +${CONFIG.PLAYER.leveling.statGain.hp} HP máx. y +${CONFIG.PLAYER.leveling.statGain.atk} ATK.`, "#3f0");
+        } else {
+            Utils.log(`+${amount} XP · ${GameState.player.xp}/${GameState.player.nextXp}`, "#8fff98");
         }
     }
 };
@@ -2302,14 +2356,92 @@ const Renderer = {
 };
 
 const UISystem = {
+    renderRewardChoice: () => {
+        const container = document.getElementById('reward-choice-options');
+        if (!container) return;
+        container.innerHTML = '';
+        const choice = GameState.ui.rewardChoice;
+        choice.options.forEach((option, index) => {
+            const button = document.createElement('div');
+            button.className = `reward-option ${index === choice.index ? 'selected' : ''}`;
+            button.innerHTML = `<span class="reward-option-name" style="color:${option.color}">${option.name}</span><span class="reward-option-detail">${option.detail}</span>`;
+            button.onclick = () => GameLogic.chooseChestReward(index);
+            container.appendChild(button);
+        });
+    },
+    updateContext: () => {
+        const context = DOM.context;
+        if (!context || !context.objective) return;
+
+        const player = GameState.player;
+        const visibleEnemies = GameState.entities.enemies.filter(enemy =>
+            GameState.visible[enemy.y] && GameState.visible[enemy.y][enemy.x]
+        );
+        const nearest = visibleEnemies
+            .map(enemy => ({ enemy, distance: Math.max(Math.abs(enemy.x - player.x), Math.abs(enemy.y - player.y)) }))
+            .sort((a, b) => a.distance - b.distance)[0];
+
+        const down = GameState.stairs.down;
+        const up = GameState.stairs.up;
+        const downSeen = Boolean(GameState.seen[down.y] && GameState.seen[down.y][down.x]);
+        const upSeen = Boolean(GameState.seen[up.y] && GameState.seen[up.y][up.x]);
+        let objective = GameState.level === 1 ? 'Encuentra la salida <' : 'Encuentra la bajada >';
+        if (GameState.level > 1 && upSeen && !downSeen) objective = 'Localiza la bajada >';
+        if (GameState.level === 1 && upSeen && player.x === up.x && player.y === up.y) objective = 'Explora y encuentra la bajada >';
+
+        let danger = 'Sin amenaza visible';
+        let dangerClass = '';
+        if (nearest) {
+            const enemyName = nearest.enemy.name || 'Enemigo';
+            danger = `${enemyName} a ${nearest.distance} casilla${nearest.distance === 1 ? '' : 's'}`;
+            dangerClass = nearest.distance <= 2 ? 'context-danger' : 'context-warning';
+            if (nearest.enemy._trollPressurePrimed) danger = `${enemyName}: aplastar inminente`;
+        } else if (FloorSystem.is('FROZEN') && FloorSystem.isFrozenVaultTile(player.x, player.y)) {
+            danger = 'Hielo traicionero'; dangerClass = 'context-warning';
+        } else if (FloorSystem.is('MAGMA') && FloorSystem.isMagmaFumaroleTile(player.x, player.y)) {
+            danger = 'Fumarola: consume agua'; dangerClass = 'context-danger';
+        } else if (FloorSystem.is('UNSTABLE') && FloorSystem.shouldCollapseOnEntry(player.x, player.y)) {
+            danger = 'Suelo frágil'; dangerClass = 'context-warning';
+        }
+
+        const resources = [
+            { value: player.hp, label: `HP ${player.hp}%`, priority: 3 },
+            { value: player.water, label: `Agua ${player.water}%`, priority: 2 },
+            { value: player.food, label: `Comida ${player.food}%`, priority: 1 }
+        ].sort((a, b) => a.value - b.value || b.priority - a.priority);
+        const urgent = resources[0];
+        const resourceClass = urgent.value <= 25 ? 'context-danger' : urgent.value <= 45 ? 'context-warning' : '';
+        let advice = 'Avanza hacia zonas no exploradas.';
+        if (nearest && nearest.distance <= 2) advice = 'Aléjate, defiende o usa una acción de combate.';
+        else if (player.hp <= 25) advice = 'Tu vida es crítica: busca seguridad antes de explorar.';
+        else if (player.water <= 25) advice = 'Prioriza agua o una tienda antes de seguir bajando.';
+        else if (player.food <= 25) advice = 'La comida escasea: evita combates innecesarios.';
+        else if (FloorSystem.is('UNSTABLE')) advice = 'No retrocedas sobre grietas salvo que el pasillo sea estrecho.';
+        else if (FloorSystem.is('MAGMA')) advice = 'Reserva agua: el calor duplica el consumo.';
+        else if (FloorSystem.is('FROZEN')) advice = 'El hielo puede desviarte: mueve con margen.';
+
+        context.objective.textContent = objective;
+        context.danger.textContent = danger;
+        context.danger.className = dangerClass;
+        context.resource.textContent = urgent.label;
+        context.resource.className = resourceClass;
+        context.advice.textContent = advice;
+    },
     updateHUD: () => {
         document.getElementById('char-lvl').innerText = GameState.player.level; document.getElementById('dungeon-lvl').innerText = `-${GameState.level}`;
         document.getElementById('hp-val').innerText = `${GameState.player.hp}/${GameState.player.maxHp}`;
         document.getElementById('food-val').innerText = GameState.player.food; document.getElementById('water-val').innerText = GameState.player.water;
         document.getElementById('score').innerText = GameState.score; document.getElementById('bag-count').innerText = `${GameState.player.inventory.length}/${CONFIG.PLAYER.inventorySize}`;
+        const xpPercent = GameState.player.nextXp > 0 ? Math.min(100, (GameState.player.xp / GameState.player.nextXp) * 100) : 0;
+        const xpFill = document.getElementById('xp-fill');
+        const xpText = document.getElementById('xp-text');
+        if (xpFill) xpFill.style.width = `${xpPercent}%`;
+        if (xpText) xpText.innerText = `${GameState.player.xp} / ${GameState.player.nextXp} XP`;
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
         if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
+
+        UISystem.updateContext();
 
         if (!DOM.combatStatus) return;
         const parts = [];
@@ -2403,6 +2535,7 @@ const StateController = {
             case STATE_ENUM.INVENTORY: DOM.menus.inventory.classList.remove('hidden'); UISystem.renderInventory(); break;
             case STATE_ENUM.MENU: DOM.menus.main.classList.remove('hidden'); document.getElementById('menu-seed-display').innerText = GameState.seed; Network.fetchScores('menu-leaderboard'); break;
             case STATE_ENUM.SHOP: DOM.menus.shop.classList.remove('hidden'); break;
+            case STATE_ENUM.REWARD_CHOICE: DOM.menus.rewardChoice.classList.remove('hidden'); UISystem.renderRewardChoice(); break;
             case STATE_ENUM.GAMEOVER: DOM.menus.gameOver.classList.remove('hidden'); break;
             case STATE_ENUM.PLAYING: DOM.container.focus(); break;
             case STATE_ENUM.TARGETING: DOM.container.focus(); break;
@@ -2476,6 +2609,18 @@ document.addEventListener('keydown', (e) => {
             else if (['b','z'].includes(key)) { dx = -1; dy = 1; }
             else if (['n','x'].includes(key)) { dx = 1; dy = 1; }
             if (dx !== 0 || dy !== 0) CombatSystem.executeAttack(dx, dy);
+        }
+    }
+    else if (GameState.current === STATE_ENUM.REWARD_CHOICE) {
+        const options = GameState.ui.rewardChoice.options;
+        if (key === 'escape') GameLogic.cancelChestReward();
+        else if (key === 'enter' || key === ' ') GameLogic.chooseChestReward(GameState.ui.rewardChoice.index);
+        else if (['a', 'arrowleft', 'w', 'arrowup'].includes(key)) {
+            GameState.ui.rewardChoice.index = Math.max(0, GameState.ui.rewardChoice.index - 1);
+            UISystem.renderRewardChoice();
+        } else if (['d', 'arrowright', 's', 'arrowdown'].includes(key)) {
+            GameState.ui.rewardChoice.index = Math.min(options.length - 1, GameState.ui.rewardChoice.index + 1);
+            UISystem.renderRewardChoice();
         }
     }
     else if (GameState.current === STATE_ENUM.INVENTORY) {

@@ -35,7 +35,13 @@
 <body>
 
     <div id="top-ui">
-        <div><span style="color:#fff">PJ</span> <span id="char-lvl" style="color:#33ff00">1</span></div>
+        <div class="hud-level">
+            <div><span style="color:#fff">PJ</span> <span id="char-lvl" style="color:#33ff00">1</span></div>
+            <div class="xp-meter" aria-label="Experiencia">
+                <span id="xp-fill"></span>
+            </div>
+            <span id="xp-text" class="xp-text">0 / 100 XP</span>
+        </div>
         <div><span style="color:#888">PISO</span> <span id="dungeon-lvl" style="color:#fff">-1</span></div>
         
         <div style="border-left: 1px solid #333; padding-left: 15px;">
@@ -70,6 +76,13 @@
         <div id="game-wrapper">
             <div id="fx-layer"></div>
             <div id="combat-status"></div>
+            <div id="context-panel" aria-live="polite" aria-label="Contexto de la partida">
+                <div class="context-title">LECTURA DE LA MAZMORRA</div>
+                <div class="context-row"><span>OBJETIVO</span><strong id="context-objective">Explora el nivel</strong></div>
+                <div class="context-row"><span>PELIGRO</span><strong id="context-danger">Calculando...</strong></div>
+                <div class="context-row"><span>URGENTE</span><strong id="context-resource">Calculando...</strong></div>
+                <div class="context-advice" id="context-advice">Muévete para descubrir el camino.</div>
+            </div>
             <div id="game-container"></div>
             <div id="log" aria-live="polite" aria-label="Registro de la mazmorra">
                 <div class="log-empty">Muévete con WASD o las flechas. Aquí aparecerán tus descubrimientos.</div>
@@ -133,6 +146,13 @@
             <div id="action-title" class="action-title">Objeto</div>
             <div id="action-list"></div>
         </div>
+    </div>
+
+    <div id="reward-choice" class="hidden">
+        <div class="reward-choice-kicker">COFRE ABIERTO</div>
+        <div class="reward-choice-title">Elige una recompensa</div>
+        <div id="reward-choice-options"></div>
+        <div class="reward-choice-help">FLECHAS · seleccionar &nbsp; ENTER · aceptar &nbsp; ESC · dejarlo</div>
     </div>
 
     <div id="shop-menu" class="hidden">
