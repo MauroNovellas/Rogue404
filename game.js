@@ -7,6 +7,7 @@ const CONFIG = {
     GRID: { cols: 70, rows: 24 },
     MAP: {
         maxRooms: 28, minRoomSize: 6, maxRoomSize: 14, viewRadius: 9,
+        roomShapes: ['RECTANGLE', 'OVAL', 'CHAMFERED', 'L_SHAPED', 'PILLARED'],
         colors: { wall: '#222', wallVisible: '#444', floor: '#888', fog: '#222' }
     },
     FLOORS: {
@@ -784,6 +785,14 @@ const MapSystem = {
         FloorSystem.onEnter();
     },
     generateDungeon: () => {
+        // La arquitectura usa su propia secuencia para no alterar el sorteo de
+        // tamaños y conexiones. Cada bloque de salas mezcla todas las formas.
+        const architectureRng = Utils.mulberry32((GameState.seed ^ Math.imul(GameState.level, 0x9e3779b9)) >>> 0);
+        const shapes = [...CONFIG.MAP.roomShapes];
+        for (let i = shapes.length - 1; i > 0; i--) {
+            const j = Math.floor(architectureRng() * (i + 1));
+            [shapes[i], shapes[j]] = [shapes[j], shapes[i]];
+        }
         for (let i = 0; i < CONFIG.MAP.maxRooms; i++) {
             let w = Math.floor(Utils.random() * (CONFIG.MAP.maxRoomSize - CONFIG.MAP.minRoomSize + 1)) + CONFIG.MAP.minRoomSize;
             let h = Math.floor(Utils.random() * (CONFIG.MAP.maxRoomSize - CONFIG.MAP.minRoomSize + 1)) + CONFIG.MAP.minRoomSize;
@@ -792,6 +801,8 @@ const MapSystem = {
             let newRoom = { x, y, w, h, center: {x: Math.floor(x+w/2), y: Math.floor(y+h/2)} };
             let failed = GameState.rooms.some(other => newRoom.x <= other.x + other.w && newRoom.x + newRoom.w >= other.x && newRoom.y <= other.y + other.h && newRoom.y + newRoom.h >= other.y);
             if (!failed) {
+                newRoom.shape = shapes[GameState.rooms.length % shapes.length];
+                newRoom.orientation = Math.floor(architectureRng() * 4);
                 MapSystem.carveRoom(newRoom);
                 if (GameState.rooms.length > 0) {
                     let prev = GameState.rooms[GameState.rooms.length - 1];
@@ -806,7 +817,45 @@ const MapSystem = {
             GameState.stairs.down = { x: last.center.x, y: last.center.y };
         }
     },
-    carveRoom: (r) => { for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) GameState.map[y][x] = '.'; },
+    roomContainsFloor: (r, x, y) => {
+        const u = x - r.x;
+        const v = y - r.y;
+        if (u < 0 || u >= r.w || v < 0 || v >= r.h) return false;
+        if (r.shape === 'OVAL') {
+            const nx = (u - (r.w - 1) / 2) / (r.w / 2);
+            const ny = (v - (r.h - 1) / 2) / (r.h / 2);
+            return nx * nx + ny * ny <= 1;
+        }
+        if (r.shape === 'CHAMFERED') {
+            const cornerCut = Math.max(1, Math.floor(Math.min(r.w, r.h) * 0.22));
+            return Math.min(u, r.w - 1 - u) + Math.min(v, r.h - 1 - v) >= cornerCut;
+        }
+        if (r.shape === 'L_SHAPED') {
+            const cornerX = (r.orientation & 1) ? r.w - 1 - u : u;
+            const cornerY = (r.orientation & 2) ? r.h - 1 - v : v;
+            // El recorte nunca alcanza el centro: las escaleras y ambos ejes
+            // de conexión quedan transitables en las cuatro orientaciones.
+            return cornerX >= Math.floor((r.w - 1) / 2) || cornerY >= Math.floor((r.h - 1) / 2);
+        }
+        if (r.shape === 'PILLARED') {
+            const centerX = Math.floor(r.w / 2);
+            const centerY = Math.floor(r.h / 2);
+            if (u === centerX || v === centerY) return true;
+            const pillarX = u === Math.floor(r.w / 3) || u === Math.floor(r.w * 2 / 3);
+            const pillarY = v === Math.floor(r.h / 3) || v === Math.floor(r.h * 2 / 3);
+            return !(pillarX && pillarY);
+        }
+        return true;
+    },
+    carveRoom: (r) => {
+        for (let y = r.y; y < r.y + r.h; y++) {
+            for (let x = r.x; x < r.x + r.w; x++) {
+                // Solo abre roca: respeta cualquier pasillo ya tallado que
+                // atraviese la huella de esta sala, incluso junto a un pilar.
+                if (MapSystem.roomContainsFloor(r, x, y)) GameState.map[y][x] = '.';
+            }
+        }
+    },
     carveHCorridor: (x1, x2, y) => { for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) GameState.map[y][x] = '.'; },
     carveVCorridor: (y1, y2, x) => { for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) GameState.map[y][x] = '.'; },
     updateFog: () => {

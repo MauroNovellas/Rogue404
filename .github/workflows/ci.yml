@@ -41,6 +41,9 @@ jobs:
       - name: Structural regression guards
         run: node tests/structure.test.cjs
 
+      - name: Dungeon generation and connectivity
+        run: node tests/map-generation.test.cjs
+
       - name: Gameplay regression tests
         run: node tests/regression.test.cjs
 
