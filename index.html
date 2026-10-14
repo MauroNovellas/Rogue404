@@ -2,103 +2,78 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Dungeon Not Found</title>
     <link rel="stylesheet" href="/404/style.css">
-    <style>
-        .stat-box {
-            background: #111;
-            border: 1px dashed #444;
-            padding: 10px;
-            margin: 5px 0;
-            text-align: left;
-            font-size: 0.8rem;
-            color: #ccc;
-        }
-        .stat-box strong { color: #fff; }
-        
-        /* Estilos del Menú de Controles */
-        #controls-menu {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #000;
-            border: 4px double #fff;
-            padding: 30px;
-            z-index: 80;
-            width: 500px;
-            box-shadow: 0 0 50px #000;
-            text-align: center;
-        }
-        .key-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 2px;}
-        .key-btn { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace;}
-    </style>
 </head>
 <body>
 
-    <div id="top-ui">
+    <header id="top-ui">
+        <div class="game-brand">ROGUE<span>404</span><small>DUNGEON NOT FOUND</small></div>
         <div class="hud-level">
-            <div><span style="color:#fff">PJ</span> <span id="char-lvl" style="color:#33ff00">1</span></div>
+            <div><span class="hud-label">Nivel</span> <span id="char-lvl">1</span></div>
             <div class="xp-meter" aria-label="Experiencia">
                 <span id="xp-fill"></span>
             </div>
             <span id="xp-text" class="xp-text">0 / 100 XP</span>
         </div>
-        <div><span style="color:#888">PISO</span> <span id="dungeon-lvl" style="color:#fff">-1</span></div>
-        
-        <div style="border-left: 1px solid #333; padding-left: 15px;">
-            <span style="color:#fff">MOCHILA (M):</span> 
-            <span id="bag-count" style="color:#ccc">0/6</span>
-        </div>
-
-        <div><span style="color:#f00">HP</span> <span id="hp-val">100/100</span></div>
-        <div><span style="color:#ffaa00">ATK</span> <span id="atk-val">3</span> <span id="weapon-bonus" style="font-size:0.8em; color:#ff00ff">(+0)</span></div>
-        <div><span style="color:#4682b4">DEF</span> <span id="armor-bonus" style="font-size:0.8em;">(+0)</span></div>
-        
-        <div style="border-left: 1px solid #333; padding-left: 15px;">
-            <span style="color:#ffaa00" title="Hambre">% <span id="food-val">100</span></span>
-            <span style="color:#00ffff; margin-left:10px;" title="Sed">~ <span id="water-val">100</span></span>
-        </div>
-        
-        <div style="border-left: 1px solid #333; padding-left: 15px;">
-            <span style="color:#ffd700">Oro: <span id="score">0</span></span>
-        </div>
-        
-        <div style="font-size: 0.8em; color: #888;">AYUDA: <span style="color:#fff">I</span> | PAUSA: <span style="color:#fff">P</span></div>
+        <div class="hud-stat"><span class="hud-label">Profundidad</span><span id="dungeon-lvl">-1</span></div>
+        <div class="hud-stat hud-health"><span class="hud-label">Vida</span><span id="hp-val">100/100</span></div>
+        <div class="hud-stat"><span class="hud-label">Comida</span><span><span id="food-val">100</span>%</span></div>
+        <div class="hud-stat"><span class="hud-label">Agua</span><span><span id="water-val">100</span>%</span></div>
+        <div class="hud-stat"><span class="hud-label">Oro</span><span id="score">0</span></div>
+        <nav class="ui-actions" aria-label="Menús de la partida">
+            <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/6</span> <kbd>M</kbd></button>
+            <button type="button" onclick="openBestiary()">Bestiario <kbd>B</kbd></button>
+            <button type="button" onclick="openControls()">Ayuda <kbd>I</kbd></button>
+            <button type="button" onclick="openPause()">Pausa <kbd>P</kbd></button>
+        </nav>
         <div style="display:none">SEED: <span id="seed-val"></span></div>
-    </div>
+    </header>
 
     <div id="main-layout">
-        <div id="legend-monsters" class="legend-panel">
-            <div class="legend-title">Amenazas</div>
-        </div>
-        <div id="legend-items" class="legend-panel">
-            <div class="legend-title">Entorno</div>
-        </div>
         <div id="game-wrapper">
             <div id="fx-layer"></div>
-            <div id="combat-status"></div>
-            <div id="context-panel" aria-live="polite" aria-label="Contexto de la partida">
-                <div class="context-title">LECTURA DE LA MAZMORRA</div>
-                <div class="context-row"><span>OBJETIVO</span><strong id="context-objective">Explora el nivel</strong></div>
-                <div class="context-row"><span>PELIGRO</span><strong id="context-danger">Calculando...</strong></div>
-                <div class="context-row"><span>URGENTE</span><strong id="context-resource">Calculando...</strong></div>
-                <div class="context-advice" id="context-advice">Muévete para descubrir el camino.</div>
-            </div>
-            <div id="game-container"></div>
+            <div id="game-container" tabindex="-1" aria-label="Mapa de la mazmorra"></div>
             <div id="log" aria-live="polite" aria-label="Registro de la mazmorra">
-                <div class="log-empty">Muévete con WASD o las flechas. Aquí aparecerán tus descubrimientos.</div>
+                <div class="log-empty">WASD / flechas para moverte · Espacio para interactuar.</div>
             </div>
         </div>
+        <aside id="game-sidebar" aria-label="Información de la partida">
+            <section id="context-panel" aria-live="polite" aria-label="Contexto de la partida">
+                <h2 class="context-title">Ahora</h2>
+                <div class="context-row"><span>Objetivo</span><strong id="context-objective">Explora el nivel</strong></div>
+                <div class="context-row"><span>Peligro</span><strong id="context-danger">Sin amenaza visible</strong></div>
+                <div class="context-row"><span>Reservas</span><strong id="context-resource">Calculando...</strong></div>
+                <p class="context-advice" id="context-advice">Muévete para descubrir el camino.</p>
+                <div id="combat-status"></div>
+            </section>
+            <section class="equipment-summary">
+                <h2 class="legend-title">Combate</h2>
+                <div><span>Ataque</span><strong><span id="atk-val">3</span> <span id="weapon-bonus">(+0)</span></strong></div>
+                <div><span>Defensa</span><strong id="armor-bonus">(+0)</strong></div>
+            </section>
+            <section id="legend-monsters" class="legend-panel">
+                <h2 class="legend-title">Criaturas descubiertas <span class="section-hint">B</span></h2>
+            </section>
+            <details class="environment-reference">
+                <summary>Símbolos del entorno</summary>
+                <div id="legend-items" class="legend-panel"><h2 class="legend-title">Entorno</h2></div>
+            </details>
+            <p class="sidebar-help">Pulsa una criatura para consultar su historia y cómo combatirla.</p>
+        </aside>
     </div>
 
-    <div id="floor-warning" class="hidden">
+    <div id="floor-warning" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="floor-warning-title" tabindex="-1">
         <div id="floor-warning-title" class="floor-warning-title">⚠ NIVEL ESPECIAL</div>
         <div id="floor-warning-text" class="floor-warning-text"></div>
         <button onclick="closeFloorWarning()" class="floor-warning-button">ENTENDIDO</button>
         <div class="floor-warning-hint">ENTER / ESPACIO / ESC</div>
     </div>
 
-    <div id="controls-menu" class="hidden">
-        <h2 style="color:#fff; border-bottom:2px solid #555; margin-top:0;">CONTROLES</h2>
+    <div id="controls-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="controls-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">GUÍA RÁPIDA</span><h2 id="controls-title">Cómo jugar</h2></div><button type="button" onclick="setGameState('PLAYING')" aria-label="Cerrar ayuda">×</button></header>
+        <div class="dialog-body">
         
         <div class="key-row" style="text-align:left;"><span>Movimiento</span> <span><span class="key-btn">WASD</span> o <span class="key-btn">FLECHAS</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
@@ -106,8 +81,9 @@
         <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
+        <div class="key-row"><span>Bestiario</span><span class="key-btn">B</span></div>
 
-        <div style="color:#33ff00; margin:14px 0 8px; border-bottom:1px dashed #444; padding-bottom:4px; text-align:left; font-weight:bold;">COMBATE</div>
+        <h3>Combate</h3>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span>Golpe normal</span> <span>Mover contra enemigo</span></div>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">R</span> Rápido</span> <span>Menos daño; descoloca (no encadena)</span></div>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">F</span> Salvaje</span> <span>Más daño; si sobrevive, contraataca</span></div>
@@ -116,18 +92,20 @@
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>+50% DEF durante la respuesta enemiga</span></div>
         <div style="text-align:left; color:#777; font-size:0.72em; margin-top:6px;">R y F: pulsa la tecla y después elige dirección. ESC cancela.</div>
         
-        <div style="margin-top:20px;">
-            <button onclick="setGameState('PLAYING')" style="background:#33ff00; color:#000; font-weight:bold; padding:10px 30px; border:none; cursor:pointer;">
-                ¡ENTENDIDO, A JUGAR!
-            </button>
         </div>
-        
-        <div style="margin-top:10px; font-style:italic; color:#888; font-size: 0.8em;">
-            (Pulsa ESC, ENTER o el botón para cerrar)
-        </div>
+        <footer class="dialog-footer"><span class="muted">Esc / Enter · cerrar</span><button class="btn-primary" onclick="setGameState('PLAYING')">Jugar</button></footer>
     </div>
 
-    <div id="inventory-menu" class="hidden">
+    <div id="bestiary-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="bestiary-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">CRIATURAS DESCUBIERTAS</span><h2 id="bestiary-title">Bestiario</h2></div><button type="button" onclick="closeBestiary()" aria-label="Cerrar bestiario">×</button></header>
+        <div class="dialog-body bestiary-layout">
+            <nav id="bestiary-list" aria-label="Elegir criatura"></nav>
+            <article id="bestiary-detail"></article>
+        </div>
+        <footer class="dialog-footer"><span class="muted">↑ ↓ · consultar &nbsp; B / Esc · volver</span><button type="button" onclick="closeBestiary()">Volver</button></footer>
+    </div>
+
+    <div id="inventory-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Mochila" tabindex="-1">
         <div class="inv-header">
             <span>MOCHILA</span>
             <span id="inv-capacity">0/6</span>
@@ -148,72 +126,60 @@
         </div>
     </div>
 
-    <div id="reward-choice" class="hidden">
+    <div id="reward-choice" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Elegir recompensa" tabindex="-1">
         <div class="reward-choice-kicker">COFRE ABIERTO</div>
         <div class="reward-choice-title">Elige una recompensa</div>
         <div id="reward-choice-options"></div>
         <div class="reward-choice-help">FLECHAS · seleccionar &nbsp; ENTER · aceptar &nbsp; ESC · dejarlo</div>
     </div>
 
-    <div id="shop-menu" class="hidden">
+    <div id="shop-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Mercader errante" tabindex="-1">
         <div class="shop-title">MERCADER ERRANTE</div>
         <div id="shop-items-container"></div>
         <button onclick="closeShop()" class="btn-close">Salir de la Tienda</button>
     </div>
 
-    <div id="game-menu" class="hidden">
-        <h2 style="color: #33ff00; margin: 0;">PAUSA</h2>
-        <p style="margin:5px 0; font-size:0.8em">Seed: <span id="menu-seed-display"></span></p>
-        <div style="display:flex; gap:5px; margin-bottom: 10px;">
-            <input type="number" id="seed-input" placeholder="Seed..." style="width: 60%; margin:0;">
-            <button onclick="restartWithSeed()" style="width: 40%; margin:0;">Cargar</button>
+    <div id="game-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title" tabindex="-1">
+        <header class="dialog-header"><h2 id="pause-title">Pausa</h2><button type="button" onclick="toggleMenu()" aria-label="Cerrar pausa">×</button></header>
+        <div class="dialog-body pause-options">
+            <button onclick="openBestiary()">Consultar bestiario <kbd>B</kbd></button>
+            <button onclick="showMenuScores()">Ver puntuaciones</button>
+            <div id="menu-scores-container"><div id="menu-leaderboard">Cargando...</div></div>
+            <details class="seed-options"><summary>Otra mazmorra · semilla <span id="menu-seed-display"></span></summary><label for="seed-input">Semilla de generación</label><div class="save-row"><input type="number" id="seed-input" placeholder="Número de semilla"><button onclick="restartWithSeed()">Cargar</button></div></details>
         </div>
-        <button onclick="showMenuScores()">Ver Salón de la Fama</button>
-        <div id="menu-scores-container">
-            <div id="menu-leaderboard">Cargando...</div>
-        </div>
-        <button onclick="harakiri()" class="btn-danger" style="margin-top: 10px;">HARAKIRI</button>
-        <button onclick="toggleMenu()" style="margin-top: 10px;">VOLVER</button>
+        <footer class="dialog-footer"><button onclick="harakiri()" class="btn-danger">Abandonar partida</button><button onclick="toggleMenu()" class="btn-primary">Continuar</button></footer>
     </div>
 
-    <div id="game-over" class="hidden">
-        <h2 style="color: #f00;">HAS MUERTO</h2>
-        <p>Nivel Alcanzado: <span id="final-level">1</span></p>
-        <p>Oro Final: <span id="final-score">0</span></p>
-        
-        <div class="stat-box">
-            <strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span><br>
-            <strong>Mejor Equipo:</strong> <span id="death-best-gear">Ninguno</span>
+    <div id="game-over" class="ui-dialog result-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="death-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">FIN DE LA EXPEDICIÓN</span><h2 id="death-title">Has muerto</h2></div><span class="result-mark" aria-hidden="true">×</span></header>
+        <div class="dialog-body">
+            <p class="result-cause">Causa: <span id="death-cause">Desconocida</span></p>
+            <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="final-level">1</strong></div><div><span>Oro final</span><strong id="final-score">0</strong></div></div>
+            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span></p><p><strong>Mejor equipo:</strong> <span id="death-best-gear">Ninguno</span></p></details>
+            <label for="player-name">Tu nombre en el ranking</label>
+            <div class="save-row"><input type="text" id="player-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button onclick="saveScore()">Guardar puntuación</button></div>
+            <p id="death-save-status" class="save-status" role="status"></p>
+            <h3>Puntuaciones</h3>
+            <div class="score-scroll" tabindex="0" aria-label="Puntuaciones, desplázate para ver la lista completa"><div id="leaderboard"></div></div>
+            <p class="score-hint">Desliza la tabla para ver más filas y columnas.</p>
         </div>
-
-        <input type="text" id="player-name" placeholder="Nombre (5 letras)" maxlength="5">
-        <button onclick="saveScore()">Grabar Legado</button>
-        
-        <div style="font-size: 0.8em; color: #666; margin-top: 10px;">
-            (Presiona <span style="color:#fff; border:1px solid #444; padding:0 4px;">I</span> para cerrar y reiniciar)
-        </div>
-
-        <div id="leaderboard" style="margin-top:10px;"></div>
+        <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
     </div>
 
-    <div id="victory-screen" class="hidden" style="border-color: #ffd700; box-shadow: 0 0 50px #ffd700;">
-        <h2 style="color: #ffd700;">¡VICTORIA!</h2>
-        <p id="victory-message" style="color: #fff;">Has escapado...</p>
-        <p>Puntuación Total: <span id="victory-score" style="color:#ffd700; font-weight:bold;">0</span></p>
-        
-        <div class="stat-box">
-            <strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span><br>
-            <strong>Mejor Equipo:</strong> <span id="win-best-gear">Ninguno</span>
+    <div id="victory-screen" class="ui-dialog result-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="victory-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">DE VUELTA A LA SUPERFICIE</span><h2 id="victory-title">Has escapado</h2></div><span class="victory-mark" aria-hidden="true">&lt;</span></header>
+        <div class="dialog-body">
+            <p id="victory-message" class="result-cause">Has escapado de la mazmorra.</p>
+            <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="win-level">1</strong></div><div><span>Puntuación total</span><strong id="victory-score">0</strong></div></div>
+            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span></p><p><strong>Mejor equipo:</strong> <span id="win-best-gear">Ninguno</span></p></details>
+            <label for="winner-name">Tu nombre en el ranking</label>
+            <div class="save-row"><input type="text" id="winner-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button onclick="saveScore()">Guardar puntuación</button></div>
+            <p id="win-save-status" class="save-status" role="status"></p>
+            <h3>Puntuaciones</h3>
+            <div class="score-scroll" tabindex="0" aria-label="Puntuaciones, desplázate para ver la lista completa"><div id="victory-leaderboard"></div></div>
+            <p class="score-hint">Desliza la tabla para ver más filas y columnas.</p>
         </div>
-
-        <input type="text" id="winner-name" placeholder="Nombre (5 letras)" maxlength="5">
-        <button onclick="saveScore()" style="border-color: #ffd700; color: #ffd700;">Inscribir Leyenda</button>
-        
-        <div style="font-size: 0.8em; color: #666; margin-top: 10px;">
-            (Presiona <span style="color:#fff; border:1px solid #444; padding:0 4px;">I</span> para cerrar y reiniciar)
-        </div>
-
-        <div id="victory-leaderboard" style="margin-top:15px; text-align: left; font-size: 0.8em;"></div>
+        <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
     </div>
 
     <script src="/404/game.js"></script>

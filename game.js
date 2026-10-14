@@ -128,7 +128,7 @@ const CONFIG = {
 // ============================================================================
 const STATE_ENUM = {
     PLAYING: 'PLAYING', CONTROLS: 'CONTROLS', INVENTORY: 'INVENTORY',
-    MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE',
+    MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE', BESTIARY: 'BESTIARY',
     TARGETING: 'TARGETING'
 };
 
@@ -162,6 +162,8 @@ const GameState = {
         floorWarningOpen: false,
         movementLocked: false,
         rewardChoice: { options: [], index: 0 },
+        bestiaryId: null,
+        bestiaryReturnState: STATE_ENUM.PLAYING,
     }
 };
 
@@ -180,6 +182,7 @@ const DOM = {
     },
     menus: {
         controls: document.getElementById('controls-menu'),
+        bestiary: document.getElementById('bestiary-menu'),
         inventory: document.getElementById('inventory-menu'),
         main: document.getElementById('game-menu'),
         shop: document.getElementById('shop-menu'),
@@ -207,10 +210,7 @@ const Utils = {
         // Evitamos spam idéntico consecutivo rápido
         const lastMsg = DOM.log.firstElementChild;
         if (lastMsg && lastMsg._logMessage === msg && parseFloat(lastMsg.style.opacity || '1') > 0.5) {
-            // Pequeño efecto de "pulso" si se repite
-            lastMsg.style.transform = "scale(1.1)";
-            setTimeout(() => lastMsg.style.transform = "scale(1)", 100);
-             return;
+            return;
         }
 
         const div = document.createElement('div');
@@ -694,10 +694,12 @@ const Network = {
         const isVictory = !DOM.menus.victory.classList.contains('hidden');
         const input = document.getElementById(isVictory ? 'winner-name' : 'player-name');
         const name = ((input && input.value.trim()) || 'UNK').toUpperCase();
+        const status = document.getElementById(isVictory ? 'win-save-status' : 'death-save-status');
         const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
         const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
 
         Network.isSaving = true;
+        if (status) status.textContent = 'Guardando puntuación…';
         try {
             const r = await fetch('/404/rogue_api.php', {
                 method: 'POST',
@@ -718,9 +720,11 @@ const Network = {
             Network.renderLeaderboard(d, 'leaderboard');
             Network.renderLeaderboard(d, 'victory-leaderboard');
             Utils.log('¡Legado guardado!', '#ffd700');
+            if (status) status.textContent = 'Puntuación guardada. Preparando una nueva partida…';
             setTimeout(() => GameLogic.init(), 2000);
         } catch (e) {
             Network.isSaving = false;
+            if (status) status.textContent = 'No se pudo guardar. Puedes volver a intentarlo.';
             console.error(e);
             alert('Error guardando datos.');
         }
@@ -730,7 +734,7 @@ const Network = {
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[ch]);
 
-        let h = '<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>';
+        let h = '<table aria-label="Ranking de expediciones"><thead><tr><th scope="col">Nombre</th><th scope="col" class="score-number">Prof.</th><th scope="col" class="score-number">Oro</th><th scope="col">Causa</th><th scope="col">Fecha</th></tr></thead><tbody>';
         if (Array.isArray(data)) {
             data.forEach((e) => {
                 const name = escapeHtml(e.name || 'UNK');
@@ -739,10 +743,11 @@ const Network = {
                 const score = Number.isFinite(Number(e.score)) ? Number(e.score) : 0;
                 const cause = escapeHtml(e.cause || 'Desconocido');
                 const details = escapeHtml(`Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`);
-                h += `<tr title="${details}"><td>${name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
+                h += `<tr title="${details}"><td>${name}</td><td class="score-number">${lvl}</td><td class="score-number">${score}</td><td class="score-cause">${cause}</td><td class="score-date">${date}</td></tr>`;
             });
         }
-        h += '</table>';
+        if (!Array.isArray(data) || data.length === 0) h += '<tr><td colspan="5">Aún no hay expediciones registradas.</td></tr>';
+        h += '</tbody></table>';
         const target = document.getElementById(targetId);
         if (target) target.innerHTML = h;
     }
@@ -1069,6 +1074,8 @@ const GameLogic = {
         GameState.ui.shopStock = [];
         GameState.ui.floorWarningOpen = false;
         GameState.ui.movementLocked = false;
+        GameState.ui.bestiaryId = null;
+        GameState.ui.bestiaryReturnState = STATE_ENUM.PLAYING;
         FloorSystem.closeWarning();
         Network.isSaving = false;
 
@@ -2343,19 +2350,68 @@ const Renderer = {
         
         if (id && !GameState.discoveredTypes.has(id)) { 
             GameState.discoveredTypes.add(id); 
-            Renderer.addToLegend(type, data); 
+            Renderer.addToLegend(type, data, id);
         }
     },
-    addToLegend: (type, data) => {
+    addToLegend: (type, data, id) => {
         const panel = document.getElementById(type === 'monster' ? 'legend-monsters' : 'legend-items');
-        const div = document.createElement('div'); div.className = 'legend-item';
-        div.innerHTML = `<div class="legend-symbol" style="color: ${data.color}">${data.symbol}</div><div class="legend-desc"><span class="legend-name">${data.name}</span><span class="legend-stats">${data.stats}</span>${data.lore ? `<span class="legend-lore">${data.lore}</span>` : ''}${data.tactic ? `<span class="legend-tactic">${data.tactic}</span>` : ''}</div>`;
+        const isMonster = type === 'monster';
+        const div = document.createElement(isMonster ? 'button' : 'div');
+        div.className = 'legend-item';
+        if (isMonster) {
+            div.type = 'button';
+            div.title = `Consultar a ${data.name} en el bestiario`;
+            div.onclick = () => UISystem.openBestiary(id);
+        }
+        div.innerHTML = `<span class="legend-symbol" style="color:${data.color}">${data.symbol}</span><span class="legend-desc"><span class="legend-name">${data.name}</span>${!isMonster ? `<span class="legend-stats">${data.stats}</span>` : ''}</span>`;
         panel.appendChild(div);
     },
-    resetLegend: () => { document.getElementById('legend-monsters').innerHTML = '<div class="legend-title">Amenazas</div>'; document.getElementById('legend-items').innerHTML = '<div class="legend-title">Entorno</div>'; }
+    resetLegend: () => { document.getElementById('legend-monsters').innerHTML = '<h2 class="legend-title">Criaturas descubiertas <span class="section-hint">B</span></h2>'; document.getElementById('legend-items').innerHTML = '<h2 class="legend-title">Entorno</h2>'; }
 };
 
 const UISystem = {
+    bestiaryFocus: null,
+    openPanel: (state) => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
+        StateController.change(state);
+    },
+    openBestiary: (id = null) => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
+        GameState.ui.bestiaryReturnState = GameState.current;
+        GameState.ui.bestiaryId = id;
+        UISystem.bestiaryFocus = document.activeElement;
+        StateController.change(STATE_ENUM.BESTIARY);
+    },
+    closeBestiary: () => {
+        if (GameState.current !== STATE_ENUM.BESTIARY) return;
+        StateController.change(GameState.ui.bestiaryReturnState);
+        const previousFocus = UISystem.bestiaryFocus;
+        if (previousFocus && previousFocus.isConnected) previousFocus.focus();
+        UISystem.bestiaryFocus = null;
+    },
+    renderBestiary: () => {
+        const list = document.getElementById('bestiary-list');
+        const detail = document.getElementById('bestiary-detail');
+        const creatures = CONFIG.ENTITIES.enemies.filter(def => GameState.discoveredTypes.has(def.id));
+        list.innerHTML = '';
+        if (creatures.length === 0) {
+            detail.innerHTML = '<p class="empty-state">Todavía no has descubierto criaturas. Cuando encuentres una, su historia y sus tácticas aparecerán aquí.</p>';
+            return;
+        }
+        const selected = creatures.find(def => def.id === GameState.ui.bestiaryId) || creatures[0];
+        GameState.ui.bestiaryId = selected.id;
+        creatures.forEach(def => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `bestiary-entry ${def.id === selected.id ? 'selected' : ''}`;
+            button.innerHTML = `<span class="legend-symbol" style="color:${def.color}">${def.symbol}</span><span>${def.name}</span>`;
+            button.onclick = () => { GameState.ui.bestiaryId = def.id; UISystem.renderBestiary(); };
+            list.appendChild(button);
+        });
+        detail.innerHTML = `<div class="bestiary-heading"><span class="legend-symbol" style="color:${selected.color}">${selected.symbol}</span><div><h3>${selected.name}</h3><span class="bestiary-role">${selected.role || ''}</span></div></div><p class="bestiary-copy">${selected.lore || 'No hay historia registrada para esta criatura.'}</p><section class="bestiary-tactic"><h4>CÓMO COMBATIRLA</h4>${selected.tactic || 'Observa su comportamiento antes de atacar.'}</section><p class="muted" style="margin-top:14px">Vida base: ${selected.hp} · Ataque base: ${selected.atk}. Sus atributos varían con la profundidad.</p>`;
+    },
     renderRewardChoice: () => {
         const container = document.getElementById('reward-choice-options');
         if (!container) return;
@@ -2385,9 +2441,12 @@ const UISystem = {
         const up = GameState.stairs.up;
         const downSeen = Boolean(GameState.seen[down.y] && GameState.seen[down.y][down.x]);
         const upSeen = Boolean(GameState.seen[up.y] && GameState.seen[up.y][up.x]);
-        let objective = GameState.level === 1 ? 'Encuentra la salida <' : 'Encuentra la bajada >';
-        if (GameState.level > 1 && upSeen && !downSeen) objective = 'Localiza la bajada >';
-        if (GameState.level === 1 && upSeen && player.x === up.x && player.y === up.y) objective = 'Explora y encuentra la bajada >';
+        const returning = GameState.entryMethod === 'ascending';
+        const onUp = player.x === up.x && player.y === up.y;
+        const onDown = player.x === down.x && player.y === down.y;
+        let objective = returning ? (upSeen ? 'Regresa por la subida <' : 'Localiza la subida <') : (downSeen ? 'Avanza hacia la bajada >' : 'Encuentra la bajada >');
+        if (onDown && !returning) objective = 'Espacio · bajar de planta';
+        if (onUp && (returning || GameState.level > 1)) objective = GameState.level === 1 ? 'Espacio · salir a la superficie' : 'Espacio · subir de planta';
 
         let danger = 'Sin amenaza visible';
         let dangerClass = '';
@@ -2404,8 +2463,9 @@ const UISystem = {
             danger = 'Suelo frágil'; dangerClass = 'context-warning';
         }
 
+        const hpPercent = player.maxHp > 0 ? Math.round((player.hp / player.maxHp) * 100) : 0;
         const resources = [
-            { value: player.hp, label: `HP ${player.hp}%`, priority: 3 },
+            { value: hpPercent, label: `Vida ${player.hp}/${player.maxHp}`, priority: 3 },
             { value: player.water, label: `Agua ${player.water}%`, priority: 2 },
             { value: player.food, label: `Comida ${player.food}%`, priority: 1 }
         ].sort((a, b) => a.value - b.value || b.priority - a.priority);
@@ -2413,7 +2473,7 @@ const UISystem = {
         const resourceClass = urgent.value <= 25 ? 'context-danger' : urgent.value <= 45 ? 'context-warning' : '';
         let advice = 'Avanza hacia zonas no exploradas.';
         if (nearest && nearest.distance <= 2) advice = 'Aléjate, defiende o usa una acción de combate.';
-        else if (player.hp <= 25) advice = 'Tu vida es crítica: busca seguridad antes de explorar.';
+        else if (hpPercent <= 25) advice = 'Tu vida es crítica: busca seguridad antes de explorar.';
         else if (player.water <= 25) advice = 'Prioriza agua o una tienda antes de seguir bajando.';
         else if (player.food <= 25) advice = 'La comida escasea: evita combates innecesarios.';
         else if (FloorSystem.is('UNSTABLE')) advice = 'No retrocedas sobre grietas salvo que el pasillo sea estrecho.';
@@ -2518,6 +2578,9 @@ const UISystem = {
         let a = GameState.player.stats.maxArmor.val > 0 ? `${GameState.player.stats.maxArmor.name}` : "Nada";
         document.getElementById(`${id}-kills-list`).innerText = kills;
         document.getElementById(`${id}-best-gear`).innerText = `Arma: ${w} | Malla: ${a}`;
+        document.getElementById(`${id}-save-status`).textContent = '';
+        if (id === 'death') document.getElementById('death-cause').textContent = GameState.deathCause;
+        else document.getElementById('win-level').textContent = GameState.maxLevel;
         if(prefix === 'death') { document.getElementById('final-score').innerText = GameState.score; document.getElementById('final-level').innerText = GameState.maxLevel; } 
         else { document.getElementById('victory-score').innerText = GameState.score; }
     }
@@ -2532,6 +2595,7 @@ const StateController = {
         Object.values(DOM.menus).forEach(el => el.classList.add('hidden'));
         switch (newState) {
             case STATE_ENUM.CONTROLS: DOM.menus.controls.classList.remove('hidden'); break;
+            case STATE_ENUM.BESTIARY: DOM.menus.bestiary.classList.remove('hidden'); UISystem.renderBestiary(); break;
             case STATE_ENUM.INVENTORY: DOM.menus.inventory.classList.remove('hidden'); UISystem.renderInventory(); break;
             case STATE_ENUM.MENU: DOM.menus.main.classList.remove('hidden'); document.getElementById('menu-seed-display').innerText = GameState.seed; Network.fetchScores('menu-leaderboard'); break;
             case STATE_ENUM.SHOP: DOM.menus.shop.classList.remove('hidden'); break;
@@ -2540,6 +2604,8 @@ const StateController = {
             case STATE_ENUM.PLAYING: DOM.container.focus(); break;
             case STATE_ENUM.TARGETING: DOM.container.focus(); break;
         }
+        const activeMenu = Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
+        if (activeMenu && typeof activeMenu.focus === 'function') activeMenu.focus();
         UISystem.updateHUD();
     }
 };
@@ -2564,6 +2630,43 @@ document.addEventListener('keydown', (e) => {
         }
         return;
     }
+
+    // Tab recorre el diálogo activo; Enter/Espacio respetan los botones nativos.
+    if (key === 'tab') {
+        const modal = Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
+        if (modal && typeof modal.querySelectorAll === 'function') {
+            const focusable = [...modal.querySelectorAll('button:not(:disabled), input, summary, [tabindex="0"]')]
+                .filter(el => el.getClientRects().length > 0);
+            const index = focusable.indexOf(document.activeElement);
+            if (focusable.length && (index < 0 || (!e.shiftKey && index === focusable.length - 1) || (e.shiftKey && index === 0))) {
+                e.preventDefault();
+                focusable[e.shiftKey ? focusable.length - 1 : 0].focus();
+            }
+        }
+        return;
+    }
+    if (e.target && ['BUTTON', 'SUMMARY'].includes(e.target.tagName) && ['enter', ' '].includes(key)) return;
+
+    if (GameState.current === STATE_ENUM.BESTIARY) {
+        if (['b', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeBestiary(); }
+        else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+            e.preventDefault();
+            const creatures = CONFIG.ENTITIES.enemies.filter(def => GameState.discoveredTypes.has(def.id));
+            const index = creatures.findIndex(def => def.id === GameState.ui.bestiaryId);
+            const direction = ['arrowup', 'arrowleft'].includes(key) ? -1 : 1;
+            if (creatures.length) {
+                GameState.ui.bestiaryId = creatures[Math.max(0, Math.min(creatures.length - 1, index + direction))].id;
+                UISystem.renderBestiary();
+                DOM.menus.bestiary.focus();
+            }
+        }
+        return;
+    }
+    if ([STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current) && key === 'b') {
+        e.preventDefault(); UISystem.openBestiary(); return;
+    }
+
+    if ([STATE_ENUM.PLAYING, STATE_ENUM.TARGETING, STATE_ENUM.REWARD_CHOICE, STATE_ENUM.INVENTORY].includes(GameState.current) && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) e.preventDefault();
 
     if ((GameState.current === STATE_ENUM.PLAYING || GameState.current === STATE_ENUM.CONTROLS) && ['i', 'h'].includes(key)) {
         e.preventDefault();
@@ -2650,6 +2753,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.setGameState = (s) => StateController.change(s);
+window.openBestiary = (id) => UISystem.openBestiary(id);
+window.closeBestiary = () => UISystem.closeBestiary();
+window.openInventory = () => UISystem.openPanel(STATE_ENUM.INVENTORY);
+window.openControls = () => UISystem.openPanel(STATE_ENUM.CONTROLS);
+window.openPause = () => UISystem.openPanel(STATE_ENUM.MENU);
+window.restartGame = () => { if (GameState.current === STATE_ENUM.GAMEOVER) GameLogic.init(); };
 window.restartWithSeed = () => { let v = parseInt(document.getElementById('seed-input').value); if(!isNaN(v)) { GameLogic.init(v); StateController.change(STATE_ENUM.PLAYING); } };
 window.saveScore = Network.saveScore;
 window.toggleMenu = () => StateController.change(STATE_ENUM.PLAYING);

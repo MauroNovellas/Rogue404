@@ -93,7 +93,7 @@ context.window.confirm = () => confirmAnswer;
 
 vm.createContext(context);
 vm.runInContext(
-    `${source}\n${autoSource}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, ShopSystem, UISystem, StateController, AutoPlayer: window.AutoPlayer, AutoSimulation: window.AutoSimulation };`,
+    `${source}\n${autoSource}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, ShopSystem, Renderer, UISystem, StateController, AutoPlayer: window.AutoPlayer, AutoSimulation: window.AutoSimulation };`,
     context,
     { filename: 'game.js' }
 );
@@ -112,6 +112,7 @@ const {
     CombatSystem,
     InventorySystem,
     ShopSystem,
+    Renderer,
     UISystem,
     StateController,
     AutoPlayer,
@@ -800,6 +801,53 @@ test('I/H alternan la ayuda sin duplicar acciones', () => {
     assert.equal(GameState.current, STATE_ENUM.CONTROLS);
     keydown('h');
     assert.equal(GameState.current, STATE_ENUM.PLAYING);
+});
+
+test('el bestiario conserva el lore fuera de la vista de juego y no consume turnos', () => {
+    freshGame(103);
+    GameState.discoveredTypes.clear();
+    const bat = CONFIG.ENTITIES.enemies.find(def => def.id === 'BAT');
+    GameState.discoveredTypes.add(bat.id);
+    Renderer.addToLegend('monster', { ...bat, stats: 'HP:5', lore: bat.lore, tactic: bat.tactic }, bat.id);
+    const entry = elementFor('legend-monsters').lastElementChild;
+    assert.equal(entry.tagName, 'BUTTON');
+    assert.equal(entry.innerHTML.includes(bat.lore), false);
+    assert.equal(entry.innerHTML.includes(bat.tactic), false);
+    const before = JSON.stringify({ player: GameState.player, map: GameState.map, moves: GameState.moves });
+    entry.onclick();
+    assert.equal(GameState.current, STATE_ENUM.BESTIARY);
+    assert.equal(elementFor('bestiary-detail').innerHTML.includes(bat.lore), true);
+    assert.equal(elementFor('bestiary-detail').innerHTML.includes(bat.tactic), true);
+    assert.equal(elementFor('bestiary-list').children.length, 1);
+    keydown('w');
+    keydown(' ');
+    keydown('escape');
+    assert.equal(GameState.current, STATE_ENUM.PLAYING);
+    assert.equal(JSON.stringify({ player: GameState.player, map: GameState.map, moves: GameState.moves }), before);
+});
+
+test('B abre el bestiario desde pausa y vuelve a la pausa', () => {
+    freshGame(104);
+    GameState.discoveredTypes.clear();
+    StateController.change(STATE_ENUM.MENU);
+    keydown('b');
+    assert.equal(GameState.current, STATE_ENUM.BESTIARY);
+    assert.equal(elementFor('bestiary-detail').innerHTML.includes('Todavía no has descubierto'), true);
+    keydown('b');
+    assert.equal(GameState.current, STATE_ENUM.MENU);
+});
+
+test('la prioridad de vida en el contexto usa la vida máxima al subir de nivel', () => {
+    freshGame(105);
+    GameState.entities.enemies = [];
+    GameState.player.hp = 40;
+    GameState.player.maxHp = 200;
+    GameState.player.food = 100;
+    GameState.player.water = 100;
+    UISystem.updateContext();
+    assert.equal(DOM.context.resource.textContent, 'Vida 40/200');
+    assert.equal(DOM.context.resource.className, 'context-danger');
+    assert.equal(DOM.context.advice.textContent.includes('vida es crítica'), true);
 });
 
 test('Enter en seed reinicia la seed y no guarda puntuación', () => {
