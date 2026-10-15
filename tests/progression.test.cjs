@@ -175,6 +175,7 @@ test('el dardo requiere aprenderlo y apuntar o cancelar no consume acciones', ()
     const h = arena();
     h.emit('keydown', 'l'); assert.equal(h.GameState.current, 'PLAYING');
     assert.equal(spend(h, 'ranged'), true);
+    h.GameState.entities.enemies = [enemy(23, 13)];
     h.emit('keydown', 'l');
     assert.equal(h.GameState.current, 'TARGETING');
     assert.match(h.DOM.container.innerHTML, /class="ranged-aim"/);
@@ -216,8 +217,8 @@ test('paredes, cofres abiertos o cerrados y mercaderes bloquean los proyectiles'
         else h.GameState.entities.chests = [{ x: 22, y: 12, isOpen: obstacle === 'openChest' }];
         h.CombatSystem.startTargeting('ranged'); h.CombatSystem.executeAttack(1, 0);
         assert.equal(target.hp, 30, obstacle);
-        assert.equal(h.GameState.moves, 1);
-        assert.equal(h.GameState.player.combat.cooldowns.ranged, 2);
+        assert.equal(h.GameState.moves, 0);
+        assert.equal(h.GameState.player.combat.cooldowns.ranged, 0);
     }
 });
 
@@ -268,6 +269,7 @@ test('una baja con dardo conserva XP, botín de Goblin y la elección de talento
 
 test('las direcciones inválidas y los intentos repetidos de aprendizaje no crean acciones', () => {
     const h = arena(); h.GameState.player.talents.ranged = 1;
+    h.GameState.entities.enemies = [enemy(23, 13)];
     h.CombatSystem.startTargeting('ranged');
     for (const [dx, dy] of [[0, 0], [2, 0], [0.5, 1]]) h.CombatSystem.executeAttack(dx, dy);
     assert.equal(h.GameState.moves, 0); assert.equal(h.GameState.current, 'TARGETING');

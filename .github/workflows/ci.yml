@@ -38,6 +38,12 @@ jobs:
       - name: Score JSON validity
         run: python3 -m json.tool rogue_scores.json >/dev/null
 
+      - name: Real PHP score storage and concurrency
+        run: node tests/score-api.test.cjs
+
+      - name: Target selection, stair memory and score confirmations
+        run: node tests/targeting-scores.test.cjs
+
       - name: Structural regression guards
         run: node tests/structure.test.cjs
 

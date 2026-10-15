@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Dungeon Not Found</title>
-    <link rel="stylesheet" href="/404/style.css">
+    <link rel="stylesheet" href="/404/style.css?v=targeting-scores-2">
 </head>
 <body>
 
@@ -55,6 +55,7 @@
             </section>
         </aside>
         <main id="play-area" aria-label="Expedición">
+            <div id="stair-compass" class="hidden" aria-label="Escaleras descubiertas"></div>
             <div id="combat-status" role="status" aria-label="Efectos de la partida"></div>
             <div id="game-wrapper"><div id="fx-layer"></div><div id="game-container" tabindex="-1" aria-label="Mapa de la mazmorra"></div></div>
             <section id="action-journal" aria-labelledby="journal-title">
@@ -93,8 +94,9 @@
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">C</span> Esperar</span> <span>Prepara +2 daño para el próximo R/F</span></div>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>+50% DEF durante la respuesta enemiga</span></div>
         <p class="control-hint">R y F: pulsa la tecla y después elige dirección. Esc cancela.</p>
-        <div class="key-row"><span><span class="key-btn">L</span> Dardo arcano</span><span>Apréndelo con un talento; luego elige dirección</span></div>
-        <p class="control-hint">Al subir de nivel: +10 vida máxima, vida restaurada y 1 punto para elegir Fuerza, Resistencia, Velocidad o Dardo arcano. Puedes mezclar caminos o guardar puntos con N. Apuntar y consultar fichas no gastan turnos; disparar sí, incluso si fallas.</p>
+        <div class="key-row"><span><span class="key-btn">L</span> Dardo arcano</span><span>Tab/flechas: objetivo · Enter o clic: disparar</span></div>
+        <p class="control-hint">El dardo alcanza enemigos en cualquier ángulo con línea de tiro. Esc cancela; apuntar y cambiar de objetivo no gastan turnos. Las escaleras descubiertas siguen marcadas y muestran su dirección sobre el mapa.</p>
+        <p class="control-hint">Al subir de nivel: +10 vida máxima, vida restaurada y 1 punto para elegir Fuerza, Resistencia, Velocidad o Dardo arcano. Puedes mezclar caminos o guardar puntos con N.</p>
         
         </div>
         <footer class="dialog-footer"><span class="muted">Esc / Enter · cerrar</span><button class="btn-primary" onclick="setGameState('PLAYING')">Jugar</button></footer>
@@ -176,7 +178,7 @@
             <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="final-level">1</strong></div><div><span>Oro final</span><strong id="final-score">0</strong></div></div>
             <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span></p><p><strong>Mejor equipo:</strong> <span id="death-best-gear">Ninguno</span></p></details>
             <label for="player-name">Tu nombre en el ranking</label>
-            <div class="save-row"><input type="text" id="player-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button onclick="saveScore()">Guardar puntuación</button></div>
+            <div class="save-row"><input type="text" id="player-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="death-save-button" onclick="saveScore()">Guardar puntuación</button></div>
             <p id="death-save-status" class="save-status" role="status"></p>
             <h3>Puntuaciones</h3>
             <div class="score-scroll" tabindex="0" aria-label="Puntuaciones, desplázate para ver la lista completa"><div id="leaderboard"></div></div>
@@ -192,7 +194,7 @@
             <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="win-level">1</strong></div><div><span>Puntuación total</span><strong id="victory-score">0</strong></div></div>
             <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span></p><p><strong>Mejor equipo:</strong> <span id="win-best-gear">Ninguno</span></p></details>
             <label for="winner-name">Tu nombre en el ranking</label>
-            <div class="save-row"><input type="text" id="winner-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button onclick="saveScore()">Guardar puntuación</button></div>
+            <div class="save-row"><input type="text" id="winner-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="win-save-button" onclick="saveScore()">Guardar puntuación</button></div>
             <p id="win-save-status" class="save-status" role="status"></p>
             <h3>Puntuaciones</h3>
             <div class="score-scroll" tabindex="0" aria-label="Puntuaciones, desplázate para ver la lista completa"><div id="victory-leaderboard"></div></div>
@@ -201,8 +203,8 @@
         <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
     </div>
 
-    <script src="/404/game.js"></script>
-    <script src="/404/dev-tools.js"></script>
+    <script src="/404/game.js?v=targeting-scores-2"></script>
+    <script src="/404/dev-tools.js?v=targeting-scores-2"></script>
     <script src="/404/autoplayer.js"></script>
     <script src="/404/autoplayer-profiles.js"></script>
     <script src="/404/autoplayer-navigation.js"></script>

@@ -10,16 +10,6 @@
         return coreInit(seedInput);
     };
 
-    const coreSaveScore = Network.saveScore.bind(Network);
-    Network.saveScore = async () => {
-        if (GameState.ui.testMode) {
-            Utils.log('MODO TEST: la puntuación no se guardará.', '#ffcc00');
-            return;
-        }
-        return coreSaveScore();
-    };
-    window.saveScore = Network.saveScore;
-
     const jumpToTestFloor = (level) => {
         if (!TEST_LEVELS.has(level)) return;
 

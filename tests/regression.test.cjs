@@ -94,6 +94,10 @@ const context = {
     clearTimeout: () => {},
     fetch: async (url, options = {}) => {
         fetchCalls.push({ url, options });
+        if (options.method === 'POST') {
+            const entry = JSON.parse(options.body);
+            return { ok: true, json: async () => ({ saved: true, entry, rank: 1, total: 1, leaderboard: [entry] }) };
+        }
         return { ok: true, json: async () => [] };
     }
 };

@@ -148,7 +148,7 @@ const GameState = {
     floor: { type: 'NORMAL' },
     map: [], seen: [], visible: [], rooms: [],
     stairs: { up: {x:0, y:0}, down: {x:0, y:0} },
-    persistence: {}, shopStocks: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
+    persistence: {}, knownStairs: {}, shopStocks: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
     entities: { enemies: [], items: [], chests: [], shops: [] },
     player: {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
@@ -178,6 +178,7 @@ const GameState = {
         characterReturnState: STATE_ENUM.PLAYING,
         characterIndex: 0,
         upgradePromptPending: false,
+        rangedTarget: null,
     }
 };
 
@@ -708,17 +709,24 @@ const FloorSystem = {
 // ============================================================================
 const Network = {
     isSaving: false,
+    setSaveButtons: (disabled, label = 'Guardar puntuación') => {
+        for (const id of ['death-save-button', 'win-save-button']) {
+            const button = document.getElementById(id);
+            if (button) { button.disabled = disabled; button.textContent = label; }
+        }
+    },
     fetchScores: async (targetId) => {
         const target = document.getElementById(targetId);
         if (!target) return;
         target.innerHTML = 'Cargando...';
         try {
-            const r = await fetch('/404/rogue_api.php?v=' + Date.now());
+            const r = await fetch('/404/rogue_api.php?v=' + Date.now(), { cache: 'no-store' });
             const d = await r.json();
+            if (!r.ok || !Array.isArray(d)) throw new Error(d?.error || 'La API no ha devuelto un ranking válido.');
             Network.renderLeaderboard(d, targetId);
         } catch (e) {
             console.error(e);
-            target.innerHTML = 'Offline o Error de Conexión';
+            target.textContent = `No se pudo cargar el ranking: ${e.message}`;
         }
     },
     saveScore: async () => {
@@ -728,16 +736,25 @@ const Network = {
         const input = document.getElementById(isVictory ? 'winner-name' : 'player-name');
         const name = ((input && input.value.trim()) || 'UNK').toUpperCase();
         const status = document.getElementById(isVictory ? 'win-save-status' : 'death-save-status');
+        if (GameState.ui.testMode) {
+            if (status) status.textContent = 'Expedición de pruebas: no se envía al ranking. Inicia una partida normal para guardar resultados.';
+            return;
+        }
+        const runId = GameState.runId;
         const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
         const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
 
         Network.isSaving = true;
+        Network.setSaveButtons(true, 'Guardando…');
         if (status) status.textContent = 'Guardando puntuación…';
         try {
             const r = await fetch('/404/rogue_api.php', {
                 method: 'POST',
+                cache: 'no-store',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    runId,
+                    responseVersion: 2,
                     name,
                     score: GameState.score,
                     level: GameState.maxLevel,
@@ -747,19 +764,22 @@ const Network = {
                     equipment: gearStr
                 })
             });
-            if (!r.ok) throw new Error('Error en servidor');
-
-            const d = await r.json();
-            Network.renderLeaderboard(d, 'leaderboard');
-            Network.renderLeaderboard(d, 'victory-leaderboard');
+            let d;
+            try { d = await r.json(); } catch (_) { throw new Error('La API no devuelve JSON. Puede estar respondiendo la página 404 en lugar del servidor de puntuaciones.'); }
+            if (!r.ok) throw new Error(d?.error || `El servidor ha rechazado el guardado (HTTP ${r.status}).`);
+            if (d?.saved !== true || d.entry?.runId !== runId || !Array.isArray(d.leaderboard) || !Number.isInteger(d.rank) || d.rank < 1 || !Number.isInteger(d.total) || d.total < d.rank) throw new Error('El servidor no ha confirmado esta expedición. Recarga la web y vuelve a intentarlo.');
+            if (GameState.runId !== runId) return;
+            Network.renderLeaderboard(d.leaderboard, 'leaderboard');
+            Network.renderLeaderboard(d.leaderboard, 'victory-leaderboard');
             Utils.log('¡Legado guardado!', '#ffd700');
-            if (status) status.textContent = 'Puntuación guardada. Preparando una nueva partida…';
-            setTimeout(() => GameLogic.init(), 2000);
+            Network.setSaveButtons(true, 'Guardada');
+            if (status) status.textContent = `Guardada en el servidor: ${d.entry.name}, ${d.entry.score} oro. Puesto ${d.rank} de ${d.total}.${d.rank > 20 ? ' Fuera del Top 20; tu resultado sí queda conservado.' : ''}`;
         } catch (e) {
+            if (GameState.runId !== runId) return;
             Network.isSaving = false;
-            if (status) status.textContent = 'No se pudo guardar. Puedes volver a intentarlo.';
+            Network.setSaveButtons(false, 'Reintentar guardado');
+            if (status) status.textContent = `No se pudo guardar: ${e.message} Puedes volver a intentarlo.`;
             console.error(e);
-            alert('Error guardando datos.');
         }
     },
     renderLeaderboard: (data, targetId) => {
@@ -808,10 +828,11 @@ const MapSystem = {
             const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
             GameState.player.x = landing.x; GameState.player.y = landing.y;
         } else {
-            const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
+            const stairs = ['descending', 'start'].includes(GameState.entryMethod) ? GameState.stairs.up : GameState.stairs.down;
             GameState.player.x = stairs.x; GameState.player.y = stairs.y;
         }
         GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null };
+        GameState.ui.rangedTarget = null;
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
         FloorSystem.onEnter();
@@ -905,6 +926,12 @@ const MapSystem = {
                 GameState.visible[my][mx] = true; GameState.seen[my][mx] = true;
                 if (GameState.map[my][mx] === '#') break;
             }
+        }
+        const known = GameState.knownStairs[GameState.level] || (GameState.knownStairs[GameState.level] = {});
+        for (const kind of ['up', 'down']) {
+            const stair = GameState.stairs[kind];
+            if (GameState.seen[stair.y]?.[stair.x]) known[kind] = true;
+            if (known[kind] && GameState.seen[stair.y]) GameState.seen[stair.y][stair.x] = true;
         }
     },
     isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#' || FloorSystem.isHole(x, y); },
@@ -1164,7 +1191,7 @@ const ProgressionSystem = {
             description = 'Ganas iniciativa: actúas más a menudo que los enemigos. No cambia la velocidad del teclado ni el consumo por acción.';
             effect = `Velocidad: ${Math.round(ProgressionSystem.speedMultiplier() * 100)}% → ${Math.round((ProgressionSystem.speedMultiplier() + definition.initiative) * 100)}%`;
         } else {
-            description = 'Proyectil mágico en 8 direcciones, sin munición ni arma extra. Lo detienen paredes, cofres y mercaderes. Recarga: 2 acciones.';
+            description = 'Elige cualquier enemigo con alcance y línea de tiro, sin munición ni arma extra. Lo detienen paredes, cofres y mercaderes. Recarga: 2 acciones.';
             effect = rank === 0
                 ? `Desbloquea [L] · alcance 4 · daño base ${ProgressionSystem.rangedDamage() + definition.damage}`
                 : `Alcance ${ProgressionSystem.rangedRange()} → ${ProgressionSystem.rangedRange() + 1} · daño base ${ProgressionSystem.rangedDamage()} → ${ProgressionSystem.rangedDamage() + definition.damage}`;
@@ -1248,6 +1275,9 @@ const GameLogic = {
         GameState.ui.characterIndex = 0;
         GameState.ui.upgradePromptPending = false;
         ProgressionSystem.focus = null;
+        GameState.ui.rangedTarget = null;
+        GameState.ui.testMode = false;
+        GameState.runId = typeof window.crypto?.randomUUID === 'function' ? window.crypto.randomUUID() : `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         MovementInput.stop();
         FloorSystem.closeWarning();
         Network.isSaving = false;
@@ -1263,7 +1293,7 @@ const GameLogic = {
             equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
             combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null }
         };
-        GameState.persistence = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
+        GameState.persistence = {}; GameState.knownStairs = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
 
         // Una partida nueva entra por las escaleras que comunican con la superficie.
@@ -1933,12 +1963,15 @@ const CombatSystem = {
             if (!ProgressionSystem.rank('ranged')) { Utils.log('Aprende Dardo arcano al subir de nivel [N].', '#b4a58b'); return; }
             const cooldown = GameState.player.combat.cooldowns.ranged || 0;
             if (cooldown > 0) { Utils.log(`Dardo arcano recarga: faltan ${cooldown} acciones.`, '#8fcbd6'); return; }
+            const targets = CombatSystem.rangedTargets();
+            if (!targets.length) { Utils.log(`No hay enemigos visibles con línea de tiro a ${ProgressionSystem.rangedRange()} casillas.`, '#8fcbd6'); return; }
+            GameState.ui.rangedTarget = { x: targets[0].x, y: targets[0].y };
         }
 
         GameState.player.combat.pendingAttack = attackType;
         StateController.change(STATE_ENUM.TARGETING);
         const label = CONFIG.COMBAT[attackType].label;
-        Utils.log(`[${label}] Elige dirección${attackType === 'ranged' ? ` · alcance ${ProgressionSystem.rangedRange()}` : ''}. Esc cancela sin gastar turno.`, '#8fcbd6');
+        Utils.log(attackType === 'ranged' ? '[Dardo] Tab/flechas: objetivo. Enter o clic: disparar. Esc: cancelar.' : `[${label}] Elige dirección. Esc cancela sin gastar turno.`, '#8fcbd6');
         Renderer.draw();
         UISystem.updateHUD();
     },
@@ -1947,14 +1980,22 @@ const CombatSystem = {
         || GameState.entities.chests.some(chest => chest.x === x && chest.y === y)
         || GameState.entities.shops.some(shop => shop.x === x && shop.y === y),
 
-    projectilePath: (dx, dy) => {
-        if (![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return [];
+    projectilePathTo: (tx, ty) => {
+        if (![tx, ty].every(Number.isInteger)) return [];
+        const dx = tx - GameState.player.x, dy = ty - GameState.player.y;
+        if ((!dx && !dy) || Math.max(Math.abs(dx), Math.abs(dy)) > ProgressionSystem.rangedRange()) return [];
         const path = [];
         let x = GameState.player.x, y = GameState.player.y;
-        for (let step = 0; step < ProgressionSystem.rangedRange(); step++) {
-            // No disparar a través de esquinas cerradas ni contra objetivos ocultos por la niebla.
-            if (dx && dy && (CombatSystem.projectileBlocked(x + dx, y) || CombatSystem.projectileBlocked(x, y + dy))) break;
-            x += dx; y += dy;
+        const sx = Math.sign(dx), sy = Math.sign(dy);
+        const deltaX = dx ? 1 / Math.abs(dx) : Infinity, deltaY = dy ? 1 / Math.abs(dy) : Infinity;
+        let crossX = deltaX / 2, crossY = deltaY / 2;
+        // Recorre todas las celdas que cruza la recta entre centros, con cualquier pendiente.
+        while (x !== tx || y !== ty) {
+            if (Math.abs(crossX - crossY) < 1e-9) {
+                if (CombatSystem.projectileBlocked(x + sx, y) || CombatSystem.projectileBlocked(x, y + sy)) break;
+                x += sx; y += sy; crossX += deltaX; crossY += deltaY;
+            } else if (crossX < crossY) { x += sx; crossX += deltaX; }
+            else { y += sy; crossY += deltaY; }
             if (CombatSystem.projectileBlocked(x, y) || !GameState.visible[y]?.[x]) break;
             path.push({ x, y });
             if (GameState.entities.enemies.some(enemy => enemy.x === x && enemy.y === y)) break;
@@ -1962,17 +2003,55 @@ const CombatSystem = {
         return path;
     },
 
+    projectilePath: (dx, dy) => {
+        if (![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return [];
+        return CombatSystem.projectilePathTo(GameState.player.x + dx * ProgressionSystem.rangedRange(), GameState.player.y + dy * ProgressionSystem.rangedRange());
+    },
+
+    rangedTargets: () => GameState.entities.enemies.filter(enemy => {
+        if (enemy.hp <= 0 || !GameState.visible[enemy.y]?.[enemy.x]) return false;
+        const line = CombatSystem.projectilePathTo(enemy.x, enemy.y);
+        const last = line[line.length - 1];
+        return last && last.x === enemy.x && last.y === enemy.y;
+    }).sort((a, b) => {
+        const distance = enemy => Math.max(Math.abs(enemy.x - GameState.player.x), Math.abs(enemy.y - GameState.player.y));
+        return distance(a) - distance(b) || a.y - b.y || a.x - b.x;
+    }),
+
+    cycleRangedTarget: (step = 1) => {
+        if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged') return;
+        const targets = CombatSystem.rangedTargets();
+        if (!targets.length) return;
+        const index = targets.findIndex(enemy => enemy.x === GameState.ui.rangedTarget?.x && enemy.y === GameState.ui.rangedTarget?.y);
+        const target = targets[(index + step + targets.length) % targets.length];
+        GameState.ui.rangedTarget = { x: target.x, y: target.y };
+        Renderer.draw(); UISystem.updateHUD();
+    },
+
     rangedCells: () => {
-        const cells = new Set();
-        for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-            for (const cell of CombatSystem.projectilePath(dx, dy)) cells.add(`${cell.x},${cell.y}`);
-        }
-        return cells;
+        const target = GameState.ui.rangedTarget;
+        return new Set(target ? CombatSystem.projectilePathTo(target.x, target.y).map(cell => `${cell.x},${cell.y}`) : []);
+    },
+
+    fireRanged: (tx = GameState.ui.rangedTarget?.x, ty = GameState.ui.rangedTarget?.y) => {
+        if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged' || (GameState.player.combat.cooldowns.ranged || 0) > 0) return false;
+        const target = CombatSystem.rangedTargets().find(enemy => enemy.x === tx && enemy.y === ty);
+        if (!target) { Utils.log('Ese objetivo no tiene alcance o línea de tiro. No gastas turno.', '#8fcbd6'); return false; }
+        const bonus = GameState.player.combat.waitBonus;
+        GameState.player.combat.pendingAttack = null; GameState.ui.rangedTarget = null;
+        GameState.player.combat.waitBonus = 0; GameState.player.combat.isDefending = false;
+        StateController.change(STATE_ENUM.PLAYING);
+        GameState.player.combat.cooldowns.ranged = CONFIG.COMBAT.ranged.cooldown + 1;
+        CombatSystem.applyDamage(GameState.entities.enemies.indexOf(target), 'ranged', bonus);
+        VisualFX.floatText(GameState.player.x, GameState.player.y, '* DARDO', '#8fcbd6');
+        GameLogic.endTurn(true);
+        return true;
     },
 
     executeAttack: (dx, dy) => {
         const type = GameState.player.combat.pendingAttack;
         if (!['quick', 'savage', 'ranged'].includes(type) || ![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return;
+        if (type === 'ranged') return CombatSystem.fireRanged();
         GameState.player.combat.pendingAttack = null;
         StateController.change(STATE_ENUM.PLAYING);
         
@@ -1982,19 +2061,6 @@ const CombatSystem = {
         let bonusDmg = GameState.player.combat.waitBonus;
         GameState.player.combat.waitBonus = 0; 
         GameState.player.combat.isDefending = false;
-
-        if (type === 'ranged') {
-            const path = CombatSystem.projectilePath(dx, dy);
-            const last = path[path.length - 1];
-            const target = last ? GameState.entities.enemies.findIndex(enemy => enemy.x === last.x && enemy.y === last.y) : -1;
-            // El turno del disparo no cuenta como una de las dos acciones de recarga.
-            GameState.player.combat.cooldowns.ranged = CONFIG.COMBAT.ranged.cooldown + 1;
-            if (target >= 0) CombatSystem.applyDamage(target, 'ranged', bonusDmg);
-            else Utils.log('El dardo se disipa sin alcanzar un objetivo. Recarga: 2 acciones.', '#8fcbd6');
-            VisualFX.floatText(GameState.player.x, GameState.player.y, '* DARDO', '#8fcbd6');
-            GameLogic.endTurn(true);
-            return;
-        }
 
         // ATAQUES DIRECCIONALES
         if (enemyIdx === -1) {
@@ -2524,7 +2590,9 @@ const Renderer = {
                     }
                 }
                 if (!color) {
-                    if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
+                    if (x === GameState.stairs.up.x && y === GameState.stairs.up.y) { char = '<'; color = 'color:#e6d39b; font-weight:bold'; }
+                    else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { char = '>'; color = 'color:#e6d39b; font-weight:bold'; }
+                    else if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
                     else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
                     else if (FloorSystem.isCriticalCrack(x, y)) { char = "╬"; color = isVis ? 'color:#ff8a4c' : 'color:#70422d'; }
                     else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
@@ -2546,12 +2614,14 @@ const Renderer = {
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
                 const aim = isVis && rangedCells.has(`${x},${y}`);
-                html += `<span${aim ? ' class="ranged-aim"' : ''} style="${color}">${char}</span>`;
+                const selected = aim && x === GameState.ui.rangedTarget?.x && y === GameState.ui.rangedTarget?.y;
+                html += `<span data-map-x="${x}" data-map-y="${y}"${aim ? ` class="ranged-aim${selected ? ' ranged-target' : ''}"` : ''} style="${color}">${char === '<' ? '&lt;' : char === '>' ? '&gt;' : char}</span>`;
             }
             if (y < view.y + view.rows - 1) html += "\n";
         }
         DOM.container.style.fontSize = `${view.fontSize}px`;
         DOM.container.innerHTML = `<div class="map-grid">${html}</div>`;
+        UISystem.renderStairs();
         const layer = document.getElementById('fx-layer');
         if (layer && layer.children) {
             [...layer.children].forEach(el => {
@@ -2655,6 +2725,22 @@ const Renderer = {
 
 const UISystem = {
     bestiaryFocus: null,
+    renderStairs: () => {
+        const compass = document.getElementById('stair-compass');
+        compass.innerHTML = '';
+        for (const [kind, symbol, label] of [['up', '<', 'Subida'], ['down', '>', 'Bajada']]) {
+            const stair = GameState.stairs[kind];
+            if (!GameState.seen[stair.y]?.[stair.x] && !GameState.knownStairs[GameState.level]?.[kind]) continue;
+            const dx = stair.x - GameState.player.x, dy = stair.y - GameState.player.y;
+            const distance = Math.max(Math.abs(dx), Math.abs(dy));
+            const arrows = { '-1,-1': '↖', '0,-1': '↑', '1,-1': '↗', '-1,0': '←', '1,0': '→', '-1,1': '↙', '0,1': '↓', '1,1': '↘' };
+            const marker = document.createElement('span'); marker.className = 'stair-marker'; marker.dataset.stair = kind;
+            marker.textContent = `${symbol} ${label} · ${distance === 0 ? 'aquí [Espacio]' : `${arrows[`${Math.sign(dx)},${Math.sign(dy)}`]} ${distance} casillas`}`;
+            marker.title = 'Escalera descubierta. Dirección y distancia en línea recta, no una ruta segura.';
+            compass.appendChild(marker);
+        }
+        compass.className = compass.children.length ? 'stair-compass' : 'hidden';
+    },
     renderCharacter: () => {
         const player = GameState.player;
         const points = player.talentPoints || 0;
@@ -2904,16 +2990,19 @@ const UISystem = {
         );
         if (primedTroll) parts.push('<span style="color:#ff8c00">RUGIDO · APLASTAR INMINENTE</span>');
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
-            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', ranged: `DARDO · ${ProgressionSystem.rangedRange()} CASILLAS` };
+            const target = GameState.entities.enemies.find(enemy => enemy.x === GameState.ui.rangedTarget?.x && enemy.y === GameState.ui.rangedTarget?.y);
+            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', ranged: `DARDO · ${target ? target.name : 'SIN OBJETIVO'} · ENTER: DISPARAR / TAB: CAMBIAR` };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
-            parts.push(`<span style="color:#00ffff">${label} · ELIGE DIRECCIÓN</span>`);
+            parts.push(`<span style="color:#00ffff">${label}${GameState.player.combat.pendingAttack === 'ranged' ? '' : ' · ELIGE DIRECCIÓN'}</span>`);
         }
         if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
         if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
         if (GameState.player.combat.cooldowns.area > 0) parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
         if (ProgressionSystem.rank('ranged') > 0) {
             const cooldown = GameState.player.combat.cooldowns.ranged || 0;
-            parts.push(`<button type="button" onclick="startRangedAttack()"${cooldown || GameState.current !== STATE_ENUM.PLAYING ? ' disabled' : ''}>* Dardo [L] · ${cooldown > 0 ? `recarga ${cooldown}` : `listo · ${ProgressionSystem.rangedRange()} casillas`}</button>`);
+            if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged') {
+                parts.push('<button type="button" onclick="fireRangedAttack()">Disparar [Enter]</button><button type="button" onclick="nextRangedTarget()">Otro objetivo [Tab]</button><button type="button" onclick="cancelRangedAttack()">Cancelar [Esc]</button>');
+            } else parts.push(`<button type="button" onclick="startRangedAttack()"${cooldown || GameState.current !== STATE_ENUM.PLAYING ? ' disabled' : ''}>* Dardo [L] · ${cooldown > 0 ? `recarga ${cooldown}` : `listo · ${ProgressionSystem.rangedRange()} casillas`}</button>`);
         }
         DOM.combatStatus.innerHTML = parts.join('');
     },
@@ -2957,7 +3046,8 @@ const UISystem = {
         let a = GameState.player.stats.maxArmor.val > 0 ? `${GameState.player.stats.maxArmor.name}` : "Nada";
         document.getElementById(`${id}-kills-list`).innerText = kills;
         document.getElementById(`${id}-best-gear`).innerText = `Arma: ${w} | Malla: ${a}`;
-        document.getElementById(`${id}-save-status`).textContent = '';
+        document.getElementById(`${id}-save-status`).textContent = GameState.ui.testMode ? 'Expedición de pruebas: los resultados no se envían al ranking.' : '';
+        Network.setSaveButtons(Boolean(GameState.ui.testMode), GameState.ui.testMode ? 'Modo de pruebas' : 'Guardar puntuación');
         if (id === 'death') document.getElementById('death-cause').textContent = GameState.deathCause;
         else document.getElementById('win-level').textContent = GameState.maxLevel;
         if(prefix === 'death') { document.getElementById('final-score').innerText = GameState.score; document.getElementById('final-level').innerText = GameState.maxLevel; } 
@@ -3064,6 +3154,9 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
+    if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged' && key === 'tab') {
+        e.preventDefault(); CombatSystem.cycleRangedTarget(e.shiftKey ? -1 : 1); return;
+    }
     // Tab recorre el diálogo activo; Enter/Espacio respetan los botones nativos.
     if (key === 'tab') {
         const modal = Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
@@ -3160,9 +3253,14 @@ document.addEventListener('keydown', (e) => {
     else if (GameState.current === STATE_ENUM.TARGETING) {
         if (key === 'escape' || key === 'r' || key === 'f' || (key === 'l' && GameState.player.combat.pendingAttack === 'ranged')) {
             GameState.player.combat.pendingAttack = null;
+            GameState.ui.rangedTarget = null;
             StateController.change(STATE_ENUM.PLAYING);
             Utils.log('Ataque cancelado.', '#aaa');
             Renderer.draw();
+        } else if (GameState.player.combat.pendingAttack === 'ranged') {
+            if (['enter', ' '].includes(key)) { e.preventDefault(); CombatSystem.fireRanged(); }
+            else if (['arrowup', 'arrowleft', 'w', 'a'].includes(key)) { e.preventDefault(); CombatSystem.cycleRangedTarget(-1); }
+            else if (['arrowdown', 'arrowright', 's', 'd'].includes(key)) { e.preventDefault(); CombatSystem.cycleRangedTarget(1); }
         } else {
             let dx = 0, dy = 0;
             if (['w','arrowup','k'].includes(key)) dy = -1;
@@ -3218,6 +3316,11 @@ document.addEventListener('keyup', (e) => {
     if (e.key.toLowerCase() === MovementInput.key) MovementInput.stop();
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) MovementInput.stop(); });
+document.addEventListener('click', (event) => {
+    if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged') return;
+    const cell = event.target && typeof event.target.closest === 'function' ? event.target.closest('[data-map-x]') : null;
+    if (cell && DOM.container.contains(cell)) CombatSystem.fireRanged(Number(cell.dataset.mapX), Number(cell.dataset.mapY));
+});
 if (typeof window.addEventListener === 'function') window.addEventListener('blur', () => MovementInput.stop());
 
 window.setGameState = (s) => StateController.change(s);
@@ -3229,6 +3332,13 @@ window.closeEquipment = () => UISystem.closeEquipment();
 window.openCharacter = () => ProgressionSystem.open();
 window.closeCharacter = () => ProgressionSystem.close();
 window.startRangedAttack = () => CombatSystem.startTargeting('ranged');
+window.fireRangedAttack = () => CombatSystem.fireRanged();
+window.nextRangedTarget = () => CombatSystem.cycleRangedTarget();
+window.cancelRangedAttack = () => {
+    if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged') return;
+    GameState.player.combat.pendingAttack = null; GameState.ui.rangedTarget = null;
+    StateController.change(STATE_ENUM.PLAYING); Renderer.draw();
+};
 window.closeInventory = () => {
     if (GameState.current !== STATE_ENUM.INVENTORY) return;
     InventorySystem.closeActionMenu();
