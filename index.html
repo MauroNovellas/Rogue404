@@ -13,6 +13,7 @@
             <div class="game-brand">ROGUE<span>404</span><small>CRÓNICAS DE LA MAZMORRA</small></div>
             <nav class="ui-actions" aria-label="Menús de la partida">
                 <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/6</span> <kbd>M</kbd></button>
+                <button type="button" onclick="openEquipment()">Equipo <kbd>O</kbd></button>
                 <button type="button" onclick="openBestiary()">Bestiario <kbd>B</kbd></button>
                 <button type="button" onclick="openControls()">Ayuda <kbd>I</kbd></button>
                 <button type="button" onclick="openPause()">Pausa <kbd>P</kbd></button>
@@ -25,9 +26,9 @@
                 <span id="xp-text" class="xp-text">0 / 100 XP</span>
             </div>
             <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">&gt;</span> Profundidad</span><span id="dungeon-lvl">-1</span></div>
-            <div class="hud-stat hud-health"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">♥</span> Vida</span><span id="hp-val">100/100</span></div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol food-symbol" aria-hidden="true">%</span> Comida</span><span><span id="food-val">100</span>%</span></div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol water-symbol" aria-hidden="true">~</span> Agua</span><span><span id="water-val">100</span>%</span></div>
+            <div class="hud-stat resource-stat hud-health"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">♥</span> Vida</span><div class="resource-values"><span id="hp-val">100/100</span><span id="hp-percent">100%</span></div><div id="hp-meter" class="resource-meter" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="hp-fill"></span></div></div>
+            <div class="hud-stat resource-stat"><span class="hud-label"><span class="hud-symbol food-symbol" aria-hidden="true">%</span> Comida</span><div class="resource-values"><span><span id="food-val">100</span>%</span></div><div id="food-meter" class="resource-meter" role="progressbar" aria-label="Comida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="food-fill"></span></div></div>
+            <div class="hud-stat resource-stat"><span class="hud-label"><span class="hud-symbol water-symbol" aria-hidden="true">~</span> Agua</span><div class="resource-values"><span><span id="water-val">100</span>%</span></div><div id="water-meter" class="resource-meter" role="progressbar" aria-label="Agua" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="water-fill"></span></div></div>
             <div class="hud-stat"><span class="hud-label"><span class="hud-symbol gold-symbol" aria-hidden="true">$</span> Oro</span><span id="score">0</span></div>
             <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">!</span> Ataque</span><span><span id="atk-val">3</span> <span id="weapon-bonus">(+0)</span></span></div>
             <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">]</span> Defensa</span><span id="armor-bonus">(+0)</span></div>
@@ -36,14 +37,20 @@
     </header>
 
     <div id="main-layout">
-        <aside id="discovery-sidebar" aria-label="Cuadernos de descubrimientos">
+        <aside id="left-rail" aria-label="Descubrimientos y equipo">
+            <div id="discovery-sidebar" aria-label="Cuadernos de descubrimientos">
             <section class="discovery-column" aria-labelledby="creatures-title">
-                <header class="column-heading"><span class="column-kicker">I · CRIATURAS</span><h2 id="creatures-title">Bestiario</h2><span id="legend-monsters-count" class="discovery-count">0</span><p>Pulsa una criatura para leer su historia.</p></header>
+                <header class="column-heading"><span class="column-kicker">I · CRIATURAS</span><h2 id="creatures-title">Bestiario</h2><span id="legend-monsters-count" class="discovery-count">0</span><p>Historia y tácticas al pulsar.</p></header>
                 <div id="legend-monsters" class="legend-panel"><p class="legend-empty">Las criaturas aparecerán al descubrirlas.</p></div>
             </section>
             <section class="discovery-column" aria-labelledby="items-title">
                 <header class="column-heading"><span class="column-kicker">II · HALLAZGOS</span><h2 id="items-title">Objetos</h2><span id="legend-items-count" class="discovery-count">0</span><p>Símbolos y objetos que has encontrado.</p></header>
                 <div id="legend-items" class="legend-panel"><p class="legend-empty">Explora para registrar nuevos hallazgos.</p></div>
+            </section>
+            </div>
+            <section id="equipment-preview" aria-labelledby="equipped-preview-title">
+                <header class="equipment-preview-heading"><h2 id="equipped-preview-title">Llevas equipado</h2><button type="button" onclick="openEquipment()">Ver ficha <kbd>O</kbd></button></header>
+                <div id="equipped-preview-grid" class="equipped-preview-grid"></div>
             </section>
         </aside>
         <main id="play-area" aria-label="Expedición">
@@ -70,9 +77,11 @@
         <div class="key-row" style="text-align:left;"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Interactuar / Escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
+        <div class="key-row"><span>Equipo y propiedades</span><span class="key-btn">O</span></div>
         <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
         <div class="key-row"><span>Bestiario</span><span class="key-btn">B</span></div>
+        <p class="control-hint">Mantén una tecla de movimiento para seguir avanzando. Suéltala para detenerte.</p>
 
         <h3>Combate</h3>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span>Golpe normal</span> <span>Mover contra enemigo</span></div>
@@ -101,6 +110,7 @@
         <div class="dialog-body">
         <div id="inv-grid" class="inv-grid"></div>
         <div class="equipment-section">
+            <div class="equipment-link"><span>Equipo actual</span><button type="button" onclick="openEquipment()">Ver propiedades <kbd>O</kbd></button></div>
             <div id="equip-weapon">Arma: <span class="w">Puños</span></div>
             <div id="equip-armor">Armadura: <span class="w">Ropa</span></div>
         </div>
@@ -113,6 +123,12 @@
             <div id="action-title" class="action-title">Objeto</div>
             <div id="action-list"></div>
         </div>
+    </div>
+
+    <div id="equipment-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="equipment-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">FICHA DEL AVENTURERO</span><h2 id="equipment-title">Equipo actual</h2></div><button type="button" onclick="closeEquipment()" aria-label="Cerrar equipo">×</button></header>
+        <div class="dialog-body"><div id="equipment-grid" class="equipment-grid"></div><p class="control-hint">Equipa los objetos desde la mochila. Aquí puedes consultar el arma y la armadura que llevas puestos.</p></div>
+        <footer class="dialog-footer"><span class="muted">O / Esc · volver</span><button type="button" onclick="closeEquipment()">Volver</button></footer>
     </div>
 
     <div id="reward-choice" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Elegir recompensa" tabindex="-1">

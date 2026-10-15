@@ -5,6 +5,7 @@
 // ============================================================================
 const CONFIG = {
     GRID: { cols: 70, rows: 24 },
+    INPUT: { holdDelay: 250, repeatInterval: 170 },
     MAP: {
         maxRooms: 28, minRoomSize: 6, maxRoomSize: 14, viewRadius: 9,
         roomShapes: ['RECTANGLE', 'OVAL', 'CHAMFERED', 'L_SHAPED', 'PILLARED'],
@@ -130,7 +131,7 @@ const CONFIG = {
 const STATE_ENUM = {
     PLAYING: 'PLAYING', CONTROLS: 'CONTROLS', INVENTORY: 'INVENTORY',
     MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE', BESTIARY: 'BESTIARY',
-    TARGETING: 'TARGETING'
+    TARGETING: 'TARGETING', EQUIPMENT: 'EQUIPMENT'
 };
 
 const GameState = {
@@ -165,6 +166,7 @@ const GameState = {
         rewardChoice: { options: [], index: 0 },
         bestiaryId: null,
         bestiaryReturnState: STATE_ENUM.PLAYING,
+        equipmentReturnState: STATE_ENUM.PLAYING,
     }
 };
 
@@ -179,6 +181,7 @@ const DOM = {
         controls: document.getElementById('controls-menu'),
         bestiary: document.getElementById('bestiary-menu'),
         inventory: document.getElementById('inventory-menu'),
+        equipment: document.getElementById('equipment-menu'),
         main: document.getElementById('game-menu'),
         shop: document.getElementById('shop-menu'),
         rewardChoice: document.getElementById('reward-choice'),
@@ -249,6 +252,21 @@ const Utils = {
 };
 
 const VisualFX = {
+    positionText: (el, x, y) => {
+        const view = Renderer.viewport || { x: 0, y: 0, cols: CONFIG.GRID.cols, rows: CONFIG.GRID.rows, fontSize: 20 };
+        const grid = DOM.container.firstElementChild;
+        const layer = document.getElementById('fx-layer');
+        el.style.display = x < view.x || y < view.y || x >= view.x + view.cols || y >= view.y + view.rows ? 'none' : '';
+        if (grid && typeof grid.getBoundingClientRect === 'function' && typeof layer.getBoundingClientRect === 'function') {
+            const rect = grid.getBoundingClientRect();
+            const origin = layer.getBoundingClientRect();
+            el.style.left = `${rect.left - origin.left + (x - view.x + 0.5) * rect.width / view.cols}px`;
+            el.style.top = `${rect.top - origin.top + (y - view.y) * rect.height / view.rows}px`;
+        } else {
+            el.style.left = `${12 + (x - view.x) * view.fontSize * 0.6}px`;
+            el.style.top = `${12 + (y - view.y) * view.fontSize}px`;
+        }
+    },
     floatText: (x, y, text, color, kind = 'auto') => {
         const layer = document.getElementById('fx-layer');
         if (!layer) return;
@@ -265,8 +283,9 @@ const VisualFX = {
 
         el.innerText = textValue;
         el.style.color = color;
-        el.style.left = `calc(15px + ${x} * 0.6em)`;
-        el.style.top = `calc(15px + ${y} * 1.0em)`;
+        el._worldX = x;
+        el._worldY = y;
+        VisualFX.positionText(el, x, y);
 
         if (resolvedKind === 'incoming') {
             el.style.marginLeft = '-18px';
@@ -645,6 +664,7 @@ const FloorSystem = {
     showWarning: () => {
         const config = FloorSystem.config();
         if (!config || !config.warningTitle || !DOM.floorWarning) return;
+        MovementInput.stop();
         DOM.floorWarningTitle.textContent = config.warningTitle;
         DOM.floorWarningText.innerHTML = config.warningText;
         DOM.floorWarning.classList.remove('floor-warning-frozen', 'floor-warning-magma', 'floor-warning-unstable');
@@ -1125,6 +1145,8 @@ const GameLogic = {
         GameState.ui.movementLocked = false;
         GameState.ui.bestiaryId = null;
         GameState.ui.bestiaryReturnState = STATE_ENUM.PLAYING;
+        GameState.ui.equipmentReturnState = STATE_ENUM.PLAYING;
+        MovementInput.stop();
         FloorSystem.closeWarning();
         Network.isSaving = false;
         Utils.resetLog();
@@ -2285,12 +2307,41 @@ window.ShopSystem = ShopSystem;
 // 10. RENDERER Y UI
 // ============================================================================
 const Renderer = {
-    draw: () => {
-        let html = "";
-        const palette = FloorSystem.getPalette();
+    viewport: null,
+    getViewport: () => {
+        const width = Math.max(36, (DOM.container.clientWidth || CONFIG.GRID.cols * 20 * 0.61 + 24) - 24);
+        const height = Math.max(60, (DOM.container.clientHeight || CONFIG.GRID.rows * 20 + 24) - 24);
+        let minX = GameState.player.x, maxX = minX, minY = GameState.player.y, maxY = minY;
         for (let y = 0; y < CONFIG.GRID.rows; y++) {
             for (let x = 0; x < CONFIG.GRID.cols; x++) {
-                if (GameState.visible[y][x]) Renderer.checkDiscovery(x, y);
+                if (!GameState.seen[y] || !GameState.seen[y][x]) continue;
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+        }
+        minX = Math.max(0, minX - 1); maxX = Math.min(CONFIG.GRID.cols - 1, maxX + 1);
+        minY = Math.max(0, minY - 1); maxY = Math.min(CONFIG.GRID.rows - 1, maxY + 1);
+        const cols = Math.min(maxX - minX + 1, Math.max(3, Math.floor(width / (20 * 0.61))));
+        const rows = Math.min(maxY - minY + 1, Math.max(3, Math.floor(height / 20)));
+        const x = Math.max(minX, Math.min(maxX - cols + 1, GameState.player.x - Math.floor(cols / 2)));
+        const y = Math.max(minY, Math.min(maxY - rows + 1, GameState.player.y - Math.floor(rows / 2)));
+        const fontSize = Math.max(20, Math.min(32, Math.floor(Math.min(width / (cols * 0.61), height / rows))));
+        return { x, y, cols, rows, fontSize };
+    },
+    draw: () => {
+        if (!GameState.map.length) return;
+        const view = Renderer.getViewport();
+        Renderer.viewport = view;
+        // Descubrir sigue dependiendo de la visión real, no del encuadre.
+        for (let y = 0; y < CONFIG.GRID.rows; y++) {
+            for (let x = 0; x < CONFIG.GRID.cols; x++) {
+                if (GameState.visible[y] && GameState.visible[y][x]) Renderer.checkDiscovery(x, y);
+            }
+        }
+        let html = "";
+        const palette = FloorSystem.getPalette();
+        for (let y = view.y; y < view.y + view.rows; y++) {
+            for (let x = view.x; x < view.x + view.cols; x++) {
                 if (!GameState.seen[y][x]) { html += " "; continue; }
                 let char = GameState.map[y][x]; let color = ""; let isVis = GameState.visible[y][x];
                 if (x === GameState.player.x && y === GameState.player.y) { char = "@"; color = "color:#ff0; font-weight:bold"; } 
@@ -2351,8 +2402,17 @@ const Renderer = {
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
                 html += `<span style="${color}">${char}</span>`;
-            } html += "\n";
-        } DOM.container.innerHTML = html;
+            }
+            if (y < view.y + view.rows - 1) html += "\n";
+        }
+        DOM.container.style.fontSize = `${view.fontSize}px`;
+        DOM.container.innerHTML = `<div class="map-grid">${html}</div>`;
+        const layer = document.getElementById('fx-layer');
+        if (layer && layer.children) {
+            [...layer.children].forEach(el => {
+                if (Number.isFinite(el._worldX)) VisualFX.positionText(el, el._worldX, el._worldY);
+            });
+        }
     },
     checkDiscovery: (x, y) => {
         let id = null, data = null, type = 'item';
@@ -2450,6 +2510,109 @@ const Renderer = {
 
 const UISystem = {
     bestiaryFocus: null,
+    equipmentFocus: null,
+    openEquipment: () => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.MENU, STATE_ENUM.CONTROLS].includes(GameState.current)) return;
+        GameState.ui.equipmentReturnState = GameState.current;
+        UISystem.equipmentFocus = document.activeElement;
+        if (GameState.ui.actionMenuOpen) InventorySystem.closeActionMenu();
+        StateController.change(STATE_ENUM.EQUIPMENT);
+    },
+    closeEquipment: () => {
+        if (GameState.current !== STATE_ENUM.EQUIPMENT) return;
+        StateController.change(GameState.ui.equipmentReturnState);
+        if (UISystem.equipmentFocus && UISystem.equipmentFocus.isConnected) UISystem.equipmentFocus.focus();
+        UISystem.equipmentFocus = null;
+    },
+    equipmentInfo: (slot) => {
+        const item = GameState.player.equipment[slot];
+        const weapon = slot === 'weapon';
+        const value = item ? Number(item.value) || 0 : 0;
+        const properties = weapon
+            ? [['Ataque del arma', `+${value}`], ['Ataque base + arma', String(GameState.player.baseAtk + value)]]
+            : [['Defensa', `+${value}`]];
+        const traits = item && item.traits ? item.traits : {};
+        const percentages = [
+            ['slipResist', 'Resistencia a resbalones'],
+            ['heatResist', 'Resistencia al calor'],
+            ['thirstResist', 'Resiste sed extra por calor'],
+            ['fallDamageResist', 'Resistencia a caídas']
+        ];
+        percentages.forEach(([key, label]) => {
+            if (Number(traits[key]) > 0) properties.push([label, `${Math.round(traits[key] * 100)}%`]);
+        });
+        if (Number(traits.frozenRestHeal) > 0) properties.push(['Descanso en hielo', `+${traits.frozenRestHeal} vida`]);
+        if (Number(traits.magmaRestHeal) > 0) properties.push(['Descanso en magma', `+${traits.magmaRestHeal} vida`]);
+        if (traits.retainEquippedOnFall) properties.push(['Conserva equipo al caer', 'Sí']);
+        if (Object.keys(traits).length === 0) properties.push(['Efectos especiales', 'Ninguno']);
+        if (item && Number.isFinite(item.buyPrice)) properties.push(['Precio de compra', `${item.buyPrice} oro`]);
+        const quality = item && item.name ? item.name.match(/\[([^\]]+)\]$/) : null;
+        return {
+            label: weapon ? 'Arma' : 'Armadura',
+            name: item ? item.name : (weapon ? 'Puños' : 'Ropa'),
+            symbol: item ? item.symbol || (weapon ? '!' : ']') : (weapon ? '!' : ']'),
+            color: item ? item.qualityColor || item.color || '#cfb477' : '#b4a58b',
+            quality: item ? (quality ? quality[1] : (item.specialId ? 'Equipo especial' : 'Equipo actual')) : 'Sin objeto equipado',
+            power: `${weapon ? 'ATK' : 'DEF'} +${value}`,
+            properties
+        };
+    },
+    renderEquipmentPreview: () => {
+        const grid = document.getElementById('equipped-preview-grid');
+        grid.innerHTML = '';
+        for (const slot of ['weapon', 'armor']) {
+            const info = UISystem.equipmentInfo(slot);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'gear-preview';
+            button.title = `Consultar ${info.label.toLowerCase()} y propiedades`;
+            const symbol = document.createElement('span');
+            symbol.className = 'legend-symbol'; symbol.textContent = info.symbol; symbol.style.color = info.color;
+            const copy = document.createElement('span'); copy.className = 'gear-preview-copy';
+            for (const [className, value] of [['gear-preview-label', info.label], ['gear-preview-name', info.name], ['gear-preview-power', info.power]]) {
+                const text = document.createElement('span'); text.className = className; text.textContent = value; copy.appendChild(text);
+            }
+            button.appendChild(symbol); button.appendChild(copy);
+            button.onclick = () => UISystem.openEquipment();
+            grid.appendChild(button);
+        }
+    },
+    renderEquipment: () => {
+        const grid = document.getElementById('equipment-grid');
+        grid.innerHTML = '';
+        for (const slot of ['weapon', 'armor']) {
+            const info = UISystem.equipmentInfo(slot);
+            const card = document.createElement('section'); card.className = 'gear-card';
+            const label = document.createElement('div'); label.className = 'gear-slot'; label.textContent = info.label;
+            const portrait = document.createElement('div'); portrait.className = 'gear-portrait';
+            const symbol = document.createElement('span'); symbol.className = 'legend-symbol'; symbol.textContent = info.symbol; symbol.style.color = info.color;
+            const name = document.createElement('h3'); name.textContent = info.name; name.style.color = info.color;
+            const quality = document.createElement('span'); quality.className = 'gear-quality'; quality.textContent = info.quality;
+            portrait.appendChild(symbol); portrait.appendChild(name); portrait.appendChild(quality);
+            const properties = document.createElement('dl'); properties.className = 'gear-properties';
+            for (const [key, value] of info.properties) {
+                const row = document.createElement('div');
+                const term = document.createElement('dt'); term.textContent = key;
+                const definition = document.createElement('dd'); definition.textContent = value;
+                row.appendChild(term); row.appendChild(definition); properties.appendChild(row);
+            }
+            card.appendChild(label); card.appendChild(portrait); card.appendChild(properties); grid.appendChild(card);
+        }
+    },
+    updateResourceMeters: () => {
+        const hpPercent = GameState.player.maxHp > 0 ? Math.round(GameState.player.hp / GameState.player.maxHp * 100) : 0;
+        const resources = [['hp', hpPercent], ['food', GameState.player.food], ['water', GameState.player.water]];
+        for (const [id, raw] of resources) {
+            const value = Math.max(0, Math.min(100, Number(raw) || 0));
+            const meter = document.getElementById(`${id}-meter`);
+            const fill = document.getElementById(`${id}-fill`);
+            fill.style.width = `${value}%`;
+            meter.ariaValueNow = String(value);
+            meter.className = `resource-meter${value <= 25 ? ' resource-low' : value <= 50 ? ' resource-warning' : ''}`;
+            if (id === 'hp') document.getElementById('hp-percent').textContent = `${value}%`;
+        }
+    },
     openPanel: (state) => {
         if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
         if (![STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
@@ -2518,6 +2681,8 @@ const UISystem = {
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
         if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
+        UISystem.updateResourceMeters();
+        UISystem.renderEquipmentPreview();
 
         if (!DOM.combatStatus) return;
         const parts = [];
@@ -2605,14 +2770,56 @@ const UISystem = {
 // ============================================================================
 // 11. CONTROLADOR DE ESTADO
 // ============================================================================
+const MovementInput = {
+    key: null,
+    timer: null,
+    generation: 0,
+    direction: (key) => ({
+        w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1],
+        a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0],
+        q: [-1, -1], e: [1, -1], z: [-1, 1], x: [1, 1]
+    })[key] || null,
+    stop: () => {
+        if (MovementInput.timer !== null) clearTimeout(MovementInput.timer);
+        MovementInput.timer = null;
+        MovementInput.key = null;
+        MovementInput.generation++;
+    },
+    start: (key, dx, dy) => {
+        MovementInput.stop();
+        MovementInput.key = key;
+        const generation = MovementInput.generation;
+        const step = async (first) => {
+            if (generation !== MovementInput.generation || MovementInput.key !== key) return;
+            if (GameState.current !== STATE_ENUM.PLAYING || GameState.ui.floorWarningOpen || GameState.ui.movementLocked || document.hidden || document.activeElement === DOM.log) {
+                MovementInput.stop();
+                return;
+            }
+            const enemyAhead = GameState.entities.enemies.some(enemy => enemy.x === GameState.player.x + dx && enemy.y === GameState.player.y + dy);
+            let moved;
+            try { moved = await GameLogic.movePlayer(dx, dy); }
+            catch (error) { if (generation === MovementInput.generation) MovementInput.stop(); throw error; }
+            if (generation !== MovementInput.generation) return;
+            if (GameState.current !== STATE_ENUM.PLAYING || GameState.ui.floorWarningOpen || (!moved && !enemyAhead)) {
+                MovementInput.stop();
+                return;
+            }
+            MovementInput.timer = setTimeout(() => step(false), first ? CONFIG.INPUT.holdDelay : CONFIG.INPUT.repeatInterval);
+        };
+        step(true);
+    }
+};
+
 const StateController = {
     change: (newState) => {
+        MovementInput.stop();
         GameState.current = newState;
         Object.values(DOM.menus).forEach(el => el.classList.add('hidden'));
         switch (newState) {
             case STATE_ENUM.CONTROLS: DOM.menus.controls.classList.remove('hidden'); break;
             case STATE_ENUM.BESTIARY: DOM.menus.bestiary.classList.remove('hidden'); UISystem.renderBestiary(); break;
             case STATE_ENUM.INVENTORY: DOM.menus.inventory.classList.remove('hidden'); UISystem.renderInventory(); break;
+            case STATE_ENUM.EQUIPMENT: DOM.menus.equipment.classList.remove('hidden'); UISystem.renderEquipment(); break;
             case STATE_ENUM.MENU: DOM.menus.main.classList.remove('hidden'); document.getElementById('menu-seed-display').innerText = GameState.seed; Network.fetchScores('menu-leaderboard'); break;
             case STATE_ENUM.SHOP: DOM.menus.shop.classList.remove('hidden'); break;
             case STATE_ENUM.REWARD_CHOICE: DOM.menus.rewardChoice.classList.remove('hidden'); UISystem.renderRewardChoice(); break;
@@ -2630,13 +2837,18 @@ const StateController = {
 if (typeof ResizeObserver !== 'undefined') {
     const journalResizeObserver = new ResizeObserver(() => { DOM.log.scrollTop = DOM.log.scrollHeight; });
     journalResizeObserver.observe(DOM.log);
+    const mapResizeObserver = new ResizeObserver(() => { if (GameState.map.length) Renderer.draw(); });
+    mapResizeObserver.observe(DOM.container);
 }
 
 document.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
-    if (GameState.ui.movementLocked) return;
-
     const key = e.key.toLowerCase();
+    if (e.repeat) {
+        if (MovementInput.direction(key) && GameState.current === STATE_ENUM.PLAYING && e.target !== DOM.log && (!e.target || e.target.tagName !== 'INPUT')) e.preventDefault();
+        return;
+    }
+    if (!MovementInput.direction(key)) MovementInput.stop();
+    if (GameState.ui.movementLocked) { if (MovementInput.direction(key)) e.preventDefault(); return; }
 
     if (GameState.ui.floorWarningOpen) {
         e.preventDefault();
@@ -2669,6 +2881,14 @@ document.addEventListener('keydown', (e) => {
     }
     if (e.target && ['BUTTON', 'SUMMARY'].includes(e.target.tagName) && ['enter', ' '].includes(key)) return;
     if (e.target === DOM.log && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'pageup', 'pagedown', 'home', 'end'].includes(key)) return;
+
+    if (GameState.current === STATE_ENUM.EQUIPMENT) {
+        if (['o', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeEquipment(); }
+        return;
+    }
+    if (key === 'o' && [STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.MENU, STATE_ENUM.CONTROLS].includes(GameState.current)) {
+        e.preventDefault(); UISystem.openEquipment(); return;
+    }
 
     if (GameState.current === STATE_ENUM.BESTIARY) {
         if (['b', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeBestiary(); }
@@ -2707,16 +2927,8 @@ document.addEventListener('keydown', (e) => {
         else if (key === 'c') CombatSystem.performWait();
         else if (key === 'v') CombatSystem.performDefend();
         else {
-            let dx = 0, dy = 0;
-            if (['w','arrowup'].includes(key)) dy = -1;
-            else if (['s','arrowdown'].includes(key)) dy = 1;
-            else if (['a','arrowleft'].includes(key)) dx = -1;
-            else if (['d','arrowright'].includes(key)) dx = 1;
-            else if (key === 'q') { dx = -1; dy = -1; }
-            else if (key === 'e') { dx = 1; dy = -1; }
-            else if (key === 'z') { dx = -1; dy = 1; }
-            else if (key === 'x') { dx = 1; dy = 1; }
-            if (dx !== 0 || dy !== 0) GameLogic.movePlayer(dx, dy);
+            const direction = MovementInput.direction(key);
+            if (direction) { e.preventDefault(); MovementInput.start(key, direction[0], direction[1]); }
         }
     }
     else if (GameState.current === STATE_ENUM.TARGETING) {
@@ -2775,10 +2987,18 @@ document.addEventListener('keydown', (e) => {
     else if (GameState.current === STATE_ENUM.GAMEOVER && key === 'i') GameLogic.init();
 });
 
+document.addEventListener('keyup', (e) => {
+    if (e.key.toLowerCase() === MovementInput.key) MovementInput.stop();
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) MovementInput.stop(); });
+if (typeof window.addEventListener === 'function') window.addEventListener('blur', () => MovementInput.stop());
+
 window.setGameState = (s) => StateController.change(s);
 window.openBestiary = (id) => UISystem.openBestiary(id);
 window.closeBestiary = () => UISystem.closeBestiary();
 window.openInventory = () => UISystem.openPanel(STATE_ENUM.INVENTORY);
+window.openEquipment = () => UISystem.openEquipment();
+window.closeEquipment = () => UISystem.closeEquipment();
 window.closeInventory = () => {
     if (GameState.current !== STATE_ENUM.INVENTORY) return;
     InventorySystem.closeActionMenu();

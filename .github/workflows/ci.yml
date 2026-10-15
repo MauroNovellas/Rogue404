@@ -47,6 +47,9 @@ jobs:
       - name: Gameplay regression tests
         run: node tests/regression.test.cjs
 
+      - name: Interface and held movement tests
+        run: node tests/interface.test.cjs
+
       - name: AutoPlayer profile tests
         run: node tests/autoplayer-profiles.test.cjs
 
