@@ -57,7 +57,7 @@
             if (!GameState.map[y] || GameState.map[y][x] === '#') return false;
             if (FloorSystem.isHole(x, y)) return false;
             if (FloorSystem.shouldCollapseOnEntry(x, y)) return false;
-            if (GameState.entities.chests.some(chest => chest.x === x && chest.y === y)) return false;
+            if (GameState.entities.chests.some(chest => chest.x === x && chest.y === y && !chest.isOpen)) return false;
             if (GameState.entities.shops.some(shop => shop.x === x && shop.y === y)) return false;
             if (GameState.entities.enemies.some(enemy => enemy.x === x && enemy.y === y)) return false;
             return true;
@@ -189,6 +189,32 @@
             InventorySystem.useItem(bestIndex);
             return true;
         },
+        maybeUseRelic: () => {
+            const adjacent = AutoPlayer.adjacentEnemies();
+            const hpRatio = GameState.player.hp / Math.max(1, GameState.player.maxHp);
+            const index = GameState.player.inventory.findIndex(item => {
+                if (item.type !== 'relic') return false;
+                const relic = InventorySystem.relicDef(item), preview = InventorySystem.relicPreview(item);
+                if (!preview.canUse || !relic) return false;
+                if (relic.effect === 'heal') return hpRatio < .55;
+                if (relic.effect === 'stun') return adjacent.length >= 2 || adjacent.some(enemy => enemy._trollPressurePrimed) && hpRatio < .5;
+                return adjacent.length > 0 && hpRatio < .65 && GameState.player.water > 25;
+            });
+            if (index < 0) return false;
+            AutoPlayer.lastDecision = { type: 'RELIC', item: GameState.player.inventory[index].name };
+            InventorySystem.useItem(index); return true;
+        },
+        rewardUtility: (option) => {
+            const item = option.item;
+            if (!item) return option.kind === 'gold' ? 12 : 0;
+            if (['food', 'water'].includes(item.type)) return Math.min(item.value, 100 - GameState.player[item.type]) * .35;
+            if (item.type === 'relic') return InventorySystem.relicPreview(item).canUse ? 18 : 8;
+            const owned = [GameState.player.equipment[item.type], ...GameState.player.inventory.filter(gear => gear.type === item.type)];
+            const previous = Math.max(0, ...owned.map(gear => AutoPlayer.itemGearScore(gear)));
+            const gain = AutoPlayer.itemGearScore(item) - previous;
+            const weight = item.type === 'armor' ? (GameState.player.hp < GameState.player.maxHp * .75 ? 18 : 13) : 9;
+            return gain > 0 ? 10 + gain * weight : 4;
+        },
 
         saferRetreat: (enemies) => {
             const currentMin = Math.min(...enemies.map(enemy => chebyshev(GameState.player.x, GameState.player.y, enemy.x, enemy.y)));
@@ -262,6 +288,15 @@
 
         handleShop: () => {
             const profile = AutoPlayer.profile();
+            const surplus = GameState.player.inventory.findIndex(item => {
+                if (!['weapon', 'armor', 'boots', 'ring'].includes(item.type)) return false;
+                const current = GameState.player.equipment[item.type];
+                return current && !item.specialId && !item.traits && AutoPlayer.itemGearScore(item) <= AutoPlayer.itemGearScore(current);
+            });
+            if (surplus >= 0) {
+                AutoPlayer.lastDecision = { type: 'SELL', item: GameState.player.inventory[surplus].name };
+                ShopSystem.sell(surplus); return true;
+            }
             const stock = ShopSystem.getStock();
             if (!stock || stock.length === 0) {
                 AutoPlayer.memory.shopsDone.add(GameState.level);
@@ -298,8 +333,8 @@
             return true;
         },
 
-        knownChestTargets: () => GameState.entities.chests.filter(chest => !chest.isOpen && AutoPlayer.isSeen(chest.x, chest.y)),
-        knownItemTargets: () => GameState.entities.items.filter(item => AutoPlayer.isSeen(item.x, item.y)),
+        knownChestTargets: () => GameState.entities.chests.filter(chest => (!chest.isOpen || (chest.rewardOptions && !chest.rewardClaimed)) && AutoPlayer.isSeen(chest.x, chest.y)),
+        knownItemTargets: () => GameState.entities.items.filter(item => AutoPlayer.isSeen(item.x, item.y) && (item.type === 'GOLD' || GameState.player.inventory.length < CONFIG.PLAYER.inventorySize)),
         knownShopTargets: () => GameState.entities.shops.filter(shop => AutoPlayer.isSeen(shop.x, shop.y) && !AutoPlayer.memory.shopsDone.has(GameState.level)),
 
         stepAlong: async (path, label) => {
@@ -333,7 +368,9 @@
                 return AutoPlayer.lastDecision;
             }
             if (GameState.current === STATE_ENUM.REWARD_CHOICE) {
-                GameLogic.chooseChestReward(GameState.ui.rewardChoice.index);
+                const options = GameState.ui.rewardChoice.options;
+                const index = options.reduce((best, option, i) => AutoPlayer.rewardUtility(option) > AutoPlayer.rewardUtility(options[best]) ? i : best, 0);
+                GameLogic.chooseChestReward(index);
                 AutoPlayer.lastDecision = { type: 'CHOOSE_REWARD' };
                 return AutoPlayer.lastDecision;
             }
@@ -353,6 +390,7 @@
 
             if (AutoPlayer.maybeUseResource()) return AutoPlayer.lastDecision;
             if (AutoPlayer.maybeEquipUpgrade()) return AutoPlayer.lastDecision;
+            if (AutoPlayer.maybeUseRelic()) return AutoPlayer.lastDecision;
             if (await AutoPlayer.handleCombat()) return AutoPlayer.lastDecision;
 
             const adjacentChest = AutoPlayer.knownChestTargets().find(chest =>

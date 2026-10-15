@@ -72,7 +72,7 @@ test('la piedra cubre la invocación y dos respuestas más, sin depender de Defe
     const h = arena(); const p = h.GameState.player;
     h.GameState.entities.enemies = [enemy()]; p.inventory = [relic(h, 'WARD_STONE')];
     h.InventorySystem.useItem(0);
-    assert.equal(p.hp, 93); assert.equal(p.water, 90); assert.equal(p.combat.wardTurns, 2);
+    assert.equal(p.hp, 93); assert.equal(p.water, 94); assert.equal(p.combat.wardTurns, 2);
     h.GameLogic.endTurn(); assert.equal(p.hp, 86);
     h.GameLogic.endTurn(); assert.equal(p.hp, 79); assert.equal(p.combat.wardTurns, 0);
     h.GameLogic.endTurn(); assert.equal(p.hp, 69);
@@ -83,18 +83,18 @@ test('la campana también impide el contraataque salvaje en la acción libre', (
     h.GameState.player.inventory = [relic(h, 'ECHO_BELL')]; h.InventorySystem.useItem(0);
     h.GameState.player.combat.pendingAttack = 'savage'; h.CombatSystem.executeAttack(1, 0);
     assert.equal(h.GameState.player.hp, 100);
-    assert.equal(target._rogueSavageCounterPending, false); assert.equal(target.relicStun, 0);
+    assert.equal(target.energy, 0); assert.equal(target.relicStun, 0);
 });
 test('la piedra no se desperdicia ni permite acumular cargas', () => {
     const h = arena(); const item = relic(h, 'WARD_STONE');
-    h.GameState.player.water = 9;
+    h.GameState.player.water = 5;
     assert.equal(h.InventorySystem.useRelic(item), false);
     h.GameState.player.water = 100;
     assert.equal(h.InventorySystem.useRelic(item), true);
     assert.equal(h.InventorySystem.useRelic(item), false);
     h.GameState.player.combat.wardTurns = 0;
     assert.equal(h.InventorySystem.useRelic(item), false);
-    assert.equal(h.GameState.player.water, 90);
+    assert.equal(h.GameState.player.water, 94);
 });
 test('caminar, fallar y barrer en vacío no borran el golpe de la piedra', () => {
     const h = arena(); const p = h.GameState.player;
@@ -114,11 +114,11 @@ test('rápido y dardo consumen la carga solo al acertar; el barrido potencia tod
         const target = enemy(); h.GameState.entities.enemies = [target];
         if (type === 'area') {
             const other = enemy(20, 13); h.GameState.entities.enemies.push(other);
-            h.CombatSystem.performAreaAttack(); assert.equal(other.hp, 98);
+            h.CombatSystem.performAreaAttack(); assert.equal(other.hp, 97);
         } else if (type === 'quick') { p.combat.pendingAttack = 'quick'; h.CombatSystem.executeAttack(1, 0); }
         else { h.CombatSystem.startTargeting('ranged'); h.CombatSystem.fireRanged(); }
         assert.equal(p.combat.wardStrike, 0);
-        assert.equal(target.hp, type === 'area' ? 98 : type === 'quick' ? 96 : 93);
+        assert.equal(target.hp, type === 'area' ? 97 : type === 'quick' ? 96 : 93);
     }
 });
 test('cuatro huecos independientes; cambiar botas con mochila llena devuelve el par anterior', () => {
@@ -126,11 +126,11 @@ test('cuatro huecos independientes; cambiar botas con mochila llena devuelve el 
     const old = accessory(h, 'ROCK_BOOTS'); const next = accessory(h, 'LIGHT_BOOTS');
     const armor = { type: 'armor', name: 'Malla', value: 4 };
     p.equipment = { weapon: null, armor, boots: old, ring: accessory(h, 'GUARD_RING') };
-    p.inventory = [next, ...Array.from({ length: 5 }, () => ({ type: 'food', value: 20 }))];
+    p.inventory = [next, ...Array.from({ length: h.CONFIG.PLAYER.inventorySize - 1 }, () => ({ type: 'food', value: 20 }))];
     h.InventorySystem.useItem(0);
     assert.equal(p.equipment.armor, armor); assert.equal(p.equipment.boots, next);
     assert.equal(p.equipment.ring.gearId, 'GUARD_RING');
-    assert.equal(p.inventory.length, 6); assert.equal(p.inventory[5], old);
+    assert.equal(p.inventory.length, h.CONFIG.PLAYER.inventorySize); assert.equal(p.inventory.at(-1), old);
     assert.equal(h.GameState.moves, 1);
 });
 test('los accesorios afectan iniciativa, ataque, defensa y dardo sin duplicar bonos', () => {
@@ -167,9 +167,9 @@ test('la iniciativa de las botas retrasa la primera respuesta enemiga', () => {
 });
 test('las botas de ceniza reducen de verdad los costes de magma tras el redondeo', () => {
     const h = arena(); h.GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 18, x2: 22, y1: 10, y2: 14 } };
-    assert.equal(h.FloorSystem.thirstRate(), 3); assert.equal(h.FloorSystem.magmaRiskWaterCost(), 2);
+    assert.equal(h.FloorSystem.thirstRate(), 4); assert.equal(h.FloorSystem.magmaRiskWaterCost(), 2);
     h.GameState.player.equipment.boots = accessory(h, 'ASH_BOOTS');
-    assert.equal(h.FloorSystem.thirstRate(), 4); assert.equal(h.FloorSystem.magmaRiskWaterCost(), 1);
+    assert.ok(Math.abs(h.FloorSystem.thirstRate() - 6 / 1.325) < 1e-9); assert.equal(h.FloorSystem.magmaRiskWaterCost(), 1);
 });
 test('las resistencias se multiplican y el descanso conserva la mejor protección', () => {
     const h = arena(); const p = h.GameState.player;
@@ -190,7 +190,7 @@ test('una caída dispersa los cuatro huecos salvo que el arnés los conserve', (
         p.inventory = [{ type: 'food' }]; let scattered;
         h.MapSystem.initLevel = () => { h.GameState.persistence[h.GameState.level] = []; }; h.FloorSystem.scatterRecovery = items => { scattered = items; };
         h.FloorSystem.fallPlayer();
-        assert.equal(p.hp, 72); assert.equal(scattered.length, retain ? 1 : 5);
+        assert.equal(p.hp, 82); assert.equal(scattered.length, retain ? 1 : 5);
         assert.equal(p.inventory.length, 0);
         assert.equal(h.EquipmentSystem.slots().filter(slot => p.equipment[slot]).length, retain ? 4 : 0);
     }
@@ -198,10 +198,10 @@ test('una caída dispersa los cuatro huecos salvo que el arnés los conserve', (
 test('quitar equipo requiere un hueco, retira el efecto y cuesta un turno', () => {
     const h = arena(); const p = h.GameState.player;
     p.equipment.ring = accessory(h, 'FORCE_RING'); h.GameState.current = 'EQUIPMENT';
-    p.inventory = Array(6).fill({ type: 'food' });
+    p.inventory = Array(h.CONFIG.PLAYER.inventorySize).fill({ type: 'food' });
     assert.equal(h.InventorySystem.unequip('ring'), false); assert.equal(h.GameState.moves, 0);
     p.inventory.pop(); assert.equal(h.InventorySystem.unequip('ring'), true);
-    assert.equal(p.equipment.ring, null); assert.equal(p.inventory.length, 6);
+    assert.equal(p.equipment.ring, null); assert.equal(p.inventory.length, h.CONFIG.PLAYER.inventorySize);
     assert.equal(h.EquipmentSystem.stats().attack, 3); assert.equal(h.GameState.moves, 1);
 });
 test('los hallazgos distinguen cada reliquia, cada accesorio y los crampones', () => {

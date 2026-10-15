@@ -37,4 +37,6 @@ jobs:
             **/.git*/**
             **/.github/**
             tests/**
+            analysis/**
+            ANALISIS_BALANCE.md
             rogue_scores.json

@@ -40,7 +40,7 @@ const CONFIG = {
         MAGMA: {
             enabled: true,
             label: 'MAGMA',
-            thirstMultiplier: 2,
+            thirstMultiplier: 1.5,
             fumarole: {
                 enabled: true,
                 waterCostPerTurn: 2,
@@ -52,12 +52,12 @@ const CONFIG = {
             },
             colors: { wall: '#42130d', wallVisible: '#9c3520', floor: '#d56832', fog: '#210b08' },
             warningTitle: '⚠ CÁMARA MAGMÁTICA',
-            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• Las cámaras de fumarola consumen agua cada turno, pero esconden botín superior.<br>• La malla térmica reduce la presión del calor y permite descansar.'
+            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza un 50% más deprisa.<br>• Las fumarolas consumen agua adicional y esconden equipo especial.<br>• La malla térmica reduce el calor y permite descansar.'
         },
         UNSTABLE: {
             enabled: true,
             label: 'INESTABLE',
-            fallHpLoss: 0.75,
+            fallHpLoss: 0.50,
             collapseAnimationMs: 180,
             rift: {
                 enabled: true,
@@ -70,11 +70,11 @@ const CONFIG = {
             },
             colors: { wall: '#302820', wallVisible: '#725d49', floor: '#b08b67', fog: '#241d17' },
             warningTitle: '⚠ ESTRATO INESTABLE',
-            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• En zonas abiertas, volver a pisar una grieta provoca la caída.<br>• Los pasillos de una sola casilla permiten una segunda pasada: ╬ indica suelo crítico y una nueva entrada lo hará ceder.<br>• Los Pasajes de Falla usan esta misma regla y permiten una retirada antes de volverse letales.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
+            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• En zonas abiertas, volver a pisar una grieta provoca la caída.<br>• Los pasillos permiten una segunda pasada: ╬ indica suelo crítico.<br>• Los Pasajes de Falla permiten una retirada antes de ceder.<br>• Una caída pierde el 50% de tu vida actual y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés reduce la caída y conserva lo equipado.'
         }
     },
     PLAYER: {
-        startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 6,
+        startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 8,
         survival: { hungerRate: 10, thirstRate: 6, starvationDmg: 2, dehydrationDmg: 3 },
         leveling: { baseXp: 100, xpScaling: 1.5, statGain: { hp: 10 } }
     },
@@ -100,24 +100,25 @@ const CONFIG = {
     ],
     COMBAT: {
         variability: 0.2, critChance: 0.10, critMult: 1.5, baseWeaponVal: 2, baseArmorVal: 1,
+        maxMitigation: 0.75, defendMitigation: 0.90,
         // Configuración de Habilidades
         quick:  { dmgMult: 0.8,  var: 0.05, critBonus: 0,   label: "Rápido" },
-        savage: { dmgMult: 1.4,  var: 0.40, critBonus: 0.2, label: "Salvaje" },
-        area:   { dmgMult: 0.5,  cooldown: 5, label: "Barrido" },
+        savage: { dmgMult: 1.3, var: 0.25, critBonus: 0.1, initiativeCost: 0.25, label: 'Salvaje' },
+        area:   { dmgMult: 0.6, cooldown: 4, label: 'Barrido' },
         ranged: { dmgMult: 1, var: 0.1, cooldown: 2, label: 'Dardo arcano' },
         wait:   { atkBonus: 2 }, // Daño extra al siguiente turno tras esperar
         defend: { defMult: 1.5 } // Multiplicador defensa
     },
     VARIANCE: {
-        enabled: true, min: 0.5, max: 2.0,
+        enabled: true,
         tiers: [
-            { label: "PÉSIMO",    threshold: 0.65, color: "#777777" },
-            { label: "MALO",      threshold: 0.85, color: "#aaaaaa" },
-            { label: "MEDIOCRE",  threshold: 0.95, color: "#ffffff" },
-            { label: "NORMAL",    threshold: 1.05, color: "#ffffff" },
-            { label: "BUENO",     threshold: 1.25, color: "#00ff00" },
-            { label: "EXCELENTE", threshold: 1.60, color: "#0088ff" },
-            { label: "ÉPICO",     threshold: 9.99, color: "#ff00ff" }
+            { label: 'PÉSIMO', threshold: 0.01, multiplier: 0.65, color: '#777777' },
+            { label: 'MALO', threshold: 0.05, multiplier: 0.8, color: '#aaaaaa' },
+            { label: 'MEDIOCRE', threshold: 0.15, multiplier: 0.9, color: '#ffffff' },
+            { label: 'NORMAL', threshold: 0.60, multiplier: 1, color: '#ffffff' },
+            { label: 'BUENO', threshold: 0.85, multiplier: 1.15, color: '#00ff00' },
+            { label: 'EXCELENTE', threshold: 0.97, multiplier: 1.3, color: '#0088ff' },
+            { label: 'ÉPICO', threshold: 1, multiplier: 1.5, color: '#ff00ff' }
         ]
     },
     ENTITIES: {
@@ -125,14 +126,14 @@ const CONFIG = {
             // Cada criatura tendrá una regla reconocible y una pista táctica en la leyenda.
             { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'DIVER', diveChance: 0.35, role: 'Acechador de grietas', lore: 'Caza por eco entre las fisuras y se deja caer cuando percibe una abertura.', tactic: 'PICADO: a 2 casillas puede acercarse y atacar en la misma acción. RÁPIDO rompe su ritmo.' },
             { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'THIEF', stealGold: 20, greedRange: 6, fleeHp: 0.30, role: 'Saqueador de las profundidades', lore: 'No busca una pelea justa: escucha monedas, calcula una ruta y solo entonces enseña los dientes.', tactic: 'CODICIA: persigue oro cercano. ROBO: si te hiere puede birlar 20 oro y huir hacia una escalera. Mátalo antes de que escape para recuperarlo.' },
-            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
+            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 32, atk: 8.5, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
         ],
-        items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
-        chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, relicChance: 0.08, colors: { closed: '#DAA520', open: '#555' } },
+        items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 45, drinkRestore: 35 },
+        chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, colors: { closed: '#DAA520', open: '#555' } },
         relics: [
             { id: 'BLOOD_CHALICE', name: 'Cáliz de Sangre', color: '#ff3355', effect: 'heal', heal: 35, foodCost: 12, waterCost: 8, lore: 'Una vida prestada exige alimento y agua a cambio.' },
             { id: 'ECHO_BELL', name: 'Campana Hueca', color: '#b48cff', effect: 'stun', stunTurns: 2, lore: 'Su tañido rompe el ritmo de quienes lo escuchan.' },
-            { id: 'WARD_STONE', name: 'Piedra de Guardia', color: '#66d9ef', effect: 'guard', shieldBonus: 3, turns: 3, strikeBonus: 2, waterCost: 10, lore: 'Un juramento tallado en piedra protege a su portador.' }
+            { id: 'WARD_STONE', name: 'Piedra de Guardia', color: '#66d9ef', effect: 'guard', shieldBonus: 3, turns: 3, strikeBonus: 2, waterCost: 6, lore: 'Un juramento tallado en piedra protege a su portador.' }
         ],
         shops: {
             levels: [3, 6, 9, 12], priceMultiplier: 1.0, sellMultiplier: 0.5,
@@ -157,7 +158,8 @@ const STATE_ENUM = {
 
 const GameState = {
     current: STATE_ENUM.CONTROLS,
-    seed: 0, rng: null, level: 1, maxLevel: 1, score: 0, moves: 0,
+    seed: 0, rng: null, level: 1, maxLevel: 1, score: 0, points: 0, moves: 0,
+    floorStates: {}, loadedLevel: null, loadedSeed: null, visitedDepths: new Set([1]),
     entryMethod: 'start', deathCause: "Desconocido",
     floor: { type: 'NORMAL' },
     map: [], seen: [], visible: [], rooms: [],
@@ -270,16 +272,46 @@ const Utils = {
 
     applyVariance: (baseValue) => {
         if (!CONFIG.VARIANCE.enabled) return { value: baseValue, label: "NORMAL", color: "#fff", multiplier: 1 };
-        const rand = (Utils.random() + Utils.random()) / 2;
-        const multiplier = CONFIG.VARIANCE.min + (rand * (CONFIG.VARIANCE.max - CONFIG.VARIANCE.min));
+        const rand = Utils.random();
+        const tier = CONFIG.VARIANCE.tiers.find(t => rand < t.threshold) || CONFIG.VARIANCE.tiers[CONFIG.VARIANCE.tiers.length - 1];
+        const multiplier = tier.multiplier;
         let newValue = Math.round(baseValue * multiplier);
         if (newValue < 1) newValue = 1;
-        let tier = CONFIG.VARIANCE.tiers.find(t => multiplier <= t.threshold) || CONFIG.VARIANCE.tiers[CONFIG.VARIANCE.tiers.length - 1];
         return { value: newValue, label: tier.label, color: tier.color, multiplier: multiplier };
     }
 };
 
 // Propiedades permanentes del equipo. Las resistencias se combinan sin sumar inmunidades.
+const BalanceSystem = {
+    version: 'balance-1',
+    monsterBase: (type, depth = GameState.level) => ({
+        hp: type.id === 'TROLL' ? type.hp + depth * 2.5 : (type.hp + depth * 2) * 1.25,
+        atk: type.id === 'TROLL' ? type.atk + Math.floor(depth / 2) * 1.25 : (type.atk + Math.floor(depth / 2)) * 1.25
+    }),
+    gearPower: (type, source = 'ground', depth = GameState.level) => {
+        const tier = Math.max(0, Math.floor(depth / 3) - 1);
+        if (source === 'shop') return type === 'weapon' ? Math.round(4 + tier * 2.5) : 3 + tier * 2;
+        if (source === 'special') return type === 'weapon' ? 3 + Math.floor(depth / 3) * 3 : 1 + Math.floor(depth / 3) * 2;
+        const base = type === 'weapon' ? 2 + Math.max(0, Math.floor((depth - 1) / 2)) : 1 + Math.floor((depth - 1) / 3);
+        return base + (source === 'chest' ? 1 : 0);
+    },
+    shopPrice: (type, depth = GameState.level) => {
+        const tier = Math.max(0, Math.floor(depth / 3) - 1);
+        const prices = { weapon: [225, 350, 500, 700], armor: [200, 320, 460, 650], food: [80, 100, 120, 140], water: [90, 110, 130, 150] };
+        const list = prices[type];
+        return list ? list[Math.min(tier, 3)] + Math.max(0, tier - 3) * (type === 'weapon' || type === 'armor' ? 150 : 20) : 180 + tier * 20;
+    },
+    award: (gold, points = gold) => {
+        // `score` conserva el nombre histórico de la cartera; `points` es el ranking.
+        GameState.score += gold;
+        GameState.points = (GameState.points || 0) + points;
+    },
+    bounty: (enemy) => {
+        const gold = ({ BAT: 10, GOBLIN: 20, TROLL: 40 })[enemy.typeId] || 25;
+        BalanceSystem.award(Math.round(gold * (enemy.elite ? 1.5 : 1)), Math.round(gold * 2 * (enemy.elite ? 1.5 : 1)));
+    }
+};
+
 const EquipmentSystem = {
     slots: () => Object.keys(CONFIG.EQUIPMENT_SLOTS),
     isEquipment: (item) => Boolean(item && Object.hasOwn(CONFIG.EQUIPMENT_SLOTS, item.type)),
@@ -558,7 +590,7 @@ const FloorSystem = {
         if (MapSystem.isBlocked(x, y)) return false;
         if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
         if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
-        if (GameState.entities.chests.some(c => c.x === x && c.y === y)) return false;
+        if (GameState.entities.chests.some(c => c.x === x && c.y === y && !c.isOpen)) return false;
         return true;
     },
     thirstRate: () => {
@@ -567,13 +599,13 @@ const FloorSystem = {
         const config = CONFIG.FLOORS.MAGMA;
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().thirstResist) || 0));
         const pressure = 1 + (config.thirstMultiplier - 1) * (1 - resist);
-        return Math.max(1, Math.round(baseRate / pressure));
+        return Math.max(1, baseRate / pressure);
     },
     magmaRiskWaterCost: () => {
         if (!FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y)) return 0;
         const config = CONFIG.FLOORS.MAGMA.fumarole;
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().heatResist) || 0));
-        return Math.max(0, Math.ceil(config.waterCostPerTurn * (1 - resist)));
+        return Math.max(0, config.waterCostPerTurn * (1 - resist));
     },
     restHealing: () => {
         if (FloorSystem.is('FROZEN')) return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
@@ -661,11 +693,15 @@ const FloorSystem = {
         const positions = FloorSystem.recoveryPositions(items.length);
         items.forEach((item, index) => {
             const pos = positions[index] || { x: GameState.player.x, y: GameState.player.y };
-            const recoveryDropId = `RECOVERY_${GameState.level}_${++GameState.recoveryDropSeq}`;
-            const dropped = { ...item, x: pos.x, y: pos.y, recoveryDropId };
-            GameState.recoveryDrops[GameState.level].push({ ...dropped });
-            GameState.entities.items.push(dropped);
+            FloorSystem.storeDrop(item, pos);
         });
+    },
+    storeDrop: (item, pos) => {
+        const recoveryDropId = `RECOVERY_${GameState.level}_${++GameState.recoveryDropSeq}`;
+        const dropped = { ...item, x: pos.x, y: pos.y, recoveryDropId };
+        (GameState.recoveryDrops[GameState.level] ||= []).push({ ...dropped });
+        GameState.entities.items.push(dropped);
+        return dropped;
     },
     restoreRecoveryDrops: () => {
         const drops = GameState.recoveryDrops[GameState.level] || [];
@@ -799,7 +835,8 @@ const Network = {
                     runId,
                     responseVersion: 2,
                     name,
-                    score: GameState.score,
+                    score: GameState.points || 0,
+                    ruleset: BalanceSystem.version,
                     level: GameState.maxLevel,
                     seed: GameState.seed,
                     cause: GameState.deathCause,
@@ -830,7 +867,7 @@ const Network = {
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[ch]);
 
-        let h = '<table aria-label="Ranking de expediciones"><thead><tr><th scope="col">Nombre</th><th scope="col" class="score-number">Prof.</th><th scope="col" class="score-number">Oro</th><th scope="col">Causa</th><th scope="col">Fecha</th></tr></thead><tbody>';
+        let h = '<table aria-label="Ranking de expediciones"><thead><tr><th scope="col">Nombre</th><th scope="col" class="score-number">Prof.</th><th scope="col" class="score-number">Puntos</th><th scope="col">Causa</th><th scope="col">Fecha</th></tr></thead><tbody>';
         if (Array.isArray(data)) {
             data.forEach((e) => {
                 const name = escapeHtml(e.name || 'UNK');
@@ -853,7 +890,17 @@ const Network = {
 // 5. SISTEMA DE MAPA Y GENERACIÓN
 // ============================================================================
 const MapSystem = {
+    saveFloor: () => {
+        if (GameState.loadedLevel === null || GameState.loadedSeed !== GameState.seed) return;
+        GameState.floorStates[GameState.loadedLevel] = {
+            entities: JSON.parse(JSON.stringify(GameState.entities)),
+            seen: GameState.seen.map(row => [...row])
+        };
+    },
     initLevel: () => {
+        if (GameState.loadedSeed !== GameState.seed) { GameState.floorStates = {}; GameState.visitedDepths = new Set([1]); }
+        MapSystem.saveFloor();
+        const saved = GameState.loadedSeed === GameState.seed ? GameState.floorStates[GameState.level] : null;
         GameState.rng = Utils.mulberry32(GameState.seed + GameState.level);
         if (GameState.level > GameState.maxLevel) GameState.maxLevel = GameState.level;
         GameState.map = []; GameState.seen = []; GameState.visible = []; GameState.rooms = [];
@@ -866,6 +913,13 @@ const MapSystem = {
             GameState.map.push(new Array(CONFIG.GRID.cols).fill('#'));
         }
         MapSystem.generateDungeon(); FloorSystem.prepareRiskZone(); EntityFactory.spawnAll();
+        if (saved) {
+            GameState.entities = JSON.parse(JSON.stringify(saved.entities));
+            GameState.entities.items = GameState.entities.items.filter(item => item.recoveryDropId || item.stolenFromGoblin || !MapSystem.isTaken(item.x, item.y));
+            GameState.entities.chests.forEach(chest => { chest.isOpen ||= MapSystem.isTaken(`CHEST_${chest.x},${chest.y}`); });
+            GameState.seen = saved.seen.map(row => [...row]);
+        }
+        GameState.loadedLevel = GameState.level; GameState.loadedSeed = GameState.seed;
         FloorSystem.restoreRecoveryDrops();
         if (GameState.entryMethod === 'falling') {
             const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
@@ -874,8 +928,21 @@ const MapSystem = {
             const stairs = ['descending', 'start'].includes(GameState.entryMethod) ? GameState.stairs.up : GameState.stairs.down;
             GameState.player.x = stairs.x; GameState.player.y = stairs.y;
         }
-        GameState.player.combat = { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null };
+        // La entrada siempre queda libre, sin curar ni duplicar al enemigo desplazado.
+        GameState.entities.enemies.forEach(enemy => {
+            if (enemy.x === GameState.player.x && enemy.y === GameState.player.y) {
+                const pos = EntityFactory.getEmptyPos();
+                if (pos) { enemy.x = pos.x; enemy.y = pos.y; }
+            }
+        });
+        const cooldowns = { area: 0, ranged: 0, ...GameState.player.combat.cooldowns };
+        GameState.player.combat = { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns, pendingAttack: null };
         GameState.ui.rangedTarget = null;
+        if (!GameState.visitedDepths.has(GameState.level)) {
+            GameState.visitedDepths.add(GameState.level);
+            ProgressionSystem.gainXp(25);
+            Utils.log('Nueva profundidad: +25 XP de exploración. Esta recompensa no se repite.', '#bde78a');
+        }
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
         FloorSystem.onEnter();
@@ -980,6 +1047,21 @@ const MapSystem = {
     isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#' || FloorSystem.isHole(x, y); },
     isTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; return GameState.persistence[GameState.level].includes(key); },
     markTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; if (!GameState.persistence[GameState.level].includes(key)) GameState.persistence[GameState.level].push(key); },
+    safeObstacle: (x, y) => {
+        const blocked = new Set([...GameState.entities.shops, ...GameState.entities.chests.filter(chest => !chest.isOpen), { x, y }].map(entity => `${entity.x},${entity.y}`));
+        const start = GameState.stairs.up;
+        const seen = new Set([`${start.x},${start.y}`]), queue = [start];
+        for (let i = 0; i < queue.length; i++) {
+            for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+                const nx = queue[i].x + dx, ny = queue[i].y + dy, key = `${nx},${ny}`;
+                if (GameState.map[ny]?.[nx] !== '.' || blocked.has(key) || seen.has(key)) continue;
+                seen.add(key); queue.push({ x: nx, y: ny });
+            }
+        }
+        let floor = 0;
+        GameState.map.forEach((row, y) => row.forEach((tile, x) => { if (tile === '.' && !blocked.has(`${x},${y}`)) floor++; }));
+        return seen.size === floor;
+    },
 };
 
 // ============================================================================
@@ -994,7 +1076,7 @@ const EntityFactory = {
     },
     spawnAll: () => {
         const enemyCount = 3 + GameState.level + Math.floor(Utils.random() * 3);
-        for (let i = 0; i < enemyCount; i++) EntityFactory.spawnEnemy();
+        for (let i = 0; i < enemyCount; i++) EntityFactory.spawnEnemy(GameState.level === 5 && i === 0 ? 'TROLL' : null);
 
         const spawns = [
             { count: 8, type: 'GOLD', chance: 1.0 },
@@ -1003,7 +1085,7 @@ const EntityFactory = {
             { count: 1, type: 'FOOD', chance: CONFIG.ENTITIES.items.foodChance },
             { count: 1, type: 'WATER', chance: CONFIG.ENTITIES.items.drinkChance },
             { count: 1, type: 'WEAPON', chance: (GameState.level % 2 === 0) ? 1.0 : 0 },
-            { count: 1, type: 'ARMOR', chance: (GameState.level % 5 === 0) ? 1.0 : 0 }
+            { count: 1, type: 'ARMOR', chance: (GameState.level === 2 || GameState.level % 5 === 0) ? 1.0 : 0 }
         ];
 
         spawns.forEach(spawn => {
@@ -1014,8 +1096,8 @@ const EntityFactory = {
                 if (spawn.type === 'GOLD') EntityFactory.createItem(pos, 'GOLD', 10);
                 else if (spawn.type === 'FOOD') EntityFactory.createSmartItem(pos, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
                 else if (spawn.type === 'WATER') EntityFactory.createSmartItem(pos, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
-                else if (spawn.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', CONFIG.COMBAT.baseWeaponVal, 'Arma', '!', '#ff00ff');
-                else if (spawn.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', CONFIG.COMBAT.baseArmorVal, 'Malla', ']', '#4682b4');
+                else if (spawn.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', BalanceSystem.gearPower('weapon'), 'Arma', '!', '#ff00ff');
+                else if (spawn.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', BalanceSystem.gearPower('armor'), 'Malla', ']', '#4682b4');
             }
         });
 
@@ -1041,7 +1123,7 @@ const EntityFactory = {
         }
         // Un accesorio por planta; posición y modelo se regeneran con la misma semilla.
         const accessoryType = GameState.level % 2 ? 'boots' : 'ring';
-        const candidates = CONFIG.ACCESSORIES.filter(item => item.type === accessoryType);
+        const candidates = EntityFactory.accessoryPool(accessoryType);
         const definition = candidates[GameState.level <= 2 ? 0 : Math.floor(Utils.random() * candidates.length)];
         const accessoryPos = EntityFactory.getEmptyPos();
         if (accessoryPos && !MapSystem.isTaken(accessoryPos.x, accessoryPos.y)) {
@@ -1072,7 +1154,7 @@ const EntityFactory = {
             const candidates = [];
             for (let y = zone.y1; y <= zone.y2; y++) {
                 for (let x = zone.x1; x <= zone.x2; x++) {
-                    if (MapSystem.isBlocked(x, y) || EntityFactory.isStartEnd(x, y) || EntityFactory.isOccupied(x, y)) continue;
+                    if (MapSystem.isBlocked(x, y) || EntityFactory.isStartEnd(x, y) || EntityFactory.isOccupied(x, y) || !MapSystem.safeObstacle(x, y)) continue;
                     candidates.push({ x, y, dist: Math.abs(x - GameState.stairs.up.x) + Math.abs(y - GameState.stairs.up.y) });
                 }
             }
@@ -1136,16 +1218,26 @@ const EntityFactory = {
             });
         }
     },
-    spawnEnemy: () => {
-        let pos = EntityFactory.getEmptyPos(); if (!pos) return;
-        const possible = CONFIG.ENTITIES.enemies.filter(e => e.minLevel <= GameState.level);
-        const type = possible.length > 0 ? possible[Math.floor(Utils.random() * possible.length)] : CONFIG.ENTITIES.enemies[0];
-        let baseHp = type.hp + (GameState.level * 2); let hpVar = Utils.applyVariance(baseHp);
-        let baseAtk = type.atk + Math.floor(GameState.level/2); let atkVar = Utils.applyVariance(baseAtk);
-        let name = type.name; if (hpVar.multiplier > 1.3) name += " Alfa"; else if (hpVar.multiplier < 0.8) name += " Enclenque";
+    spawnEnemy: (forcedType = null) => {
+        let pos = null;
+        for (let i = 0; i < 50; i++) {
+            const candidate = EntityFactory.getEmptyPos();
+            if (candidate && Math.max(Math.abs(candidate.x - GameState.stairs.up.x), Math.abs(candidate.y - GameState.stairs.up.y)) >= 4) { pos = candidate; break; }
+        }
+        if (!pos) return;
+        const trollCount = GameState.entities.enemies.filter(enemy => enemy.typeId === 'TROLL').length;
+        const trollCap = Math.max(1, GameState.level - 4);
+        const possible = CONFIG.ENTITIES.enemies.filter(e => e.minLevel <= GameState.level && (e.id !== 'TROLL' || trollCount < trollCap));
+        const type = possible.find(enemy => enemy.id === forcedType) || possible[Math.floor(Utils.random() * possible.length)];
+        const elite = Utils.random() < 0.08;
+        const base = BalanceSystem.monsterBase(type);
+        const hp = Math.max(1, Math.round(base.hp * (0.85 + Utils.random() * 0.3) * (elite ? 1.25 : 1)));
+        const atk = Math.max(1, Math.round(base.atk * (0.85 + Utils.random() * 0.3) * (elite ? 1.1 : 1)));
+        const name = type.name + (elite ? ' Alfa' : '');
         GameState.entities.enemies.push({
             x: pos.x, y: pos.y,
             typeId: type.id,
+            elite,
             behavior: type.behavior,
             diveChance: Number(type.diveChance) || 0,
             stealGold: Number(type.stealGold) || 0,
@@ -1159,17 +1251,24 @@ const EntityFactory = {
             homeX: pos.x, homeY: pos.y,
             _trollPressurePrimed: false,
             name: name, symbol: type.symbol,
-            color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
-            hp: hpVar.value, maxHp: hpVar.value,
-            atk: atkVar.value, xp: type.xp, speed: type.speed,
+            color: elite ? '#ff4444' : type.color,
+            hp, maxHp: hp,
+            atk, xp: Math.round(type.xp * (elite ? 1.4 : 1)), speed: type.speed,
             energy: 0, isSleeping: Utils.random() < 0.3,
             tookDamage: false
         });
     },
     createSmartItem: (pos, type, baseVal, baseName, symbol, color) => {
         let v = Utils.applyVariance(baseVal);
-        GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, name: `${baseName} [${v.label}]`, value: v.value, qualityColor: v.color, symbol: symbol, color: color });
+        const item = { x: pos.x, y: pos.y, type, name: `${baseName} [${v.label}]`, value: v.value, qualityColor: v.color, symbol, color, foundAt: GameState.level };
+        GameState.entities.items.push(item);
+        return item;
     },
+    accessoryPool: (type) => CONFIG.ACCESSORIES.filter(item => {
+        if (item.type !== type) return false;
+        if (type !== 'boots' || item.id === 'LIGHT_BOOTS') return true;
+        return [GameState.level, GameState.level + 1, GameState.level + 2].some(level => FloorSystem.typeForLevel(level) === (item.id === 'ASH_BOOTS' ? 'MAGMA' : 'UNSTABLE'));
+    }),
     createAccessoryItem: (definition, pos = {}) => ({
         ...pos, type: definition.type, gearId: definition.id, name: definition.name,
         value: 0, symbol: definition.symbol, color: definition.color,
@@ -1206,7 +1305,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isBlocked(x, y) && !MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y) && MapSystem.safeObstacle(x, y)) return { x, y };
         }
         return null;
     },
@@ -1217,7 +1316,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y) && MapSystem.safeObstacle(x, y)) return { x, y };
         }
         return null;
     },
@@ -1340,11 +1439,13 @@ const GameLogic = {
         Utils.resetLog();
 
         GameState.seed = seedInput !== null ? seedInput : Math.floor(Math.random() * 999999);
-        GameState.level = 1; GameState.score = 0; GameState.moves = 0; GameState.maxLevel = 1;
+        GameState.level = 1; GameState.score = 0; GameState.points = 0; GameState.moves = 0; GameState.maxLevel = 1;
+        GameState.floorStates = {}; GameState.loadedLevel = null; GameState.loadedSeed = null;
         const pConf = CONFIG.PLAYER;
         GameState.player = {
             ...GameState.player, hp: pConf.startHP, maxHp: pConf.startHP, food: pConf.startFood, water: pConf.startWater,
             level: 1, xp: 0, nextXp: pConf.leveling.baseXp, baseAtk: pConf.baseAtk, inventory: [],
+            survival: { waterDebt: 0, heatDebt: 0 },
             talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
             equipment: { weapon: null, armor: null, boots: null, ring: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
             combat: { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null }
@@ -1394,7 +1495,7 @@ const GameLogic = {
         if (MapSystem.isBlocked(nx, ny)) return false;
         if (GameState.entities.shops.some(s => s.x === nx && s.y === ny)) { ShopSystem.open(); return false; }
 
-        const chest = GameState.entities.chests.find(c => c.x === nx && c.y === ny);
+        const chest = GameState.entities.chests.find(c => c.x === nx && c.y === ny && !c.isOpen);
         if (chest) {
             if (!chest.isOpen) Utils.log('Cofre cerrado. Presiona ESPACIO.', CONFIG.ENTITIES.chests.colors.closed);
             else Utils.log('Cofre vacío.', '#777');
@@ -1492,7 +1593,7 @@ const GameLogic = {
             if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
 
             if (item.type === 'GOLD') {
-                GameState.score += item.value;
+                BalanceSystem.award(item.value, item.pointValue ?? item.value);
                 VisualFX.floatText(x, y, `+$${item.value}`, '#ffd700');
                 Utils.log(`Recoges ${item.value} de oro.`, '#ffd700');
                 GameState.entities.items.splice(i, 1);
@@ -1507,10 +1608,10 @@ const GameLogic = {
             if (enemy._rogueQuickStaggerPending) {
                 enemy.energy = (enemy.energy || 0) - 1;
                 enemy._rogueQuickStaggerPending = false;
-                enemy._rogueQuickStaggerImmune = true;
-            } else if (enemy._rogueQuickStaggerImmune) {
-                enemy._rogueQuickStaggerImmune = false;
+                enemy._rogueQuickStaggerCooldown = Math.max(3, enemy._rogueQuickStaggerCooldown || 0);
             }
+            if (enemy._rogueQuickStaggerCooldown > 0) enemy._rogueQuickStaggerCooldown--;
+            enemy._rogueQuickStaggerImmune = enemy._rogueQuickStaggerCooldown > 0;
         });
 
         GameState.entities.enemies.forEach(e => {
@@ -1698,6 +1799,7 @@ const GameLogic = {
 
         GameState.score -= amount;
         e.stolenGold = (e.stolenGold || 0) + amount;
+        e.stolenFromPlayer = (e.stolenFromPlayer || 0) + amount;
         Utils.log(`¡${e.name} te roba ${amount} oro! Va hacia una escalera.`, '#7fff00');
         VisualFX.floatText(GameState.player.x, GameState.player.y, `-$${amount}`, '#7fff00', 'incoming');
         UISystem.updateHUD();
@@ -1737,7 +1839,8 @@ const GameLogic = {
         e.stolenGold = 0;
         GameState.entities.items.push({
             x: e.x, y: e.y, type: 'GOLD', value: amount,
-            name: 'Bolsa de oro robado', symbol: '$', color: '#ffd700', stolenFromGoblin: true
+            name: 'Bolsa de oro robado', symbol: '$', color: '#ffd700', stolenFromGoblin: true,
+            pointValue: Math.max(0, amount - (e.stolenFromPlayer || 0))
         });
         Utils.log(`El Goblin deja caer una bolsa con ${amount} oro.`, '#ffd700');
         return amount;
@@ -1801,7 +1904,7 @@ const GameLogic = {
         if (x === GameState.player.x && y === GameState.player.y) return false;
         if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
         if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
-        if (GameState.entities.chests.some(c => c.x === x && c.y === y)) return false;
+        if (GameState.entities.chests.some(c => c.x === x && c.y === y && !c.isOpen)) return false;
         return true;
     },
     processSurvival: () => {
@@ -1810,12 +1913,16 @@ const GameLogic = {
         const s = CONFIG.PLAYER.survival;
         GameState.moves++;
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
-        const thirstRate = FloorSystem.thirstRate();
-        if (GameState.moves % thirstRate === 0) GameState.player.water--;
-        const magmaRiskCost = FloorSystem.magmaRiskWaterCost();
-        if (magmaRiskCost > 0) {
-            GameState.player.water -= magmaRiskCost;
-            VisualFX.floatText(GameState.player.x, GameState.player.y, `-${magmaRiskCost} AGUA`, '#57d7ff', 'incoming');
+        const debt = GameState.player.survival ||= { waterDebt: 0, heatDebt: 0 };
+        debt.waterDebt += 1 / FloorSystem.thirstRate();
+        const waterCost = Math.floor(debt.waterDebt + 1e-9);
+        GameState.player.water -= waterCost; debt.waterDebt -= waterCost;
+        debt.heatDebt += FloorSystem.magmaRiskWaterCost();
+        const heatCost = Math.floor(debt.heatDebt + 1e-9);
+        debt.heatDebt -= heatCost;
+        if (heatCost > 0) {
+            GameState.player.water -= heatCost;
+            VisualFX.floatText(GameState.player.x, GameState.player.y, `-${heatCost} AGUA`, '#57d7ff', 'incoming');
         }
 
         if (GameState.player.food <= 0) {
@@ -1837,10 +1944,10 @@ const GameLogic = {
         }
     },
     interactAction: () => {
-        const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+        const dirs = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
         for(let d of dirs) {
             let tx = GameState.player.x + d[0], ty = GameState.player.y + d[1];
-            let chestIdx = GameState.entities.chests.findIndex(c => c.x === tx && c.y === ty && !c.isOpen);
+            let chestIdx = GameState.entities.chests.findIndex(c => c.x === tx && c.y === ty && (!c.isOpen || (c.rewardOptions && !c.rewardClaimed)));
             if (chestIdx !== -1) {
                 const turnConsumed = GameLogic.openChest(chestIdx);
                 if (turnConsumed !== false) GameLogic.endTurn(true);
@@ -1870,126 +1977,93 @@ const GameLogic = {
     },
     openChest: (idx) => {
         const chest = GameState.entities.chests[idx];
-        if (!chest || chest.isOpen) return;
-
-        chest.isOpen = true;
-        MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
-
-        if (chest.specialId === 'FROZEN_VAULT_CHEST') {
-            const vault = CONFIG.FLOORS.FROZEN.vault;
-            const weaponReward = Utils.random() < 0.5;
-            if (weaponReward) {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + vault.rewardBonus, 'Arma de escarcha', '!', '#8df3ff');
-            } else {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + vault.rewardBonus, 'Malla de escarcha', ']', '#8df3ff');
+        if (!chest || (chest.isOpen && (!chest.rewardOptions || chest.rewardClaimed))) return;
+        if (!chest.isOpen) {
+            chest.isOpen = true;
+            MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
+            if (!chest.specialId && Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
+                chest.rewardClaimed = true;
+                Utils.log('¡TRAMPA! El cofre explota.', '#f00');
+                GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
+                GameState.entities.enemies.forEach(enemy => { enemy.isSleeping = false; });
+                if (GameState.player.hp <= 0) GameLogic.die('Cofre Trampa');
+                return;
             }
-            const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de escarcha se abre sin trampa. Dentro hay equipo excepcional.', vault.chestColor);
-            InventorySystem.pickup(reward, -1, -1, -1, true);
-            return;
+            chest.rewardOptions = chest.specialId ? GameLogic.buildSpecialRewards(chest) : GameLogic.buildChestRewardOptions();
         }
-
-        if (chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
-            const fumarole = CONFIG.FLOORS.MAGMA.fumarole;
-            const weaponReward = Utils.random() < 0.5;
-            if (weaponReward) {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + fumarole.rewardBonus, 'Arma de obsidiana', '!', fumarole.chestColor);
-            } else {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + fumarole.rewardBonus, 'Malla volcánica', ']', fumarole.chestColor);
-            }
-            const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de brasa cede al calor. Dentro hay equipo excepcional.', fumarole.chestColor);
-            InventorySystem.pickup(reward, -1, -1, -1, true);
-            return;
-        }
-
-        if (chest.specialId === 'UNSTABLE_RIFT_CHEST') {
-            const rift = CONFIG.FLOORS.UNSTABLE.rift;
-            const weaponReward = Utils.random() < 0.5;
-            if (weaponReward) {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + rift.rewardBonus, 'Hoja de falla', '!', rift.chestColor);
-            } else {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + rift.rewardBonus, 'Malla tectónica', ']', rift.chestColor);
-            }
-            const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de falla se abre. El pasaje aguantará la retirada, pero quedará al límite.', rift.chestColor);
-            InventorySystem.pickup(reward, -1, -1, -1, true);
-            return;
-        }
-
-        if (Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
-            Utils.log('¡TRAMPA! El cofre explota.', '#f00');
-            GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
-            GameState.entities.enemies.forEach(e => { if (e.isSleeping) e.isSleeping = false; });
-            if (GameState.player.hp <= 0) GameLogic.die('Cofre Trampa');
-            return;
-        }
-
-        Utils.log('Abres el cofre...', CONFIG.ENTITIES.chests.colors.closed);
-        GameState.ui.rewardChoice = { options: GameLogic.buildChestRewardOptions(), index: 0 };
-        Utils.log('El cofre ofrece dos recompensas. Elige una.', CONFIG.ENTITIES.chests.colors.closed);
+        GameState.ui.rewardChoice = { options: chest.rewardOptions, index: 0, chest: { x: chest.x, y: chest.y } };
+        Utils.log(chest.specialId ? 'Equipo especial: elige arma o armadura. Los valores mostrados son definitivos.' : 'El cofre ofrece dos recompensas. Elige una.', '#DAA520');
         StateController.change(STATE_ENUM.REWARD_CHOICE);
         return false;
     },
+    rewardOption: (item) => ({
+        kind: item.type, name: item.name, color: item.qualityColor || item.color, item,
+        gearId: item.gearId, relicId: item.relicId,
+        detail: EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item)
+            : item.type === 'relic' ? InventorySystem.relicPreview(item).effect + ' · un uso'
+            : `+${item.value} ${item.type === 'food' ? 'comida' : 'agua'}`
+    }),
+    rollReward: (type, source = 'chest', name = null, color = null) => {
+        const base = EquipmentSystem.slots().includes(type) ? BalanceSystem.gearPower(type, source) : type === 'food' ? 60 : 50;
+        EntityFactory.createSmartItem({ x: 0, y: 0 }, type, base, name || ({ weapon: 'Arma', armor: 'Malla', food: 'Ración reforzada', water: 'Cantimplora llena' })[type], ({ weapon: '!', armor: ']', food: '%', water: '~' })[type], color || ({ weapon: '#ff00ff', armor: '#4682b4', food: '#ffaa00', water: '#00ffff' })[type]);
+        return GameState.entities.items.pop();
+    },
+    buildSpecialRewards: (chest) => {
+        const names = {
+            FROZEN_VAULT_CHEST: ['Arma de escarcha', 'Malla de escarcha', '#8df3ff'],
+            MAGMA_FUMAROLE_CHEST: ['Arma de obsidiana', 'Malla volcánica', '#ff5a2b'],
+            UNSTABLE_RIFT_CHEST: ['Hoja de falla', 'Malla tectónica', '#ffd27a']
+        }[chest.specialId];
+        return ['weapon', 'armor'].map((type, i) => GameLogic.rewardOption(GameLogic.rollReward(type, 'special', names[i], names[2])));
+    },
     buildChestRewardOptions: () => {
-        const options = [
-            { kind: 'food', name: 'Ración reforzada', detail: `+${CONFIG.ENTITIES.items.foodRestore + 10} comida`, color: '#ffaa00' },
-            { kind: 'water', name: 'Cantimplora llena', detail: `+${CONFIG.ENTITIES.items.drinkRestore + 10} agua`, color: '#00ffff' },
-            { kind: 'weapon', name: 'Arma rara', detail: `ATK +${CONFIG.COMBAT.baseWeaponVal + GameState.level}`, color: '#ff00ff' },
-            { kind: 'armor', name: 'Malla rara', detail: `DEF +${CONFIG.COMBAT.baseArmorVal + GameState.level}`, color: '#4682b4' },
-            { kind: 'relic', name: 'Reliquia de un uso', detail: 'Consulta efecto y coste en la mochila antes de invocarla', color: '#b48cff' },
-            { kind: 'gold', name: 'Bolsa de oro', detail: '+75 oro', color: '#ffd700' }
-        ];
+        const options = ['food', 'water', 'weapon', 'armor'].map(type => GameLogic.rewardOption(GameLogic.rollReward(type)));
+        const relics = CONFIG.ENTITIES.relics;
+        const definition = relics[Math.floor(Utils.random() * relics.length)];
+        EntityFactory.createRelicItem({ x: 0, y: 0 }, definition.id);
+        options.push(GameLogic.rewardOption(GameState.entities.items.pop()));
+        const gold = 50 + GameState.level * 10;
+        options.push({ kind: 'gold', name: 'Bolsa de oro', value: gold, detail: `+${gold} oro · no ocupa mochila`, color: '#ffd700' });
         for (const type of ['boots', 'ring']) {
-            const candidates = CONFIG.ACCESSORIES.filter(item => item.type === type);
-            const definition = candidates[Math.floor(Utils.random() * candidates.length)];
-            options.push({ kind: type, gearId: definition.id, name: definition.name, detail: UISystem.traitSummary(definition), color: definition.color });
+            const pool = EntityFactory.accessoryPool(type);
+            options.push(GameLogic.rewardOption(EntityFactory.createAccessoryItem(pool[Math.floor(Utils.random() * pool.length)])));
         }
-        const relic = CONFIG.ENTITIES.relics[Math.floor(Utils.random() * CONFIG.ENTITIES.relics.length)];
-        const relicOption = options.find(option => option.kind === 'relic');
-        Object.assign(relicOption, { relicId: relic.id, name: relic.name, detail: InventorySystem.relicPreview({ relicId: relic.id }).effect + ' · un uso', color: relic.color });
-        const firstIndex = Math.min(options.length - 1, Math.floor(Utils.random() * options.length));
-        const secondOffset = 1 + Math.floor(Utils.random() * (options.length - 1));
-        const first = options[firstIndex];
-        const second = options[(firstIndex + secondOffset) % options.length];
-        return [first, second];
+        const first = Math.min(options.length - 1, Math.floor(Utils.random() * options.length));
+        const offset = 1 + Math.floor(Utils.random() * (options.length - 1));
+        return [options[first], options[(first + offset) % options.length]];
     },
     chooseChestReward: (index) => {
-        const choice = GameState.ui.rewardChoice;
-        const reward = choice.options[index];
+        const choice = GameState.ui.rewardChoice, reward = choice.options[index];
         if (!reward) return;
-
+        const chest = choice.chest && GameState.entities.chests.find(chest => chest.x === choice.chest.x && chest.y === choice.chest.y);
+        if (chest?.rewardClaimed) return;
         if (reward.kind === 'gold') {
-            GameState.score += 75;
-            Utils.log('Eliges la bolsa y recoges 75 de oro.', reward.color);
-        } else if (reward.kind === 'relic') {
-            EntityFactory.createRelicItem({ x: 0, y: 0 }, reward.relicId);
-            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
-        } else if (reward.kind === 'boots' || reward.kind === 'ring') {
-            const definition = CONFIG.ACCESSORIES.find(item => item.id === reward.gearId);
-            if (!definition) return;
-            InventorySystem.pickup(EntityFactory.createAccessoryItem(definition), -1, -1, -1, true);
-        } else if (reward.kind === 'food') {
-            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore + 10, 'Ración reforzada', '%', reward.color);
-            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
-        } else if (reward.kind === 'water') {
-            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore + 10, 'Cantimplora llena', '~', reward.color);
-            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
-        } else if (reward.kind === 'weapon') {
-            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', reward.color);
-            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
-        } else if (reward.kind === 'armor') {
-            EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', reward.color);
-            InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
+            const amount = reward.value || 50 + GameState.level * 10;
+            BalanceSystem.award(amount);
+            Utils.log(`Recoges ${amount} de oro.`, '#ffd700');
+        } else {
+            let item = reward.item;
+            if (!item && reward.kind === 'relic') { EntityFactory.createRelicItem({ x: 0, y: 0 }, reward.relicId); item = GameState.entities.items.pop(); }
+            if (!item && ['boots', 'ring'].includes(reward.kind)) {
+                const definition = CONFIG.ACCESSORIES.find(item => item.id === reward.gearId);
+                if (definition) item = EntityFactory.createAccessoryItem(definition);
+            }
+            if (!item && ['weapon', 'armor', 'food', 'water'].includes(reward.kind)) item = GameLogic.rollReward(reward.kind);
+            if (!item) return;
+            if (GameState.player.inventory.length < CONFIG.PLAYER.inventorySize) InventorySystem.pickup(item, -1, -1, -1, true);
+            else {
+                FloorSystem.storeDrop(item, chest || GameState.player);
+                Utils.log(`Mochila llena: ${item.name} queda en el suelo, sin perderse.`, '#d7a56d');
+            }
         }
-
+        if (chest) { chest.rewardClaimed = true; chest.rewardOptions = null; }
         GameState.ui.rewardChoice = { options: [], index: 0 };
         StateController.change(STATE_ENUM.PLAYING);
         GameLogic.endTurn(true);
     },
     cancelChestReward: () => {
         GameState.ui.rewardChoice = { options: [], index: 0 };
-        Utils.log('Dejas atrás las recompensas del cofre.', '#888');
+        Utils.log('Las recompensas siguen en el cofre. Vuelve con Espacio para elegir.', '#888');
         StateController.change(STATE_ENUM.PLAYING);
         GameLogic.endTurn(true);
     },
@@ -2017,7 +2091,7 @@ const GameLogic = {
             }
         }
 
-        GameState.deathCause = 'Vio la luz'; GameState.score += (GameState.maxLevel * 100);
+        GameState.deathCause = 'Vio la luz'; GameState.points = (GameState.points || 0) + GameState.maxLevel * 100;
         StateController.change(STATE_ENUM.GAMEOVER); DOM.menus.gameOver.classList.add('hidden'); DOM.menus.victory.classList.remove('hidden');
         UISystem.fillEndGameStats('win');
         Network.fetchScores('victory-leaderboard');
@@ -2050,7 +2124,7 @@ const CombatSystem = {
     },
 
     projectileBlocked: (x, y) => GameState.map[y]?.[x] === undefined || GameState.map[y][x] === '#'
-        || GameState.entities.chests.some(chest => chest.x === x && chest.y === y)
+        || GameState.entities.chests.some(chest => chest.x === x && chest.y === y && !chest.isOpen)
         || GameState.entities.shops.some(shop => shop.x === x && shop.y === y),
 
     projectilePathTo: (tx, ty) => {
@@ -2143,17 +2217,7 @@ const CombatSystem = {
         }
 
         // [FIX] Guardamos la referencia porque si muere, el índice cambia
-        let targetEnemy = GameState.entities.enemies[enemyIdx];
-
         CombatSystem.applyDamage(enemyIdx, type, bonusDmg + CombatSystem.consumeWardStrike());
-        
-        if (type === 'savage') {
-             // Usamos la referencia guardada para verificar vida
-             if (targetEnemy && targetEnemy.hp > 0) {
-                 Utils.log(targetEnemy.relicStun > 0 ? 'El aturdimiento impide el contraataque.' : '¡El ataque salvaje provoca un contraataque!', '#fa0');
-                 CombatSystem.enemyAttack(targetEnemy);
-             }
-        }
         
         GameLogic.endTurn(true);
     },
@@ -2173,7 +2237,7 @@ const CombatSystem = {
         let conf = CONFIG.COMBAT[type];
         let baseDmg = (type === 'ranged' ? ProgressionSystem.rangedDamage() : EquipmentSystem.stats().attack) + bonus;
 
-        baseDmg = Math.floor(baseDmg * conf.dmgMult);
+        baseDmg = Math.round(baseDmg * conf.dmgMult);
 
         let vari = conf.var || CONFIG.COMBAT.variability;
         let varianceMult = 1.0 + (Utils.random() * (vari * 2) - vari);
@@ -2196,7 +2260,7 @@ const CombatSystem = {
         Utils.log(`${type === 'ranged' ? 'Dardo contra' : 'Golpeas a'} ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
 
         if (e.hp <= 0) {
-            CombatSystem.gainXp(e.xp); GameState.score += 25;
+            CombatSystem.gainXp(e.xp); BalanceSystem.bounty(e);
             if (!GameState.player.stats.kills[e.name]) GameState.player.stats.kills[e.name] = 0; GameState.player.stats.kills[e.name]++;
 
             GameLogic.dropGoblinLoot(e);
@@ -2209,17 +2273,19 @@ const CombatSystem = {
         const enemySurvives = e.hp > 0 && GameState.entities.enemies.includes(e);
         if (type === 'quick' && enemySurvives && !e._rogueQuickStaggerImmune) {
             e._rogueQuickStaggerPending = true;
+            e._rogueQuickStaggerCooldown = 3;
             Utils.log(`${e.name} queda descolocado.`, '#00ffff');
         }
-        if (type === 'savage' && enemySurvives) {
-            e._rogueSavageCounterPending = true;
+        if (type === 'savage' && enemySurvives && !(e.relicStun > 0)) {
+            e.energy = (e.energy || 0) + CONFIG.COMBAT.savage.initiativeCost;
+            Utils.log('Quedas expuesto: el objetivo gana iniciativa, conservando su comportamiento.', '#fa0');
         }
     },
 
     performDefend: () => {
         GameState.player.combat.isDefending = true;
         GameState.player.combat.waitBonus = 0;
-        Utils.log("Posición defensiva (+50% Def).", "#4682b4");
+        Utils.log('Posición defensiva: (defensa + 2) × 1,5 durante esta respuesta.', '#4682b4');
         GameLogic.endTurn(true);
     },
 
@@ -2274,7 +2340,8 @@ const CombatSystem = {
     bumpAttack: (enemy) => {
         if (!enemy) return;
 
-        let baseDmg = EquipmentSystem.stats().attack + CombatSystem.consumeWardStrike();
+        let baseDmg = EquipmentSystem.stats().attack + CombatSystem.consumeWardStrike() + (GameState.player.combat.waitBonus || 0);
+        GameState.player.combat.waitBonus = 0;
 
         // Bump es decente pero no tan fuerte como un ataque especial
         let finalDmg = Math.max(1, Math.round(baseDmg * 0.9 + Utils.random() * 2));
@@ -2292,7 +2359,7 @@ const CombatSystem = {
 
         if (enemy.hp <= 0) {
             CombatSystem.gainXp(enemy.xp);
-            GameState.score += 25;
+            BalanceSystem.bounty(enemy);
             if (!GameState.player.stats.kills[enemy.name]) GameState.player.stats.kills[enemy.name] = 0;
             GameState.player.stats.kills[enemy.name]++;
 
@@ -2306,18 +2373,18 @@ const CombatSystem = {
 
     enemyAttack: (e) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
-        if (e.relicStun > 0) { e._rogueSavageCounterPending = false; return; }
-        const isSavageCounter = Boolean(e && e._rogueSavageCounterPending);
+        if (e.relicStun > 0) return;
 
         let armorVal = EquipmentSystem.stats().defense + (GameState.player.combat.wardTurns > 0 ? GameState.player.combat.wardDefense || 0 : 0);
         if (GameState.player.combat.isDefending) {
             armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult);
         }
 
-        let dmg = Math.max(0, e.atk - armorVal);
+        const cap = GameState.player.combat.isDefending ? CONFIG.COMBAT.defendMitigation : CONFIG.COMBAT.maxMitigation;
+        let dmg = Math.max(e.atk * (1 - cap), e.atk - armorVal);
         let variance = 1.0 + (Utils.random() * 0.2 - 0.1);
         dmg = Math.round(dmg * variance);
-        if (dmg < 0) dmg = 0;
+        if (e.atk > 0) dmg = Math.max(Math.ceil(e.atk * (1 - cap)), dmg);
 
         let enemyCritChance = GameState.player.combat.isDefending ? 0.0 : 0.05;
         if (Utils.random() < enemyCritChance) {
@@ -2337,10 +2404,6 @@ const CombatSystem = {
         if (dmg > 0 && GameState.player.hp > 0) GameLogic.goblinStealGold(e);
         if (GameState.player.hp <= 0) GameLogic.die(e.name);
 
-        if (isSavageCounter && e) {
-            e._rogueSavageCounterPending = false;
-            e.energy = (e.energy || 0) - 1;
-        }
     },
 
     gainXp: (amount) => ProgressionSystem.gainXp(amount)
@@ -2463,6 +2526,9 @@ const InventorySystem = {
     useItem: (idx) => {
         let item = GameState.player.inventory[idx]; let consumed = false;
         if (!item) return;
+        if (['food', 'water'].includes(item.type) && GameState.player[item.type] >= 100) {
+            Utils.log(`Ya tienes toda la reserva de ${item.type === 'food' ? 'comida' : 'agua'}. No se consume.`, '#d7a56d'); return;
+        }
         if (item.type === 'food') { GameState.player.food = Math.min(GameState.player.food + item.value, 100); Utils.log(`Comes ${item.name}`, "#fa0"); consumed = true; }
         else if (item.type === 'water') { GameState.player.water = Math.min(GameState.player.water + item.value, 100); Utils.log(`Bebes ${item.name}`, "#0ff"); consumed = true; }
         else if (EquipmentSystem.isEquipment(item)) {
@@ -2487,7 +2553,7 @@ const InventorySystem = {
         if (!item) return;
 
         Utils.log(`Tiras ${item.name}`, '#888');
-        GameState.entities.items.push({ ...item, x: GameState.player.x, y: GameState.player.y });
+        FloorSystem.storeDrop(item, GameState.player);
         GameState.player.inventory.splice(idx, 1);
         InventorySystem.closeActionMenu();
         Renderer.draw();
@@ -2515,25 +2581,20 @@ const InventorySystem = {
 const ShopSystem = {
     stockKey: () => String(GameState.level),
     createStock: () => {
-        const tier = (GameState.level / 3) - 1;
-        const priceMult = CONFIG.ENTITIES.shops.priceMultiplier * Math.pow(4, tier);
-        const powerMult = Math.pow(2, tier);
-        const stock = CONFIG.ENTITIES.shops.inventory.map(baseItem => {
-            const variance = Utils.applyVariance(baseItem.value);
-            const finalVal = Math.floor(variance.value * powerMult);
-            const finalPrice = Math.floor(baseItem.price * priceMult * variance.multiplier);
+        const stock = CONFIG.ENTITIES.shops.inventory.map(base => {
+            const gear = ['weapon', 'armor'].includes(base.type);
+            const variance = gear ? Utils.applyVariance(BalanceSystem.gearPower(base.type, 'shop')) : { value: 60, multiplier: 1, label: 'NORMAL', color: base.color };
             return {
-                ...baseItem,
-                name: `${baseItem.name} [${variance.label}]${tier > 0 ? ' +'+Math.ceil(tier) : ''}`,
-                value: finalVal,
-                price: finalPrice,
-                qualityColor: variance.color
+                ...base, name: gear ? `${base.name} [${variance.label}]` : base.name,
+                value: variance.value, price: Math.round(BalanceSystem.shopPrice(base.type) * variance.multiplier),
+                qualityColor: variance.color, foundAt: GameState.level
             };
         });
         for (const type of ['boots', 'ring']) {
-            const candidates = CONFIG.ACCESSORIES.filter(item => item.type === type);
-            const definition = candidates[Math.floor(Utils.random() * candidates.length)];
-            stock.push({ ...EntityFactory.createAccessoryItem(definition), icon: definition.symbol, price: Math.floor(definition.price * priceMult) });
+            const pool = EntityFactory.accessoryPool(type);
+            const definition = pool[Math.floor(Utils.random() * pool.length)];
+            const tier = Math.max(0, Math.floor(GameState.level / 3) - 1);
+            stock.push({ ...EntityFactory.createAccessoryItem(definition), icon: definition.symbol, price: definition.price + tier * 20, foundAt: GameState.level });
         }
         return stock;
     },
@@ -2556,7 +2617,9 @@ const ShopSystem = {
         const base = ShopSystem.baseDefinitionFor(item);
         if (!base) return 0;
         const value = Math.max(1, Number(item.value) || 1);
-        return Math.max(1, Math.round(base.price * (value / base.value)));
+        const depth = item.foundAt || GameState.level;
+        const power = ['weapon', 'armor'].includes(item.type) ? BalanceSystem.gearPower(item.type, 'shop', depth) : 60;
+        return Math.max(1, Math.round(BalanceSystem.shopPrice(item.type, depth) * value / power));
     },
     sellPrice: (item) => {
         const estimated = ShopSystem.estimateValue(item);
@@ -2618,7 +2681,8 @@ const ShopSystem = {
             qualityColor: item.qualityColor,
             gearId: item.gearId,
             traits: item.traits ? { ...item.traits } : undefined,
-            buyPrice: item.price
+            buyPrice: item.price,
+            foundAt: item.foundAt || GameState.level
         });
         const discovery = Renderer.itemDiscovery(item);
         if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
@@ -2697,18 +2761,19 @@ const Renderer = {
                         if (shop) { char = "S"; color = "color:#ffd700; font-weight:bold"; }
                         else {
                             let chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
-                            if (chest) {
+                            if (chest && (!chest.isOpen || chest.rewardOptions || !GameState.entities.items.some(item => item.x === x && item.y === y))) {
                                 const frozenVaultChest = chest.specialId === 'FROZEN_VAULT_CHEST';
                                 const magmaFumaroleChest = chest.specialId === 'MAGMA_FUMAROLE_CHEST';
                                 const unstableRiftChest = chest.specialId === 'UNSTABLE_RIFT_CHEST';
                                 const specialRiskChest = frozenVaultChest || magmaFumaroleChest || unstableRiftChest;
-                                char = chest.isOpen ? "_" : (specialRiskChest ? "*" : "=");
+                                const pending = chest.rewardOptions && !chest.rewardClaimed;
+                                char = pending ? '?' : chest.isOpen ? '_' : (specialRiskChest ? '*' : '=');
                                 const closedColor = frozenVaultChest
                                     ? CONFIG.FLOORS.FROZEN.vault.chestColor
                                     : (magmaFumaroleChest
                                         ? CONFIG.FLOORS.MAGMA.fumarole.chestColor
                                         : (unstableRiftChest ? CONFIG.FLOORS.UNSTABLE.rift.chestColor : CONFIG.ENTITIES.chests.colors.closed));
-                                color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
+                                color = `color:${chest.isOpen && !pending ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
                             }
                             else {
                                 let item = GameState.entities.items.find(i => i.x === x && i.y === y);
@@ -3125,10 +3190,10 @@ const UISystem = {
         if (FloorSystem.is('MAGMA')) {
             const inFumarole = FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y);
             if (inFumarole) {
-                parts.push(`<span style="color:#ff6b35">MAGMA · FUMAROLA · -${FloorSystem.magmaRiskWaterCost()} AGUA/T</span>`);
+                parts.push(`<span style="color:#ff6b35">MAGMA · FUMAROLA · -${Number(FloorSystem.magmaRiskWaterCost().toFixed(2))} AGUA/T</span>`);
             } else {
                 const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
-                parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+                parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×1,5'}</span>`);
             }
         }
         if (FloorSystem.is('UNSTABLE')) {
@@ -3206,7 +3271,7 @@ const UISystem = {
             const changes = [['attack', 'Ataque'], ['defense', 'Defensa'], ['speedMultiplier', 'Iniciativa'], ['rangedDamage', 'Dardo']].filter(([key]) => before[key] !== after[key] && (key !== 'rangedDamage' || ProgressionSystem.rank('ranged'))).map(([key, label]) => key === 'speedMultiplier' ? `${label}: ${Math.round(before[key]*100)}% → ${Math.round(after[key]*100)}%` : `${label}: ${before[key]} → ${after[key]}`);
             lines.push(changes.join(' · ') || 'No cambia tus cifras de combate. Consulta sus protecciones especiales.');
             lines.push('Equipar consume un turno. Su efecto es pasivo mientras lo llevas puesto.');
-        } else lines.push(`Recupera hasta ${item.value} ${item.type === 'food' ? 'comida' : 'agua'}. Se consume al usarlo y pasa un turno.`);
+        } else lines.push(`Recupera hasta ${item.value} ${item.type === 'food' ? 'comida' : 'agua'} (ahora: ${Math.max(0, Math.min(item.value, 100 - GameState.player[item.type]))}). Se consume al usarlo y pasa un turno.`);
         for (const line of lines) {
             const p = document.createElement('p'); p.textContent = line; panel.appendChild(p);
         }
@@ -3218,9 +3283,10 @@ const UISystem = {
         list.innerHTML = "";
         let actions = [];
         const preview = item.type === 'relic' ? InventorySystem.relicPreview(item) : null;
+        const resourceFull = ['food', 'water'].includes(item.type) && GameState.player[item.type] >= 100;
         const description = document.getElementById('action-description');
-        description.textContent = preview ? `${preview.effect}. Coste: ${preview.cost}. ${preview.duration}. ${preview.reason || preview.advice}` : EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : `Recupera ${item.value}. Un uso · un turno.`;
-        if (['food', 'water', 'relic'].includes(item.type) || EquipmentSystem.isEquipment(item)) actions.push({label: preview ? 'Invocar · consumir reliquia' : EquipmentSystem.isEquipment(item) ? 'Equipar' : 'Consumir', code: 'USE', disabled: preview ? !preview.canUse : false});
+        description.textContent = preview ? `${preview.effect}. Coste: ${preview.cost}. ${preview.duration}. ${preview.reason || preview.advice}` : EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : `Recupera hasta ${item.value}; ahora recuperarías ${Math.max(0, Math.min(item.value, 100 - GameState.player[item.type]))}. Un uso · un turno.${resourceFull ? ' Reserva llena: no se consume.' : ''}`;
+        if (['food', 'water', 'relic'].includes(item.type) || EquipmentSystem.isEquipment(item)) actions.push({label: preview ? 'Invocar · consumir reliquia' : EquipmentSystem.isEquipment(item) ? 'Equipar' : 'Consumir', code: 'USE', disabled: preview ? !preview.canUse : resourceFull});
         actions.push({label: "Tirar", code: "DROP"});
         actions.push({label: 'Volver · Esc', code: 'CANCEL'});
         GameState.ui.currentActions = actions;
@@ -3243,8 +3309,9 @@ const UISystem = {
         Network.setSaveButtons(Boolean(GameState.ui.testMode), GameState.ui.testMode ? 'Modo de pruebas' : 'Guardar puntuación');
         if (id === 'death') document.getElementById('death-cause').textContent = GameState.deathCause;
         else document.getElementById('win-level').textContent = GameState.maxLevel;
-        if(prefix === 'death') { document.getElementById('final-score').innerText = GameState.score; document.getElementById('final-level').innerText = GameState.maxLevel; } 
-        else { document.getElementById('victory-score').innerText = GameState.score; }
+        document.getElementById(`${id}-gold`).textContent = `${GameState.score} oro restante · comprar o vender no cambia los puntos`;
+        if(prefix === 'death') { document.getElementById('final-score').innerText = GameState.points || 0; document.getElementById('final-level').innerText = GameState.maxLevel; }
+        else { document.getElementById('victory-score').innerText = GameState.points || 0; }
     }
 };
 
@@ -3491,7 +3558,7 @@ document.addEventListener('keydown', (e) => {
             else if (key === 'enter' || key === ' ') InventorySystem.openActionMenu();
             else {
                 let idx = GameState.ui.inventoryIndex;
-                if (['d','arrowright'].includes(key) && idx % 3 < 2) idx++;
+                if (['d','arrowright'].includes(key) && idx % 3 < 2 && idx + 1 < CONFIG.PLAYER.inventorySize) idx++;
                 else if (['a','arrowleft'].includes(key) && idx % 3 > 0) idx--;
                 else if (['s','arrowdown'].includes(key) && idx + 3 < CONFIG.PLAYER.inventorySize) idx += 3;
                 else if (['w','arrowup'].includes(key) && idx - 3 >= 0) idx -= 3;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Dungeon Not Found</title>
-    <link rel="stylesheet" href="/404/style.css?v=relics-accessories-3">
+    <link rel="stylesheet" href="/404/style.css?v=balance-1">
 </head>
 <body>
 
@@ -13,7 +13,7 @@
             <div class="game-brand">ROGUE<span>404</span><small>CRÓNICAS DE LA MAZMORRA</small></div>
             <nav class="ui-actions" aria-label="Menús de la partida">
                 <button id="character-button" type="button" onclick="openCharacter()">Personaje <span id="talent-points" class="hidden"></span> <kbd>N</kbd></button>
-                <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/6</span> <kbd>M</kbd></button>
+                <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/8</span> <kbd>M</kbd></button>
                 <button type="button" onclick="openEquipment()">Equipo <kbd>O</kbd></button>
                 <button type="button" onclick="openBestiary()">Bestiario <kbd>B</kbd></button>
                 <button type="button" onclick="openControls()">Ayuda <kbd>I</kbd></button>
@@ -88,11 +88,11 @@
 
         <h3>Combate</h3>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span>Golpe normal</span> <span>Mover contra enemigo</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">R</span> Rápido</span> <span>Menos daño; descoloca (no encadena)</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">F</span> Salvaje</span> <span>Más daño; si sobrevive, contraataca</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">R</span> Rápido</span> <span>Menos daño; descoloca cada 3 acciones</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">F</span> Salvaje</span> <span>Más daño; el objetivo gana iniciativa</span></div>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">T</span> Barrido</span> <span>Golpea las 8 casillas; tiene enfriamiento</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">C</span> Esperar</span> <span>Prepara +2 daño para el próximo R/F</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>+50% DEF durante la respuesta enemiga</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">C</span> Esperar</span> <span>Prepara +2 daño para el próximo golpe</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>DEF: (defensa + 2) × 1,5 por una respuesta</span></div>
         <p class="control-hint">R y F: pulsa la tecla y después elige dirección. Esc cancela.</p>
         <div class="key-row"><span><span class="key-btn">L</span> Dardo arcano</span><span>Tab/flechas: objetivo · Enter o clic: disparar</span></div>
         <p class="control-hint">El dardo alcanza enemigos en cualquier ángulo con línea de tiro. Esc cancela; apuntar y cambiar de objetivo no gastan turnos. Las escaleras descubiertas siguen marcadas y muestran su dirección sobre el mapa.</p>
@@ -112,7 +112,7 @@
     </div>
 
     <div id="inventory-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Mochila" tabindex="-1">
-        <header class="dialog-header"><div><span class="dialog-eyebrow">EQUIPO DEL AVENTURERO</span><h2>Mochila <span id="inv-capacity" class="muted">0/6</span></h2></div><button type="button" onclick="closeInventory()" aria-label="Cerrar mochila">×</button></header>
+        <header class="dialog-header"><div><span class="dialog-eyebrow">EQUIPO DEL AVENTURERO</span><h2>Mochila <span id="inv-capacity" class="muted">0/8</span></h2></div><button type="button" onclick="closeInventory()" aria-label="Cerrar mochila">×</button></header>
         <div class="dialog-body">
         <div id="inv-grid" class="inv-grid"></div>
         <section id="inv-item-detail" class="item-detail" aria-live="polite" aria-label="Objeto seleccionado"></section>
@@ -154,7 +154,7 @@
 
     <div id="reward-choice" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Elegir recompensa" tabindex="-1">
         <header class="dialog-header"><div><span class="dialog-eyebrow">COFRE ABIERTO</span><h2>Elige una recompensa</h2></div></header>
-        <div class="dialog-body"><div id="reward-choice-options"></div></div>
+        <div class="dialog-body"><div id="reward-choice-options"></div><p class="control-hint">Si no cabe en la mochila, el premio queda en el suelo. Puedes aplazar la elección: el cofre se marcará con ? y conservará estas mismas opciones.</p></div>
         <footer class="dialog-footer"><span class="muted">Flechas · elegir &nbsp; Enter · aceptar</span><button type="button" onclick="GameLogic.cancelChestReward()">Dejarlo <kbd>Esc</kbd></button></footer>
     </div>
 
@@ -179,7 +179,8 @@
         <header class="dialog-header"><div><span class="dialog-eyebrow">FIN DE LA EXPEDICIÓN</span><h2 id="death-title">Has muerto</h2></div><span class="result-mark" aria-hidden="true">×</span></header>
         <div class="dialog-body">
             <p class="result-cause">Causa: <span id="death-cause">Desconocida</span></p>
-            <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="final-level">1</strong></div><div><span>Oro final</span><strong id="final-score">0</strong></div></div>
+            <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="final-level">1</strong></div><div><span>Puntuación total</span><strong id="final-score">0</strong></div></div>
+            <p id="death-gold" class="control-hint"></p><p class="control-hint">Balance 1 · el historial conserva también partidas de reglas anteriores.</p>
             <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span></p><p><strong>Equipo de la expedición:</strong> <span id="death-best-gear">Ninguno</span></p></details>
             <label for="player-name">Tu nombre en el ranking</label>
             <div class="save-row"><input type="text" id="player-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="death-save-button" onclick="saveScore()">Guardar puntuación</button></div>
@@ -196,6 +197,7 @@
         <div class="dialog-body">
             <p id="victory-message" class="result-cause">Has escapado de la mazmorra.</p>
             <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="win-level">1</strong></div><div><span>Puntuación total</span><strong id="victory-score">0</strong></div></div>
+            <p id="win-gold" class="control-hint"></p><p class="control-hint">Balance 1 · el historial conserva también partidas de reglas anteriores.</p>
             <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span></p><p><strong>Equipo de la expedición:</strong> <span id="win-best-gear">Ninguno</span></p></details>
             <label for="winner-name">Tu nombre en el ranking</label>
             <div class="save-row"><input type="text" id="winner-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="win-save-button" onclick="saveScore()">Guardar puntuación</button></div>
@@ -207,9 +209,9 @@
         <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
     </div>
 
-    <script src="/404/game.js?v=relics-accessories-3"></script>
+    <script src="/404/game.js?v=balance-1"></script>
     <script src="/404/dev-tools.js?v=targeting-scores-2"></script>
-    <script src="/404/autoplayer.js?v=relics-accessories-3"></script>
+    <script src="/404/autoplayer.js?v=balance-1"></script>
     <script src="/404/autoplayer-profiles.js?v=relics-accessories-3"></script>
     <script src="/404/autoplayer-navigation.js"></script>
     <script src="/404/autoplayer-mission.js"></script>

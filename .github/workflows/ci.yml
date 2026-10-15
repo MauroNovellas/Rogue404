@@ -59,6 +59,9 @@ jobs:
       - name: Relic effects and accessory equipment
         run: node tests/relics-accessories.test.cjs
 
+      - name: Balance, persistence, routes and economy
+        run: node tests/balance.test.cjs
+
       - name: Character progression and ranged combat
         run: node tests/progression.test.cjs
 

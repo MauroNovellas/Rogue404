@@ -64,7 +64,7 @@ test('un barrido completa todas las bajas y la respuesta enemiga antes de abrir 
     assert.equal(h.GameState.moves, 1);
     assert.equal(h.GameState.current, 'CHARACTER');
     assert.equal(h.GameState.player.talentPoints, 1);
-    assert.equal(h.GameState.player.combat.cooldowns.area, 5);
+    assert.equal(h.GameState.player.combat.cooldowns.area, h.CONFIG.COMBAT.area.cooldown);
 });
 
 test('morir en la respuesta del turno tiene prioridad sobre la elección de talento', () => {
@@ -208,8 +208,8 @@ test('el dardo golpea únicamente al primer enemigo de su trayectoria', () => {
     assert.equal(first.hp, 23); assert.equal(second.hp, 30);
 });
 
-test('paredes, cofres abiertos o cerrados y mercaderes bloquean los proyectiles', () => {
-    for (const obstacle of ['wall', 'closedChest', 'openChest', 'shop']) {
+test('paredes, cofres cerrados y mercaderes bloquean los proyectiles', () => {
+    for (const obstacle of ['wall', 'closedChest', 'shop']) {
         const h = arena(); h.GameState.player.talents.ranged = 1;
         const target = enemy(23, 12); h.GameState.entities.enemies = [target];
         if (obstacle === 'wall') h.GameState.map[12][22] = '#';

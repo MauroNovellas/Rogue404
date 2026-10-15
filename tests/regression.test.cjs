@@ -286,15 +286,15 @@ test('el nivel 6 activa Magma, su aviso y la malla térmica', () => {
     FloorSystem.closeWarning();
 });
 
-test('el magma duplica la presión de sed y la malla térmica la reduce', () => {
+test('el magma añade 50% de presión de sed y la malla térmica la reduce', () => {
     freshGame(1605);
     GameState.floor = { type: 'MAGMA' };
 
     GameState.player.equipment.armor = null;
-    assert.equal(FloorSystem.thirstRate(), 3);
+    assert.equal(FloorSystem.thirstRate(), 4);
 
     GameState.player.equipment.armor = { value: 1, traits: { thirstResist: 0.6, heatResist: 0.6, magmaRestHeal: 1 } };
-    assert.equal(FloorSystem.thirstRate(), 4);
+    assert.equal(FloorSystem.thirstRate(), 5);
 });
 
 test('la sed del magma se aplica durante la supervivencia', () => {
@@ -303,10 +303,10 @@ test('la sed del magma se aplica durante la supervivencia', () => {
     GameState.player.equipment.armor = null;
     GameState.player.food = 100;
     GameState.player.water = 10;
-    GameState.moves = 2;
+    GameState.moves = 0;
 
-    GameLogic.processSurvival();
-    assert.equal(GameState.moves, 3);
+    for (let turn = 0; turn < 4; turn++) GameLogic.processSurvival();
+    assert.equal(GameState.moves, 4);
     assert.equal(GameState.player.water, 9);
 });
 
@@ -381,7 +381,7 @@ test('el suelo se agrieta al abandonarlo y retroceder provoca caída con pérdid
 
         await GameLogic.movePlayer(-1, 0);
         assert.equal(GameState.level, 10);
-        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.player.hp, 50);
         assert.equal(GameState.player.inventory.length, 0);
         assert.equal(GameState.player.equipment.weapon, null);
         assert.equal(GameState.player.equipment.armor, null);
@@ -439,7 +439,7 @@ test('un pasillo de una casilla permite ida y vuelta y colapsa al intentar una t
 
         await GameLogic.movePlayer(1, 0);
         assert.equal(GameState.level, 10);
-        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.player.hp, 50);
         assert.equal(GameState.persistence[9].includes('HOLE_11,10'), true);
     } finally {
         GameLogic.endTurn = originalEndTurn;
@@ -464,7 +464,7 @@ test('la resistencia a caída se calcula antes de soltar una armadura no retenid
     FloorSystem.fallPlayer();
 
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.hp, 75);
     assert.equal(GameState.player.equipment.armor, null);
     assert.equal(GameState.recoveryDrops[10].length, 1);
 });
@@ -484,7 +484,7 @@ test('el arnés ligero reduce la caída y conserva el equipo puesto', () => {
     FloorSystem.fallPlayer();
 
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.hp, 75);
     assert.equal(GameState.player.equipment.weapon.name, 'Pico');
     assert.equal(GameState.player.equipment.armor.specialId, 'UNSTABLE_HARNESS');
     assert.equal(GameState.player.inventory.length, 0);
@@ -643,8 +643,8 @@ test('un golpe del Goblin roba oro solo si consigue herir', () => {
         GameState.player.hp = 100;
         GameState.player.equipment.armor = { value: 99 };
         CombatSystem.enemyAttack(blocked);
-        assert.equal(GameState.score, 50);
-        assert.equal(blocked.stolenGold, 0);
+        assert.equal(GameState.score, 30, 'La mitigación ya no concede inmunidad completa');
+        assert.equal(blocked.stolenGold, 20);
     } finally {
         Utils.random = originalRandom;
     }
@@ -985,22 +985,23 @@ test('Rápido aplica descoloque y no puede encadenarlo mientras hay inmunidad', 
         CombatSystem.applyDamage(0, 'quick', 0);
         assert.notEqual(enemy._rogueQuickStaggerPending, true);
         GameLogic.updateEnemies();
+        assert.equal(enemy._rogueQuickStaggerImmune, true);
+        GameLogic.updateEnemies();
         assert.equal(enemy._rogueQuickStaggerImmune, false);
     } finally {
         Utils.random = originalRandom;
     }
 });
 
-test('Salvaje consume la acción normal tras su contraataque y GAMEOVER bloquea ataques', () => {
+test('un ataque enemigo no altera el planificador y GAMEOVER bloquea ataques', () => {
     freshGame(606);
     const originalRandom = Utils.random;
     Utils.random = () => 0.5;
     try {
-        const enemy = { name: 'Dummy', atk: 10, energy: 0, _rogueSavageCounterPending: true };
+        const enemy = { name: 'Dummy', atk: 10, energy: 0 };
         GameState.player.hp = 100;
         CombatSystem.enemyAttack(enemy);
-        assert.equal(enemy._rogueSavageCounterPending, false);
-        assert.equal(enemy.energy, -1);
+        assert.equal(enemy.energy, 0);
         assert.equal(GameState.player.hp, 90);
 
         GameState.current = STATE_ENUM.GAMEOVER;
@@ -1012,7 +1013,7 @@ test('Salvaje consume la acción normal tras su contraataque y GAMEOVER bloquea 
     }
 });
 
-test('Barrido conserva cinco turnos de enfriamiento justo después de usarlo', () => {
+test('Barrido conserva cuatro turnos de enfriamiento justo después de usarlo', () => {
     freshGame(707);
     const originalUpdateEnemies = GameLogic.updateEnemies;
     const originalSurvival = GameLogic.processSurvival;
@@ -1023,7 +1024,7 @@ test('Barrido conserva cinco turnos de enfriamiento justo después de usarlo', (
     try {
         CombatSystem.performAreaAttack();
         assert.equal(GameState.player.combat.cooldowns.area, CONFIG.COMBAT.area.cooldown);
-        assert.equal(GameState.player.combat.cooldowns.area, 5);
+        assert.equal(GameState.player.combat.cooldowns.area, 4);
     } finally {
         GameLogic.updateEnemies = originalUpdateEnemies;
         GameLogic.processSurvival = originalSurvival;
@@ -1178,9 +1179,9 @@ test('vender devuelve el 50% del precio pagado y retira el objeto de la mochila'
 test('los objetos encontrados se valoran por tipo y potencia, no por profundidad actual', () => {
     freshGame(2404);
     GameState.level = 9;
-    const found = { type: 'weapon', name: 'Arma encontrada', value: 3, symbol: '!', color: '#ff00ff' };
-    assert.equal(ShopSystem.estimateValue(found), 200);
-    assert.equal(ShopSystem.sellPrice(found), 100);
+    const found = { type: 'weapon', name: 'Arma encontrada', value: 3, symbol: '!', color: '#ff00ff', foundAt: 3 };
+    assert.equal(ShopSystem.estimateValue(found), 169);
+    assert.equal(ShopSystem.sellPrice(found), 84);
 });
 
 test('una partida nueva limpia todos los stocks persistentes de mercader', () => {
@@ -1245,6 +1246,8 @@ test('el cofre de escarcha nunca usa la trampa normal y entrega equipo mejorado'
         GameLogic.openChest(chestIndex);
         assert.equal(GameState.player.hp, 80);
         assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        assert.equal(GameState.ui.rewardChoice.options.length, 2);
+        GameLogic.chooseChestReward(0);
         assert.equal(GameState.player.inventory.length, 1);
         assert.ok(GameState.player.inventory[0].name.includes('escarcha'));
         assert.ok(['weapon', 'armor'].includes(GameState.player.inventory[0].type));
@@ -1301,7 +1304,7 @@ test('Magma genera una Cámara de Fumarola opcional con cofre especial', () => {
     assert.equal(FloorSystem.isMagmaFumaroleTile(chest.x, chest.y), true);
 });
 
-test('la Cámara de Fumarola cuesta 2 de agua por turno y la malla térmica lo reduce a 1', () => {
+test('la Fumarola cuesta 2 de agua y la malla conserva su reducción fraccional', () => {
     freshGame(2602);
     GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 10, y1: 10, x2: 15, y2: 15 } };
     GameState.player.x = 12;
@@ -1310,7 +1313,7 @@ test('la Cámara de Fumarola cuesta 2 de agua por turno y la malla térmica lo r
     assert.equal(FloorSystem.magmaRiskWaterCost(), 2);
 
     GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
-    assert.equal(FloorSystem.magmaRiskWaterCost(), 1);
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 0.8);
 
     GameState.player.x = 5;
     GameState.player.y = 5;
@@ -1333,7 +1336,9 @@ test('la supervivencia cobra el agua extra de la Fumarola en cada acción', () =
     GameState.moves = 1;
     GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
     GameLogic.processSurvival();
-    assert.equal(GameState.player.water, 19);
+    assert.equal(GameState.player.water, 20, 'El primer 0,8 se acumula sin redondearlo a 1');
+    GameLogic.processSurvival();
+    assert.equal(GameState.player.water, 19, 'La fracción pendiente se cobra en la acción siguiente');
 });
 
 test('el cofre de brasa evita trampas, da equipo mejorado y persiste abierto', () => {
@@ -1355,6 +1360,7 @@ test('el cofre de brasa evita trampas, da equipo mejorado y persiste abierto', (
         GameLogic.openChest(chestIndex);
         assert.equal(GameState.player.hp, 80);
         assert.equal(chest.isOpen, true);
+        GameLogic.chooseChestReward(0);
         assert.equal(GameState.player.inventory.length, 1);
         assert.ok(GameState.player.inventory[0].name.includes('obsidiana'));
         assert.equal(GameState.player.inventory[0].type, 'weapon');
@@ -1424,7 +1430,7 @@ test('el Pasaje de Falla permite una retirada completa y cae al intentar entrar 
 
     await GameLogic.movePlayer(zone.dx, zone.dy);
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 25);
+    assert.equal(GameState.player.hp, 50);
 });
 
 test('el Cofre de Falla evita trampas, entrega equipo superior y persiste abierto', () => {
@@ -1446,6 +1452,7 @@ test('el Cofre de Falla evita trampas, entrega equipo superior y persiste abiert
         GameLogic.openChest(chestIndex);
         assert.equal(GameState.player.hp, 80);
         assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        GameLogic.chooseChestReward(0);
         assert.equal(GameState.player.inventory.length, 1);
         assert.ok(GameState.player.inventory[0].name.includes('falla'));
         assert.equal(GameState.player.inventory[0].type, 'weapon');
@@ -1487,7 +1494,7 @@ test('el arnés protege si fuerzas una tercera entrada al Pasaje de Falla', asyn
     await GameLogic.movePlayer(zone.dx, zone.dy);
 
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.hp, 75);
     assert.equal(GameState.player.equipment.weapon.name, 'Hoja de prueba');
     assert.equal(GameState.player.equipment.armor.specialId, 'UNSTABLE_HARNESS');
     assert.equal(GameState.player.inventory.length, 0);
@@ -1571,7 +1578,6 @@ test('AutoSimulation puede completar una expedición objetivo de profundidad 1 s
             console.error(`✗ ${name}`);
             console.error(error);
             process.exitCode = 1;
-            break;
         }
     }
 

@@ -50,6 +50,7 @@ if ($method === 'POST') {
         'cause' => cleanText($input['cause'] ?? 'Desconocido', 20),
         'kills' => cleanText($input['kills'] ?? 'Ninguno', 100),
         'equipment' => cleanText($input['equipment'] ?? 'Nada', 240),
+        'ruleset' => cleanText($input['ruleset'] ?? 'legacy', 24),
         'date' => date('d/m/y')
     ];
 
