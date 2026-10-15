@@ -175,12 +175,6 @@ const DOM = {
     floorWarning: document.getElementById('floor-warning'),
     floorWarningTitle: document.getElementById('floor-warning-title'),
     floorWarningText: document.getElementById('floor-warning-text'),
-    context: {
-        objective: document.getElementById('context-objective'),
-        danger: document.getElementById('context-danger'),
-        resource: document.getElementById('context-resource'),
-        advice: document.getElementById('context-advice')
-    },
     menus: {
         controls: document.getElementById('controls-menu'),
         bestiary: document.getElementById('bestiary-menu'),
@@ -208,33 +202,39 @@ const Utils = {
             : null;
         if (emptyMsg) emptyMsg.remove();
 
-        // Evitamos spam idéntico consecutivo rápido
-        const lastMsg = DOM.log.firstElementChild;
-        if (lastMsg && lastMsg._logMessage === msg && parseFloat(lastMsg.style.opacity || '1') > 0.5) {
+        const lastMsg = DOM.log.lastElementChild;
+        if (lastMsg && lastMsg._logMessage === msg) {
+            lastMsg._logCount++;
+            lastMsg._logRepeat.textContent = `×${lastMsg._logCount}`;
+            DOM.log.scrollTop = DOM.log.scrollHeight;
             return;
         }
 
         const div = document.createElement('div');
         div._logMessage = msg;
-        div.className = 'log-new';
-        div.innerHTML = `<span style="color:${color}">${msg}</span>`;
-        DOM.log.prepend(div); // Insertar arriba (visual abajo por flex-reverse)
-
-        [...DOM.log.children].forEach((entry, index) => {
-            if (index > 0) entry.classList.add('log-old');
-        });
-        
-        // Mantener limpio el DOM (max 6 mensajes)
-        if (DOM.log.children.length > 6) DOM.log.lastElementChild.remove();
-        
-        // Auto-desvanecer a los 4 segundos
-        setTimeout(() => {
-            if(div.parentNode) {
-                div.style.transition = "opacity 1s";
-                div.style.opacity = "0";
-                setTimeout(() => div.remove(), 1000);
-            }
-        }, 4000);
+        div._logCount = 1;
+        div.className = 'log-entry';
+        const marker = document.createElement('span');
+        marker.className = 'log-marker';
+        marker.textContent = '>';
+        marker.style.color = color;
+        marker.ariaHidden = 'true';
+        const text = document.createElement('span');
+        text.className = 'log-text';
+        text.textContent = msg;
+        const repeat = document.createElement('span');
+        repeat.className = 'log-repeat';
+        div._logRepeat = repeat;
+        div.appendChild(marker);
+        div.appendChild(text);
+        div.appendChild(repeat);
+        DOM.log.appendChild(div);
+        if (DOM.log.children.length > 6) DOM.log.firstElementChild.remove();
+        DOM.log.scrollTop = DOM.log.scrollHeight;
+    },
+    resetLog: () => {
+        while (DOM.log.firstElementChild) DOM.log.firstElementChild.remove();
+        DOM.log.textContent = '';
     },
 
     applyVariance: (baseValue) => {
@@ -1127,6 +1127,7 @@ const GameLogic = {
         GameState.ui.bestiaryReturnState = STATE_ENUM.PLAYING;
         FloorSystem.closeWarning();
         Network.isSaving = false;
+        Utils.resetLog();
 
         GameState.seed = seedInput !== null ? seedInput : Math.floor(Math.random() * 999999);
         GameState.level = 1; GameState.score = 0; GameState.moves = 0; GameState.maxLevel = 1;
@@ -1269,6 +1270,8 @@ const GameLogic = {
         for (let i = GameState.entities.items.length - 1; i >= 0; i--) {
             const item = GameState.entities.items[i];
             if (item.x !== x || item.y !== y) continue;
+            const discovery = Renderer.itemDiscovery(item);
+            if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
 
             if (item.type === 'GOLD') {
                 GameState.score += item.value;
@@ -2046,6 +2049,8 @@ const InventorySystem = {
 
         const inventorySizeBefore = GameState.player.inventory.length;
         GameState.player.inventory.push(item);
+        const discovery = Renderer.itemDiscovery(item);
+        if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
         Utils.log(`Recogido: ${item.name}`, item.qualityColor || item.color);
         if (!forced && arrIndex >= 0) {
             GameState.entities.items.splice(arrIndex, 1);
@@ -2254,6 +2259,8 @@ const ShopSystem = {
             qualityColor: item.qualityColor,
             buyPrice: item.price
         });
+        const discovery = Renderer.itemDiscovery(item);
+        if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
         stock.splice(idx, 1);
         Utils.log(`Comprado: ${item.name}`, '#ffd700');
         UISystem.updateHUD();
@@ -2383,27 +2390,44 @@ const Renderer = {
         else {
             let item = GameState.entities.items.find(i => i.x === x && i.y === y);
             if (item) {
-                if (item.type === 'GOLD') { id = 'GOLD'; data = {symbol:'$', color:'#ffd700', name:'Oro', stats:'Riqueza'}; } 
-                else if (item.type === 'food') { id = 'FOOD'; data = {symbol:'%', color:'#ffaa00', name:'Ración', stats:'Comida'}; } 
-                else if (item.type === 'water') { id = 'WATER'; data = {symbol:'~', color:'#00ffff', name:'Agua', stats:'Bebida'}; } 
-                else if (item.type === 'weapon') { id = 'WEAPON_DROP'; data = {symbol:'!', color:'#ff00ff', name:'Arma', stats:'Ataque'}; } 
-                else if (item.type === 'relic') { id = 'RELIC_DROP'; data = {symbol:'&', color:item.color || '#b48cff', name:'Reliquia maldita', stats:'Uso unico · poder con coste'}; }
-                else if (item.specialId === 'FROZEN_CRAMPONS') { id = 'FROZEN_CRAMPONS'; data = {symbol:']', color:'#8adfff', name:'Arnés polar', stats:'DEF:1 · Hielo/agarre'}; }
-                else if (item.specialId === 'MAGMA_THERMAL') { id = 'MAGMA_THERMAL'; data = {symbol:']', color:'#ff6b35', name:'Malla térmica', stats:'DEF:1 · Calor/sed'}; }
-                else if (item.specialId === 'UNSTABLE_HARNESS') { id = 'UNSTABLE_HARNESS'; data = {symbol:']', color:'#d7a56d', name:'Arnés ligero', stats:'DEF:1 · Caída/equipo'}; }
-                else if (item.type === 'armor') { id = 'ARMOR_DROP'; data = {symbol:']', color:'#4682b4', name:'Malla', stats:'Defensa'}; }
+                const discovery = Renderer.itemDiscovery(item);
+                if (discovery) { id = discovery.id; data = discovery.data; }
             }
             else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { id = 'STAIRS_DOWN'; data = {symbol:'>', color:'#fff', name:'Bajada', stats:'Profundidad'}; }
             else if (x === GameState.stairs.up.x && y === GameState.stairs.up.y) { id = 'STAIRS_UP'; data = {symbol:'<', color:'#fff', name:'Subida', stats:'Salida'}; }
         }
         
-        if (id && !GameState.discoveredTypes.has(id)) { 
-            GameState.discoveredTypes.add(id); 
-            Renderer.addToLegend(type, data, id);
-        }
+        Renderer.recordDiscovery(type, id, data);
+    },
+    itemDiscovery: (item) => {
+        if (!item) return null;
+        const special = {
+            FROZEN_CRAMPONS: { name: 'Arnés polar', color: '#8adfff', stats: 'DEF:1 · Hielo / agarre' },
+            MAGMA_THERMAL: { name: 'Malla térmica', color: '#ff6b35', stats: 'DEF:1 · Calor / sed' },
+            UNSTABLE_HARNESS: { name: 'Arnés ligero', color: '#d7a56d', stats: 'DEF:1 · Caída / equipo' }
+        }[item.specialId];
+        if (special) return { id: item.specialId, data: { symbol: ']', ...special } };
+        const common = {
+            GOLD: { id: 'GOLD', symbol: '$', color: '#ffd700', name: 'Oro', stats: 'Monedas' },
+            food: { id: 'FOOD', symbol: '%', color: '#ffaa00', name: 'Ración', stats: 'Recupera comida' },
+            water: { id: 'WATER', symbol: '~', color: '#00ffff', name: 'Agua', stats: 'Recupera agua' },
+            weapon: { id: 'WEAPON_DROP', symbol: '!', color: '#ff00ff', name: 'Arma', stats: 'Mejora el ataque' },
+            armor: { id: 'ARMOR_DROP', symbol: ']', color: '#4682b4', name: 'Armadura', stats: 'Mejora la defensa' },
+            relic: { id: 'RELIC_DROP', symbol: '&', color: item.color || '#b48cff', name: 'Reliquia maldita', stats: 'Un uso · poder con coste' }
+        }[item.type];
+        if (!common) return null;
+        const { id, ...data } = common;
+        return { id, data };
+    },
+    recordDiscovery: (type, id, data) => {
+        if (!id || !data || GameState.discoveredTypes.has(id)) return;
+        GameState.discoveredTypes.add(id);
+        Renderer.addToLegend(type, data, id);
     },
     addToLegend: (type, data, id) => {
         const panel = document.getElementById(type === 'monster' ? 'legend-monsters' : 'legend-items');
+        const empty = typeof panel.querySelector === 'function' ? panel.querySelector('.legend-empty') : null;
+        if (empty) empty.remove();
         const isMonster = type === 'monster';
         const div = document.createElement(isMonster ? 'button' : 'div');
         div.className = 'legend-item';
@@ -2414,8 +2438,14 @@ const Renderer = {
         }
         div.innerHTML = `<span class="legend-symbol" style="color:${data.color}">${data.symbol}</span><span class="legend-desc"><span class="legend-name">${data.name}</span>${!isMonster ? `<span class="legend-stats">${data.stats}</span>` : ''}</span>`;
         panel.appendChild(div);
+        document.getElementById(type === 'monster' ? 'legend-monsters-count' : 'legend-items-count').textContent = panel.children.length;
     },
-    resetLegend: () => { document.getElementById('legend-monsters').innerHTML = '<h2 class="legend-title">Criaturas descubiertas <span class="section-hint">B</span></h2>'; document.getElementById('legend-items').innerHTML = '<h2 class="legend-title">Entorno</h2>'; }
+    resetLegend: () => {
+        document.getElementById('legend-monsters').innerHTML = '<p class="legend-empty">Las criaturas aparecerán al descubrirlas.</p>';
+        document.getElementById('legend-items').innerHTML = '<p class="legend-empty">Explora para registrar nuevos hallazgos.</p>';
+        document.getElementById('legend-monsters-count').textContent = '0';
+        document.getElementById('legend-items-count').textContent = '0';
+    }
 };
 
 const UISystem = {
@@ -2467,74 +2497,13 @@ const UISystem = {
         container.innerHTML = '';
         const choice = GameState.ui.rewardChoice;
         choice.options.forEach((option, index) => {
-            const button = document.createElement('div');
+            const button = document.createElement('button');
+            button.type = 'button';
             button.className = `reward-option ${index === choice.index ? 'selected' : ''}`;
             button.innerHTML = `<span class="reward-option-name" style="color:${option.color}">${option.name}</span><span class="reward-option-detail">${option.detail}</span>`;
             button.onclick = () => GameLogic.chooseChestReward(index);
             container.appendChild(button);
         });
-    },
-    updateContext: () => {
-        const context = DOM.context;
-        if (!context || !context.objective) return;
-
-        const player = GameState.player;
-        const visibleEnemies = GameState.entities.enemies.filter(enemy =>
-            GameState.visible[enemy.y] && GameState.visible[enemy.y][enemy.x]
-        );
-        const nearest = visibleEnemies
-            .map(enemy => ({ enemy, distance: Math.max(Math.abs(enemy.x - player.x), Math.abs(enemy.y - player.y)) }))
-            .sort((a, b) => a.distance - b.distance)[0];
-
-        const down = GameState.stairs.down;
-        const up = GameState.stairs.up;
-        const downSeen = Boolean(GameState.seen[down.y] && GameState.seen[down.y][down.x]);
-        const upSeen = Boolean(GameState.seen[up.y] && GameState.seen[up.y][up.x]);
-        const returning = GameState.entryMethod === 'ascending';
-        const onUp = player.x === up.x && player.y === up.y;
-        const onDown = player.x === down.x && player.y === down.y;
-        let objective = returning ? (upSeen ? 'Regresa por la subida <' : 'Localiza la subida <') : (downSeen ? 'Avanza hacia la bajada >' : 'Encuentra la bajada >');
-        if (onDown && !returning) objective = 'Espacio · bajar de planta';
-        if (onUp && (returning || GameState.level > 1)) objective = GameState.level === 1 ? 'Espacio · salir a la superficie' : 'Espacio · subir de planta';
-
-        let danger = 'Sin amenaza visible';
-        let dangerClass = '';
-        if (nearest) {
-            const enemyName = nearest.enemy.name || 'Enemigo';
-            danger = `${enemyName} a ${nearest.distance} casilla${nearest.distance === 1 ? '' : 's'}`;
-            dangerClass = nearest.distance <= 2 ? 'context-danger' : 'context-warning';
-            if (nearest.enemy._trollPressurePrimed) danger = `${enemyName}: aplastar inminente`;
-        } else if (FloorSystem.is('FROZEN') && FloorSystem.isFrozenVaultTile(player.x, player.y)) {
-            danger = 'Hielo traicionero'; dangerClass = 'context-warning';
-        } else if (FloorSystem.is('MAGMA') && FloorSystem.isMagmaFumaroleTile(player.x, player.y)) {
-            danger = 'Fumarola: consume agua'; dangerClass = 'context-danger';
-        } else if (FloorSystem.is('UNSTABLE') && FloorSystem.shouldCollapseOnEntry(player.x, player.y)) {
-            danger = 'Suelo frágil'; dangerClass = 'context-warning';
-        }
-
-        const hpPercent = player.maxHp > 0 ? Math.round((player.hp / player.maxHp) * 100) : 0;
-        const resources = [
-            { value: hpPercent, label: `Vida ${player.hp}/${player.maxHp}`, priority: 3 },
-            { value: player.water, label: `Agua ${player.water}%`, priority: 2 },
-            { value: player.food, label: `Comida ${player.food}%`, priority: 1 }
-        ].sort((a, b) => a.value - b.value || b.priority - a.priority);
-        const urgent = resources[0];
-        const resourceClass = urgent.value <= 25 ? 'context-danger' : urgent.value <= 45 ? 'context-warning' : '';
-        let advice = 'Avanza hacia zonas no exploradas.';
-        if (nearest && nearest.distance <= 2) advice = 'Aléjate, defiende o usa una acción de combate.';
-        else if (hpPercent <= 25) advice = 'Tu vida es crítica: busca seguridad antes de explorar.';
-        else if (player.water <= 25) advice = 'Prioriza agua o una tienda antes de seguir bajando.';
-        else if (player.food <= 25) advice = 'La comida escasea: evita combates innecesarios.';
-        else if (FloorSystem.is('UNSTABLE')) advice = 'No retrocedas sobre grietas salvo que el pasillo sea estrecho.';
-        else if (FloorSystem.is('MAGMA')) advice = 'Reserva agua: el calor duplica el consumo.';
-        else if (FloorSystem.is('FROZEN')) advice = 'El hielo puede desviarte: mueve con margen.';
-
-        context.objective.textContent = objective;
-        context.danger.textContent = danger;
-        context.danger.className = dangerClass;
-        context.resource.textContent = urgent.label;
-        context.resource.className = resourceClass;
-        context.advice.textContent = advice;
     },
     updateHUD: () => {
         document.getElementById('char-lvl').innerText = GameState.player.level; document.getElementById('dungeon-lvl').innerText = `-${GameState.level}`;
@@ -2549,8 +2518,6 @@ const UISystem = {
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
         if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
-
-        UISystem.updateContext();
 
         if (!DOM.combatStatus) return;
         const parts = [];
@@ -2580,7 +2547,7 @@ const UISystem = {
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
             const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
-            parts.push(`<span style="color:#00ffff">OBJETIVO: ${label}</span>`);
+            parts.push(`<span style="color:#00ffff">${label} · ELIGE DIRECCIÓN</span>`);
         }
         if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
         if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
@@ -2659,6 +2626,12 @@ const StateController = {
     }
 };
 
+// Reencuadra el último mensaje cuando cambia el ancho o el alto del diario.
+if (typeof ResizeObserver !== 'undefined') {
+    const journalResizeObserver = new ResizeObserver(() => { DOM.log.scrollTop = DOM.log.scrollHeight; });
+    journalResizeObserver.observe(DOM.log);
+}
+
 document.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     if (GameState.ui.movementLocked) return;
@@ -2695,6 +2668,7 @@ document.addEventListener('keydown', (e) => {
         return;
     }
     if (e.target && ['BUTTON', 'SUMMARY'].includes(e.target.tagName) && ['enter', ' '].includes(key)) return;
+    if (e.target === DOM.log && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'pageup', 'pagedown', 'home', 'end'].includes(key)) return;
 
     if (GameState.current === STATE_ENUM.BESTIARY) {
         if (['b', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeBestiary(); }
@@ -2805,6 +2779,11 @@ window.setGameState = (s) => StateController.change(s);
 window.openBestiary = (id) => UISystem.openBestiary(id);
 window.closeBestiary = () => UISystem.closeBestiary();
 window.openInventory = () => UISystem.openPanel(STATE_ENUM.INVENTORY);
+window.closeInventory = () => {
+    if (GameState.current !== STATE_ENUM.INVENTORY) return;
+    InventorySystem.closeActionMenu();
+    StateController.change(STATE_ENUM.PLAYING);
+};
 window.openControls = () => UISystem.openPanel(STATE_ENUM.CONTROLS);
 window.openPause = () => UISystem.openPanel(STATE_ENUM.MENU);
 window.restartGame = () => { if (GameState.current === STATE_ENUM.GAMEOVER) GameLogic.init(); };

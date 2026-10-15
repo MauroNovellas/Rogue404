@@ -47,6 +47,12 @@ class FakeElement {
         this.parentNode = null;
     }
     focus() {}
+    get innerHTML() { return this._innerHTML || ''; }
+    set innerHTML(value) {
+        this.children.forEach(child => { child.parentNode = null; });
+        this.children = [];
+        this._innerHTML = value;
+    }
     get firstElementChild() { return this.children[0] || null; }
     get lastElementChild() { return this.children[this.children.length - 1] || null; }
 }
@@ -837,17 +843,63 @@ test('B abre el bestiario desde pausa y vuelve a la pausa', () => {
     assert.equal(GameState.current, STATE_ENUM.MENU);
 });
 
-test('la prioridad de vida en el contexto usa la vida máxima al subir de nivel', () => {
+test('el registro conserva seis acciones y solo retira la más antigua cuando llega otra', () => {
     freshGame(105);
-    GameState.entities.enemies = [];
-    GameState.player.hp = 40;
-    GameState.player.maxHp = 200;
-    GameState.player.food = 100;
-    GameState.player.water = 100;
-    UISystem.updateContext();
-    assert.equal(DOM.context.resource.textContent, 'Vida 40/200');
-    assert.equal(DOM.context.resource.className, 'context-danger');
-    assert.equal(DOM.context.advice.textContent.includes('vida es crítica'), true);
+    Utils.resetLog();
+    const originalTimeout = context.setTimeout;
+    const pending = [];
+    context.setTimeout = fn => { pending.push(fn); return pending.length; };
+    try {
+        for (let i = 0; i < 8; i++) Utils.log(`Acción ${i}`);
+        assert.equal(pending.length, 0, 'El registro no debe programar borrados por tiempo');
+        assert.equal(DOM.log.children.length, 6);
+        assert.equal(DOM.log.firstElementChild._logMessage, 'Acción 2');
+        assert.equal(DOM.log.lastElementChild._logMessage, 'Acción 7');
+        Utils.log('Acción 7');
+        assert.equal(DOM.log.children.length, 6);
+        assert.equal(DOM.log.lastElementChild._logRepeat.textContent, '×2');
+        Utils.log('Recogido: <Reliquia de prueba>');
+        assert.equal(DOM.log.lastElementChild.children[1].textContent, 'Recogido: <Reliquia de prueba>');
+    } finally {
+        context.setTimeout = originalTimeout;
+    }
+    freshGame(106);
+    assert.equal(DOM.log.children.length, 1, 'La nueva expedición limpia el registro anterior');
+});
+
+test('los objetos recogidos también se descubren una sola vez en su columna', () => {
+    freshGame(107);
+    GameState.discoveredTypes.clear();
+    Renderer.resetLegend();
+    const item = { type: 'food', name: 'Ración', value: 10, symbol: '%', color: '#ffaa00' };
+    InventorySystem.pickup({ ...item }, -1, -1, -1, true);
+    InventorySystem.pickup({ ...item }, -1, -1, -1, true);
+    assert.equal(GameState.discoveredTypes.has('FOOD'), true);
+    assert.equal(elementFor('legend-items').children.length, 1);
+    assert.equal(elementFor('legend-items-count').textContent, 1);
+    assert.equal(elementFor('legend-items').firstElementChild.innerHTML.includes('%'), true);
+});
+
+test('consultar el registro con las flechas no mueve al aventurero', () => {
+    freshGame(108);
+    const before = JSON.stringify({ x: GameState.player.x, y: GameState.player.y, moves: GameState.moves });
+    keydown('ArrowDown', DOM.log);
+    assert.equal(JSON.stringify({ x: GameState.player.x, y: GameState.player.y, moves: GameState.moves }), before);
+});
+
+test('el oro recogido y el equipo comprado se añaden a los descubrimientos', () => {
+    freshGame(109);
+    GameState.discoveredTypes.clear();
+    Renderer.resetLegend();
+    GameState.entities.items = [{ x: GameState.player.x, y: GameState.player.y, type: 'GOLD', value: 10 }];
+    GameLogic.collectItemsAt(GameState.player.x, GameState.player.y);
+    assert.equal(GameState.discoveredTypes.has('GOLD'), true);
+    GameState.level = 3;
+    GameState.score = 10000;
+    const purchase = ShopSystem.getStock()[0];
+    const discovery = Renderer.itemDiscovery(purchase);
+    ShopSystem.buy(0);
+    assert.equal(GameState.discoveredTypes.has(discovery.id), true);
 });
 
 test('Enter en seed reinicia la seed y no guarda puntuación', () => {
