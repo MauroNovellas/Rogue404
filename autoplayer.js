@@ -323,6 +323,18 @@
             }
 
             if (GameState.ui.floorWarningOpen) FloorSystem.closeWarning();
+            if (GameState.current === STATE_ENUM.CHARACTER) {
+                // El laboratorio mantiene su estilo cuerpo a cuerpo; nunca deja bloqueada una simulación al subir de nivel.
+                if (GameState.player.talentPoints > 0) ProgressionSystem.choose('strength');
+                else ProgressionSystem.close();
+                AutoPlayer.lastDecision = { type: 'TALENT', talent: 'strength' };
+                return AutoPlayer.lastDecision;
+            }
+            if (GameState.current === STATE_ENUM.REWARD_CHOICE) {
+                GameLogic.chooseChestReward(GameState.ui.rewardChoice.index);
+                AutoPlayer.lastDecision = { type: 'CHOOSE_REWARD' };
+                return AutoPlayer.lastDecision;
+            }
             if (GameState.current === STATE_ENUM.CONTROLS || GameState.current === STATE_ENUM.MENU || GameState.current === STATE_ENUM.INVENTORY || GameState.current === STATE_ENUM.TARGETING) {
                 StateController.change(STATE_ENUM.PLAYING);
             }

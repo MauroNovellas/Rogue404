@@ -12,6 +12,7 @@
         <div class="ui-heading">
             <div class="game-brand">ROGUE<span>404</span><small>CRÓNICAS DE LA MAZMORRA</small></div>
             <nav class="ui-actions" aria-label="Menús de la partida">
+                <button id="character-button" type="button" onclick="openCharacter()">Personaje <span id="talent-points" class="hidden"></span> <kbd>N</kbd></button>
                 <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/6</span> <kbd>M</kbd></button>
                 <button type="button" onclick="openEquipment()">Equipo <kbd>O</kbd></button>
                 <button type="button" onclick="openBestiary()">Bestiario <kbd>B</kbd></button>
@@ -31,7 +32,7 @@
             <div class="hud-stat resource-stat"><span class="hud-label"><span class="hud-symbol water-symbol" aria-hidden="true">~</span> Agua</span><div class="resource-values"><span><span id="water-val">100</span>%</span></div><div id="water-meter" class="resource-meter" role="progressbar" aria-label="Agua" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="water-fill"></span></div></div>
             <div class="hud-stat"><span class="hud-label"><span class="hud-symbol gold-symbol" aria-hidden="true">$</span> Oro</span><span id="score">0</span></div>
             <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">!</span> Ataque</span><span><span id="atk-val">3</span> <span id="weapon-bonus">(+0)</span></span></div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">]</span> Defensa</span><span id="armor-bonus">(+0)</span></div>
+            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">]</span> Defensa</span><span><span id="def-val">0</span> <span id="armor-bonus">(+0)</span></span></div>
         </div>
         <div style="display:none">SEED: <span id="seed-val"></span></div>
     </header>
@@ -78,6 +79,7 @@
         <div class="key-row" style="text-align:left;"><span>Interactuar / Escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
         <div class="key-row"><span>Equipo y propiedades</span><span class="key-btn">O</span></div>
+        <div class="key-row"><span>Personaje y talentos</span><span class="key-btn">N</span></div>
         <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
         <div class="key-row"><span>Bestiario</span><span class="key-btn">B</span></div>
@@ -91,6 +93,8 @@
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">C</span> Esperar</span> <span>Prepara +2 daño para el próximo R/F</span></div>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>+50% DEF durante la respuesta enemiga</span></div>
         <p class="control-hint">R y F: pulsa la tecla y después elige dirección. Esc cancela.</p>
+        <div class="key-row"><span><span class="key-btn">L</span> Dardo arcano</span><span>Apréndelo con un talento; luego elige dirección</span></div>
+        <p class="control-hint">Al subir de nivel: +10 vida máxima, vida restaurada y 1 punto para elegir Fuerza, Resistencia, Velocidad o Dardo arcano. Puedes mezclar caminos o guardar puntos con N. Apuntar y consultar fichas no gastan turnos; disparar sí, incluso si fallas.</p>
         
         </div>
         <footer class="dialog-footer"><span class="muted">Esc / Enter · cerrar</span><button class="btn-primary" onclick="setGameState('PLAYING')">Jugar</button></footer>
@@ -127,8 +131,19 @@
 
     <div id="equipment-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="equipment-title" tabindex="-1">
         <header class="dialog-header"><div><span class="dialog-eyebrow">FICHA DEL AVENTURERO</span><h2 id="equipment-title">Equipo actual</h2></div><button type="button" onclick="closeEquipment()" aria-label="Cerrar equipo">×</button></header>
-        <div class="dialog-body"><div id="equipment-grid" class="equipment-grid"></div><p class="control-hint">Equipa los objetos desde la mochila. Aquí puedes consultar el arma y la armadura que llevas puestos.</p></div>
+        <div class="dialog-body"><div id="equipment-grid" class="equipment-grid"></div><p class="control-hint">Equipa los objetos desde la mochila. Aquí puedes consultar el arma y la armadura que llevas puestos.</p><button type="button" onclick="openCharacter()">Atributos y talentos <kbd>N</kbd></button></div>
         <footer class="dialog-footer"><span class="muted">O / Esc · volver</span><button type="button" onclick="closeEquipment()">Volver</button></footer>
+    </div>
+
+    <div id="character-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="character-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">CAMINOS DEL AVENTURERO</span><h2 id="character-title">Tu personaje</h2></div><button type="button" onclick="closeCharacter()" aria-label="Cerrar personaje">×</button></header>
+        <div class="dialog-body" tabindex="0" aria-label="Atributos y caminos de mejora">
+            <dl id="character-summary" class="character-summary"></dl>
+            <p id="character-points" class="character-points" role="status"></p>
+            <div id="talent-options" class="talent-grid" aria-label="Caminos de mejora"></div>
+            <p class="control-hint">Mejoras permanentes durante esta expedición, compatibles entre sí. La fuerza no tiene límite; los demás caminos indican su rango máximo. Puedes decidir más tarde sin perder puntos. Nada avanza mientras consultas esta ficha.</p>
+        </div>
+        <footer class="dialog-footer"><span class="muted">1–4 / Flechas + Enter · elegir<br>N / Esc · volver</span><button id="character-close" type="button" onclick="closeCharacter()">Volver</button></footer>
     </div>
 
     <div id="reward-choice" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Elegir recompensa" tabindex="-1">

@@ -50,6 +50,9 @@ jobs:
       - name: Interface and held movement tests
         run: node tests/interface.test.cjs
 
+      - name: Character progression and ranged combat
+        run: node tests/progression.test.cjs
+
       - name: AutoPlayer profile tests
         run: node tests/autoplayer-profiles.test.cjs
 

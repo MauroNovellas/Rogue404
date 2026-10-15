@@ -76,7 +76,13 @@ const CONFIG = {
     PLAYER: {
         startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 6,
         survival: { hungerRate: 10, thirstRate: 6, starvationDmg: 2, dehydrationDmg: 3 },
-        leveling: { baseXp: 100, xpScaling: 1.5, statGain: { hp: 10, atk: 2 } }
+        leveling: { baseXp: 100, xpScaling: 1.5, statGain: { hp: 10 } }
+    },
+    PROGRESSION: {
+        strength: { name: 'Fuerza', symbol: '!', attack: 2 },
+        resilience: { name: 'Resistencia', symbol: ']', defense: 1, maxRank: 5 },
+        speed: { name: 'Velocidad', symbol: '»', initiative: 0.15, maxRank: 3 },
+        ranged: { name: 'Dardo arcano', symbol: '*', damage: 2, baseRange: 3, maxRank: 5 }
     },
     COMBAT: {
         variability: 0.2, critChance: 0.10, critMult: 1.5, baseWeaponVal: 2, baseArmorVal: 1,
@@ -84,6 +90,7 @@ const CONFIG = {
         quick:  { dmgMult: 0.8,  var: 0.05, critBonus: 0,   label: "Rápido" },
         savage: { dmgMult: 1.4,  var: 0.40, critBonus: 0.2, label: "Salvaje" },
         area:   { dmgMult: 0.5,  cooldown: 5, label: "Barrido" },
+        ranged: { dmgMult: 1, var: 0.1, cooldown: 2, label: 'Dardo arcano' },
         wait:   { atkBonus: 2 }, // Daño extra al siguiente turno tras esperar
         defend: { defMult: 1.5 } // Multiplicador defensa
     },
@@ -131,7 +138,7 @@ const CONFIG = {
 const STATE_ENUM = {
     PLAYING: 'PLAYING', CONTROLS: 'CONTROLS', INVENTORY: 'INVENTORY',
     MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE', BESTIARY: 'BESTIARY',
-    TARGETING: 'TARGETING', EQUIPMENT: 'EQUIPMENT'
+    TARGETING: 'TARGETING', EQUIPMENT: 'EQUIPMENT', CHARACTER: 'CHARACTER'
 };
 
 const GameState = {
@@ -146,12 +153,13 @@ const GameState = {
     player: {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
         level: 1, xp: 0, nextXp: 0, baseAtk: 0,
+        talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
         inventory: [], equipment: { weapon: null, armor: null },
         stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
         combat: {
             isDefending: false,
             waitBonus: 0,
-            cooldowns: { area: 0 },
+            cooldowns: { area: 0, ranged: 0 },
             pendingAttack: null
         }
     },
@@ -167,6 +175,9 @@ const GameState = {
         bestiaryId: null,
         bestiaryReturnState: STATE_ENUM.PLAYING,
         equipmentReturnState: STATE_ENUM.PLAYING,
+        characterReturnState: STATE_ENUM.PLAYING,
+        characterIndex: 0,
+        upgradePromptPending: false,
     }
 };
 
@@ -182,6 +193,7 @@ const DOM = {
         bestiary: document.getElementById('bestiary-menu'),
         inventory: document.getElementById('inventory-menu'),
         equipment: document.getElementById('equipment-menu'),
+        character: document.getElementById('character-menu'),
         main: document.getElementById('game-menu'),
         shop: document.getElementById('shop-menu'),
         rewardChoice: document.getElementById('reward-choice'),
@@ -799,7 +811,7 @@ const MapSystem = {
             const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
             GameState.player.x = stairs.x; GameState.player.y = stairs.y;
         }
-        GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null };
+        GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null };
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
         FloorSystem.onEnter();
@@ -1130,8 +1142,94 @@ const EntityFactory = {
 };
 
 // ============================================================================
-// 7. SISTEMA DE JUEGO PRINCIPAL
+// 7. PROGRESIÓN Y SISTEMA DE JUEGO PRINCIPAL
 // ============================================================================
+const ProgressionSystem = {
+    focus: null,
+    rank: (id) => Math.max(0, Number(GameState.player.talents?.[id]) || 0),
+    defense: () => ProgressionSystem.rank('resilience') * CONFIG.PROGRESSION.resilience.defense,
+    speedMultiplier: () => 1 + ProgressionSystem.rank('speed') * CONFIG.PROGRESSION.speed.initiative,
+    rangedRange: () => ProgressionSystem.rank('ranged') > 0 ? CONFIG.PROGRESSION.ranged.baseRange + ProgressionSystem.rank('ranged') : 0,
+    rangedDamage: () => GameState.player.baseAtk + ProgressionSystem.rank('ranged') * CONFIG.PROGRESSION.ranged.damage,
+    options: () => Object.entries(CONFIG.PROGRESSION).map(([id, definition]) => {
+        const rank = ProgressionSystem.rank(id);
+        let description, effect;
+        if (id === 'strength') {
+            description = 'Aumenta el daño de todos tus ataques, incluido el dardo. Se suma a tu arma.';
+            effect = `Ataque base: ${GameState.player.baseAtk} → ${GameState.player.baseAtk + definition.attack}`;
+        } else if (id === 'resilience') {
+            description = 'Bloqueas más daño de los enemigos. Se suma a la armadura y funciona al defenderte; no protege del hambre, calor o caídas.';
+            effect = `Defensa natural: ${ProgressionSystem.defense()} → ${ProgressionSystem.defense() + definition.defense}`;
+        } else if (id === 'speed') {
+            description = 'Ganas iniciativa: actúas más a menudo que los enemigos. No cambia la velocidad del teclado ni el consumo por acción.';
+            effect = `Velocidad: ${Math.round(ProgressionSystem.speedMultiplier() * 100)}% → ${Math.round((ProgressionSystem.speedMultiplier() + definition.initiative) * 100)}%`;
+        } else {
+            description = 'Proyectil mágico en 8 direcciones, sin munición ni arma extra. Lo detienen paredes, cofres y mercaderes. Recarga: 2 acciones.';
+            effect = rank === 0
+                ? `Desbloquea [L] · alcance 4 · daño base ${ProgressionSystem.rangedDamage() + definition.damage}`
+                : `Alcance ${ProgressionSystem.rangedRange()} → ${ProgressionSystem.rangedRange() + 1} · daño base ${ProgressionSystem.rangedDamage()} → ${ProgressionSystem.rangedDamage() + definition.damage}`;
+        }
+        const capped = Boolean(definition.maxRank && rank >= definition.maxRank);
+        return { id, ...definition, rank, description, effect: capped ? 'Has alcanzado el rango máximo de este camino.' : effect, capped };
+    }),
+    gainXp: (amount) => {
+        if (!Number.isFinite(amount) || amount <= 0 || GameState.current === STATE_ENUM.GAMEOVER) return;
+        const player = GameState.player;
+        player.xp += amount;
+        let levels = 0;
+        // Un barrido o una recompensa puede conceder varios niveles: ningún punto se pierde.
+        while (player.nextXp > 0 && player.xp >= player.nextXp) {
+            player.xp -= player.nextXp;
+            player.level++;
+            player.nextXp = Math.max(player.nextXp + 1, Math.floor(player.nextXp * CONFIG.PLAYER.leveling.xpScaling));
+            player.maxHp += CONFIG.PLAYER.leveling.statGain.hp;
+            player.hp = player.maxHp;
+            player.talentPoints = (player.talentPoints || 0) + 1;
+            levels++;
+        }
+        if (levels > 0) {
+            GameState.ui.upgradePromptPending = true;
+            MovementInput.stop();
+            Utils.log(`¡Nivel ${player.level}! +${levels * CONFIG.PLAYER.leveling.statGain.hp} vida máxima. Tienes ${player.talentPoints} ${player.talentPoints === 1 ? 'punto' : 'puntos'} de talento [N].`, '#bde78a');
+        } else Utils.log(`+${amount} XP · ${player.xp}/${player.nextXp}`, '#8fff98');
+    },
+    offerUpgrade: () => {
+        if (!GameState.ui.upgradePromptPending || GameState.player.talentPoints <= 0) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY].includes(GameState.current) || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        ProgressionSystem.open();
+    },
+    open: () => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.EQUIPMENT, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
+        ProgressionSystem.focus = document.activeElement;
+        GameState.ui.characterReturnState = GameState.current;
+        GameState.ui.characterIndex = 0;
+        GameState.ui.upgradePromptPending = false;
+        if (GameState.ui.actionMenuOpen) InventorySystem.closeActionMenu();
+        StateController.change(STATE_ENUM.CHARACTER);
+    },
+    close: () => {
+        if (GameState.current !== STATE_ENUM.CHARACTER) return;
+        StateController.change(GameState.ui.characterReturnState);
+        if (ProgressionSystem.focus?.isConnected) ProgressionSystem.focus.focus();
+        ProgressionSystem.focus = null;
+    },
+    choose: (id) => {
+        if (GameState.current !== STATE_ENUM.CHARACTER || GameState.player.talentPoints <= 0) return false;
+        const option = ProgressionSystem.options().find(option => option.id === id);
+        if (!option || option.capped) return false;
+        GameState.ui.characterIndex = Object.keys(CONFIG.PROGRESSION).indexOf(id);
+        GameState.player.talents[id]++;
+        GameState.player.talentPoints--;
+        if (id === 'strength') GameState.player.baseAtk += option.attack;
+        Utils.log(`${option.name} · rango ${option.rank + 1}. ${option.effect}`, '#cfb477');
+        if (GameState.player.talentPoints === 0) ProgressionSystem.close();
+        else { UISystem.renderCharacter(); DOM.menus.character.focus(); }
+        UISystem.updateHUD();
+        return true;
+    }
+};
+
 const GameLogic = {
     init: (seedInput = null) => {
         GameState.entryMethod = 'start';
@@ -1146,6 +1244,10 @@ const GameLogic = {
         GameState.ui.bestiaryId = null;
         GameState.ui.bestiaryReturnState = STATE_ENUM.PLAYING;
         GameState.ui.equipmentReturnState = STATE_ENUM.PLAYING;
+        GameState.ui.characterReturnState = STATE_ENUM.PLAYING;
+        GameState.ui.characterIndex = 0;
+        GameState.ui.upgradePromptPending = false;
+        ProgressionSystem.focus = null;
         MovementInput.stop();
         FloorSystem.closeWarning();
         Network.isSaving = false;
@@ -1157,8 +1259,9 @@ const GameLogic = {
         GameState.player = {
             ...GameState.player, hp: pConf.startHP, maxHp: pConf.startHP, food: pConf.startFood, water: pConf.startWater,
             level: 1, xp: 0, nextXp: pConf.leveling.baseXp, baseAtk: pConf.baseAtk, inventory: [],
+            talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
             equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
-            combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
+            combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null }
         };
         GameState.persistence = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
@@ -1174,8 +1277,9 @@ const GameLogic = {
         StateController.change(STATE_ENUM.CONTROLS);
     },
     endTurn: (didAction = true) => {
-        if (!didAction || GameState.current === STATE_ENUM.GAMEOVER) return;
+        if (!didAction || [STATE_ENUM.GAMEOVER, STATE_ENUM.CHARACTER].includes(GameState.current)) return;
         if (GameState.player.combat.cooldowns.area > 0) GameState.player.combat.cooldowns.area--;
+        if (GameState.player.combat.cooldowns.ranged > 0) GameState.player.combat.cooldowns.ranged--;
 
         GameLogic.updateEnemies();
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
@@ -1188,9 +1292,11 @@ const GameLogic = {
         MapSystem.updateFog();
         Renderer.draw();
         UISystem.updateHUD();
+        // El turno se resuelve completo antes de elegir: no se interrumpe un barrido ni la respuesta enemiga.
+        ProgressionSystem.offerUpgrade();
     },
     movePlayer: async (dx, dy) => {
-        if (GameState.ui.movementLocked) return false;
+        if (GameState.ui.movementLocked || GameState.current !== STATE_ENUM.PLAYING) return false;
 
         const nx = GameState.player.x + dx;
         const ny = GameState.player.y + dy;
@@ -1322,8 +1428,8 @@ const GameLogic = {
             let dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
             if (e.isSleeping) { if (dist <= 3) { e.isSleeping = false; Utils.log(`${e.name} despierta!`, "#ff8800"); } else { if(e.hp < e.maxHp && Utils.random() < 0.1) e.hp++; return; } }
             
-            e.energy += e.speed; let actions = 0;
-            while(e.energy >= 1.0 && actions < 5) {
+            e.energy += e.speed / ProgressionSystem.speedMultiplier(); let actions = 0;
+            while(e.energy >= 1.0 - 1e-9 && actions < 5) {
                 e.energy -= 1.0; actions++;
                 dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
 
@@ -1821,19 +1927,54 @@ const GameLogic = {
 
 const CombatSystem = {
     startTargeting: (attackType) => {
-        if (!['quick', 'savage'].includes(attackType)) return;
+        if (!['quick', 'savage', 'ranged'].includes(attackType)) return;
+        if (GameState.current !== STATE_ENUM.PLAYING || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (attackType === 'ranged') {
+            if (!ProgressionSystem.rank('ranged')) { Utils.log('Aprende Dardo arcano al subir de nivel [N].', '#b4a58b'); return; }
+            const cooldown = GameState.player.combat.cooldowns.ranged || 0;
+            if (cooldown > 0) { Utils.log(`Dardo arcano recarga: faltan ${cooldown} acciones.`, '#8fcbd6'); return; }
+        }
 
         GameState.player.combat.pendingAttack = attackType;
         StateController.change(STATE_ENUM.TARGETING);
-        const label = attackType === 'quick' ? 'Rápido' : 'Salvaje';
-        Utils.log(`[${label}] Selecciona dirección...`, '#0ff');
+        const label = CONFIG.COMBAT[attackType].label;
+        Utils.log(`[${label}] Elige dirección${attackType === 'ranged' ? ` · alcance ${ProgressionSystem.rangedRange()}` : ''}. Esc cancela sin gastar turno.`, '#8fcbd6');
+        Renderer.draw();
         UISystem.updateHUD();
     },
 
+    projectileBlocked: (x, y) => GameState.map[y]?.[x] === undefined || GameState.map[y][x] === '#'
+        || GameState.entities.chests.some(chest => chest.x === x && chest.y === y)
+        || GameState.entities.shops.some(shop => shop.x === x && shop.y === y),
+
+    projectilePath: (dx, dy) => {
+        if (![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return [];
+        const path = [];
+        let x = GameState.player.x, y = GameState.player.y;
+        for (let step = 0; step < ProgressionSystem.rangedRange(); step++) {
+            // No disparar a través de esquinas cerradas ni contra objetivos ocultos por la niebla.
+            if (dx && dy && (CombatSystem.projectileBlocked(x + dx, y) || CombatSystem.projectileBlocked(x, y + dy))) break;
+            x += dx; y += dy;
+            if (CombatSystem.projectileBlocked(x, y) || !GameState.visible[y]?.[x]) break;
+            path.push({ x, y });
+            if (GameState.entities.enemies.some(enemy => enemy.x === x && enemy.y === y)) break;
+        }
+        return path;
+    },
+
+    rangedCells: () => {
+        const cells = new Set();
+        for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+            for (const cell of CombatSystem.projectilePath(dx, dy)) cells.add(`${cell.x},${cell.y}`);
+        }
+        return cells;
+    },
+
     executeAttack: (dx, dy) => {
-        StateController.change(STATE_ENUM.PLAYING);
         const type = GameState.player.combat.pendingAttack;
+        if (!['quick', 'savage', 'ranged'].includes(type) || ![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return;
         GameState.player.combat.pendingAttack = null;
+        StateController.change(STATE_ENUM.PLAYING);
         
         let tx = GameState.player.x + dx; let ty = GameState.player.y + dy;
         let enemyIdx = GameState.entities.enemies.findIndex(e => e.x === tx && e.y === ty);
@@ -1841,6 +1982,19 @@ const CombatSystem = {
         let bonusDmg = GameState.player.combat.waitBonus;
         GameState.player.combat.waitBonus = 0; 
         GameState.player.combat.isDefending = false;
+
+        if (type === 'ranged') {
+            const path = CombatSystem.projectilePath(dx, dy);
+            const last = path[path.length - 1];
+            const target = last ? GameState.entities.enemies.findIndex(enemy => enemy.x === last.x && enemy.y === last.y) : -1;
+            // El turno del disparo no cuenta como una de las dos acciones de recarga.
+            GameState.player.combat.cooldowns.ranged = CONFIG.COMBAT.ranged.cooldown + 1;
+            if (target >= 0) CombatSystem.applyDamage(target, 'ranged', bonusDmg);
+            else Utils.log('El dardo se disipa sin alcanzar un objetivo. Recarga: 2 acciones.', '#8fcbd6');
+            VisualFX.floatText(GameState.player.x, GameState.player.y, '* DARDO', '#8fcbd6');
+            GameLogic.endTurn(true);
+            return;
+        }
 
         // ATAQUES DIRECCIONALES
         if (enemyIdx === -1) {
@@ -1874,7 +2028,7 @@ const CombatSystem = {
 
         let conf = CONFIG.COMBAT[type];
         let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
-        let baseDmg = GameState.player.baseAtk + weaponVal + bonus;
+        let baseDmg = (type === 'ranged' ? ProgressionSystem.rangedDamage() : GameState.player.baseAtk + weaponVal) + bonus;
 
         baseDmg = Math.floor(baseDmg * conf.dmgMult);
 
@@ -1896,7 +2050,7 @@ const CombatSystem = {
         let dmgColor = isCrit ? "#ff00ff" : "#ffffff";
         let dmgText = isCrit ? `¡${finalDmg}!` : `${finalDmg}`;
         VisualFX.floatText(e.x, e.y, dmgText, dmgColor);
-        Utils.log(`Golpeas a ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
+        Utils.log(`${type === 'ranged' ? 'Dardo contra' : 'Golpeas a'} ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
 
         if (e.hp <= 0) {
             CombatSystem.gainXp(e.xp); GameState.score += 25;
@@ -2010,7 +2164,7 @@ const CombatSystem = {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
         const isSavageCounter = Boolean(e && e._rogueSavageCounterPending);
 
-        let armorVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
+        let armorVal = ProgressionSystem.defense() + (GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0);
         if (GameState.player.combat.isDefending) {
             armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult);
         }
@@ -2044,18 +2198,7 @@ const CombatSystem = {
         }
     },
 
-    gainXp: (amount) => {
-        GameState.player.xp += amount;
-        if (GameState.player.xp >= GameState.player.nextXp) {
-            GameState.player.level++; GameState.player.xp -= GameState.player.nextXp;
-            GameState.player.nextXp = Math.floor(GameState.player.nextXp * CONFIG.PLAYER.leveling.xpScaling);
-            GameState.player.maxHp += CONFIG.PLAYER.leveling.statGain.hp; GameState.player.hp = GameState.player.maxHp;
-            GameState.player.baseAtk += CONFIG.PLAYER.leveling.statGain.atk;
-            Utils.log(`¡NIVEL UP! Nivel ${GameState.player.level}: +${CONFIG.PLAYER.leveling.statGain.hp} HP máx. y +${CONFIG.PLAYER.leveling.statGain.atk} ATK.`, "#3f0");
-        } else {
-            Utils.log(`+${amount} XP · ${GameState.player.xp}/${GameState.player.nextXp}`, "#8fff98");
-        }
-    }
+    gainXp: (amount) => ProgressionSystem.gainXp(amount)
 };
 
 // ============================================================================
@@ -2340,6 +2483,7 @@ const Renderer = {
         }
         let html = "";
         const palette = FloorSystem.getPalette();
+        const rangedCells = GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged' ? CombatSystem.rangedCells() : new Set();
         for (let y = view.y; y < view.y + view.rows; y++) {
             for (let x = view.x; x < view.x + view.cols; x++) {
                 if (!GameState.seen[y][x]) { html += " "; continue; }
@@ -2401,7 +2545,8 @@ const Renderer = {
                     }
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
-                html += `<span style="${color}">${char}</span>`;
+                const aim = isVis && rangedCells.has(`${x},${y}`);
+                html += `<span${aim ? ' class="ranged-aim"' : ''} style="${color}">${char}</span>`;
             }
             if (y < view.y + view.rows - 1) html += "\n";
         }
@@ -2510,6 +2655,50 @@ const Renderer = {
 
 const UISystem = {
     bestiaryFocus: null,
+    renderCharacter: () => {
+        const player = GameState.player;
+        const points = player.talentPoints || 0;
+        document.getElementById('character-title').textContent = points > 0 ? `Nivel ${player.level} · elige tu camino` : `Tu personaje · nivel ${player.level}`;
+        document.getElementById('character-points').textContent = points > 0
+            ? `${points} ${points === 1 ? 'punto disponible' : 'puntos disponibles'} · cada mejora cuesta 1`
+            : 'Sin puntos pendientes. Ganas uno cada vez que subes de nivel.';
+        document.getElementById('character-close').textContent = points > 0 ? 'Decidir luego' : 'Volver';
+        const armor = Number(player.equipment.armor?.value) || 0;
+        const weapon = Number(player.equipment.weapon?.value) || 0;
+        const stats = [
+            ['Vida máxima', String(player.maxHp)],
+            ['Ataque cuerpo a cuerpo', `${player.baseAtk + weapon} (${player.baseAtk} + ${weapon} arma)`],
+            ['Defensa total', `${ProgressionSystem.defense() + armor} (${ProgressionSystem.defense()} + ${armor} armadura)`],
+            ['Velocidad', `${Math.round(ProgressionSystem.speedMultiplier() * 100)}%`],
+            ['Dardo arcano', ProgressionSystem.rank('ranged') > 0 ? `${ProgressionSystem.rangedDamage()} daño base · ${ProgressionSystem.rangedRange()} casillas` : 'Sin aprender']
+        ];
+        const summary = document.getElementById('character-summary'); summary.innerHTML = '';
+        for (const [label, value] of stats) {
+            const row = document.createElement('div');
+            const term = document.createElement('dt'); term.textContent = label;
+            const detail = document.createElement('dd'); detail.textContent = value;
+            row.appendChild(term); row.appendChild(detail); summary.appendChild(row);
+        }
+        const grid = document.getElementById('talent-options'); grid.innerHTML = '';
+        ProgressionSystem.options().forEach((option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button'; button.className = `talent-option${index === GameState.ui.characterIndex ? ' selected' : ''}`;
+            button.disabled = points <= 0 || option.capped;
+            button.dataset.talent = option.id;
+            button.setAttribute('aria-label', `${option.name}, rango ${option.rank}${option.maxRank ? ` de ${option.maxRank}` : ''}. ${option.effect}`);
+            const heading = document.createElement('span'); heading.className = 'talent-heading';
+            const name = document.createElement('span'); name.className = 'talent-name'; name.textContent = `${option.symbol} ${option.name}`;
+            const rank = document.createElement('span'); rank.className = 'talent-rank'; rank.textContent = `Rango ${option.rank}${option.maxRank ? `/${option.maxRank}` : ''}`;
+            heading.appendChild(name); heading.appendChild(rank);
+            const copy = document.createElement('span'); copy.className = 'talent-description'; copy.textContent = option.description;
+            const effect = document.createElement('span'); effect.className = 'talent-effect'; effect.textContent = option.effect;
+            const action = document.createElement('span'); action.className = 'talent-action';
+            action.textContent = option.capped ? 'Máximo alcanzado' : points > 0 ? `[${index + 1}] ${option.id === 'ranged' && option.rank === 0 ? 'Aprender' : 'Mejorar'} · 1 punto` : 'Necesitas un punto';
+            button.appendChild(heading); button.appendChild(copy); button.appendChild(effect); button.appendChild(action);
+            button.onclick = () => ProgressionSystem.choose(option.id);
+            grid.appendChild(button);
+        });
+    },
     equipmentFocus: null,
     openEquipment: () => {
         if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
@@ -2531,7 +2720,7 @@ const UISystem = {
         const value = item ? Number(item.value) || 0 : 0;
         const properties = weapon
             ? [['Ataque del arma', `+${value}`], ['Ataque base + arma', String(GameState.player.baseAtk + value)]]
-            : [['Defensa', `+${value}`]];
+            : [['Defensa', `+${value}`], ['Defensa natural + armadura', String(ProgressionSystem.defense() + value)]];
         const traits = item && item.traits ? item.traits : {};
         const percentages = [
             ['slipResist', 'Resistencia a resbalones'],
@@ -2680,6 +2869,11 @@ const UISystem = {
         if (xpText) xpText.innerText = `${GameState.player.xp} / ${GameState.player.nextXp} XP`;
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
         document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
+        document.getElementById('def-val').textContent = String(ProgressionSystem.defense());
+        const talentBadge = document.getElementById('talent-points');
+        talentBadge.textContent = GameState.player.talentPoints > 0 ? `+${GameState.player.talentPoints}` : '';
+        talentBadge.className = GameState.player.talentPoints > 0 ? 'talent-badge' : 'hidden';
+        document.getElementById('character-button').title = GameState.player.talentPoints > 0 ? `${GameState.player.talentPoints} punto(s) para mejorar tu personaje` : 'Consultar atributos y talentos';
         if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
         UISystem.updateResourceMeters();
         UISystem.renderEquipmentPreview();
@@ -2710,13 +2904,17 @@ const UISystem = {
         );
         if (primedTroll) parts.push('<span style="color:#ff8c00">RUGIDO · APLASTAR INMINENTE</span>');
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
-            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
+            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', ranged: `DARDO · ${ProgressionSystem.rangedRange()} CASILLAS` };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
             parts.push(`<span style="color:#00ffff">${label} · ELIGE DIRECCIÓN</span>`);
         }
         if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
         if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
         if (GameState.player.combat.cooldowns.area > 0) parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
+        if (ProgressionSystem.rank('ranged') > 0) {
+            const cooldown = GameState.player.combat.cooldowns.ranged || 0;
+            parts.push(`<button type="button" onclick="startRangedAttack()"${cooldown || GameState.current !== STATE_ENUM.PLAYING ? ' disabled' : ''}>* Dardo [L] · ${cooldown > 0 ? `recarga ${cooldown}` : `listo · ${ProgressionSystem.rangedRange()} casillas`}</button>`);
+        }
         DOM.combatStatus.innerHTML = parts.join('');
     },
     renderInventory: () => {
@@ -2820,6 +3018,7 @@ const StateController = {
             case STATE_ENUM.BESTIARY: DOM.menus.bestiary.classList.remove('hidden'); UISystem.renderBestiary(); break;
             case STATE_ENUM.INVENTORY: DOM.menus.inventory.classList.remove('hidden'); UISystem.renderInventory(); break;
             case STATE_ENUM.EQUIPMENT: DOM.menus.equipment.classList.remove('hidden'); UISystem.renderEquipment(); break;
+            case STATE_ENUM.CHARACTER: DOM.menus.character.classList.remove('hidden'); UISystem.renderCharacter(); break;
             case STATE_ENUM.MENU: DOM.menus.main.classList.remove('hidden'); document.getElementById('menu-seed-display').innerText = GameState.seed; Network.fetchScores('menu-leaderboard'); break;
             case STATE_ENUM.SHOP: DOM.menus.shop.classList.remove('hidden'); break;
             case STATE_ENUM.REWARD_CHOICE: DOM.menus.rewardChoice.classList.remove('hidden'); UISystem.renderRewardChoice(); break;
@@ -2882,6 +3081,32 @@ document.addEventListener('keydown', (e) => {
     if (e.target && ['BUTTON', 'SUMMARY'].includes(e.target.tagName) && ['enter', ' '].includes(key)) return;
     if (e.target === DOM.log && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'pageup', 'pagedown', 'home', 'end'].includes(key)) return;
 
+    if (GameState.current === STATE_ENUM.CHARACTER) {
+        if (!['n', 'escape', '1', '2', '3', '4', 'enter', ' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) return;
+        e.preventDefault();
+        if (['n', 'escape'].includes(key)) ProgressionSystem.close();
+        else if (['1', '2', '3', '4'].includes(key)) ProgressionSystem.choose(ProgressionSystem.options()[Number(key) - 1].id);
+        else if (['enter', ' '].includes(key)) ProgressionSystem.choose(ProgressionSystem.options()[GameState.ui.characterIndex].id);
+        else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
+            const direction = ['arrowup', 'arrowleft', 'w', 'a'].includes(key) ? -1 : 1;
+            const options = ProgressionSystem.options();
+            let index = GameState.ui.characterIndex;
+            for (let i = 0; i < options.length; i++) {
+                index = (index + direction + options.length) % options.length;
+                if (!options[index].capped) break;
+            }
+            GameState.ui.characterIndex = index;
+            UISystem.renderCharacter();
+            const card = document.getElementById('talent-options').children[index];
+            if (card && !card.disabled) card.focus();
+            else if (card && typeof card.scrollIntoView === 'function') card.scrollIntoView({ block: 'nearest' });
+        }
+        return;
+    }
+    if (key === 'n' && [STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.EQUIPMENT, STATE_ENUM.MENU, STATE_ENUM.CONTROLS].includes(GameState.current)) {
+        e.preventDefault(); ProgressionSystem.open(); return;
+    }
+
     if (GameState.current === STATE_ENUM.EQUIPMENT) {
         if (['o', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeEquipment(); }
         return;
@@ -2923,6 +3148,7 @@ document.addEventListener('keydown', (e) => {
         else if (key === ' ') GameLogic.interactAction();
         else if (key === 'r') CombatSystem.startTargeting('quick');
         else if (key === 'f') CombatSystem.startTargeting('savage');
+        else if (key === 'l') { e.preventDefault(); CombatSystem.startTargeting('ranged'); }
         else if (key === 't') { e.preventDefault(); CombatSystem.performAreaAttack(); }
         else if (key === 'c') CombatSystem.performWait();
         else if (key === 'v') CombatSystem.performDefend();
@@ -2932,10 +3158,11 @@ document.addEventListener('keydown', (e) => {
         }
     }
     else if (GameState.current === STATE_ENUM.TARGETING) {
-        if (key === 'escape' || key === 'r' || key === 'f') {
+        if (key === 'escape' || key === 'r' || key === 'f' || (key === 'l' && GameState.player.combat.pendingAttack === 'ranged')) {
+            GameState.player.combat.pendingAttack = null;
             StateController.change(STATE_ENUM.PLAYING);
             Utils.log('Ataque cancelado.', '#aaa');
-            GameState.player.combat.pendingAttack = null;
+            Renderer.draw();
         } else {
             let dx = 0, dy = 0;
             if (['w','arrowup','k'].includes(key)) dy = -1;
@@ -2999,6 +3226,9 @@ window.closeBestiary = () => UISystem.closeBestiary();
 window.openInventory = () => UISystem.openPanel(STATE_ENUM.INVENTORY);
 window.openEquipment = () => UISystem.openEquipment();
 window.closeEquipment = () => UISystem.closeEquipment();
+window.openCharacter = () => ProgressionSystem.open();
+window.closeCharacter = () => ProgressionSystem.close();
+window.startRangedAttack = () => CombatSystem.startTargeting('ranged');
 window.closeInventory = () => {
     if (GameState.current !== STATE_ENUM.INVENTORY) return;
     InventorySystem.closeActionMenu();

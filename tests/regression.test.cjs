@@ -21,6 +21,7 @@ class FakeElement {
         this.id = id;
         this.classList = new FakeClassList();
         this.style = {};
+        this.dataset = {};
         this.children = [];
         this.parentNode = null;
         this.innerHTML = '';
@@ -47,6 +48,7 @@ class FakeElement {
         this.parentNode = null;
     }
     focus() {}
+    setAttribute(name, value) { this[name] = value; }
     get innerHTML() { return this._innerHTML || ''; }
     set innerHTML(value) {
         this.children.forEach(child => { child.parentNode = null; });
@@ -86,7 +88,9 @@ const context = {
     document,
     alert: () => {},
     confirm: () => confirmAnswer,
-    setTimeout: () => 1,
+    // Resolver solo las animaciones: ignorar sus callbacks hacía terminar Node
+    // con éxito antes de completar las pruebas asíncronas de caída.
+    setTimeout: (fn, delay) => { if (delay === 90 || delay === 180) fn(); return 1; },
     clearTimeout: () => {},
     fetch: async (url, options = {}) => {
         fetchCalls.push({ url, options });
@@ -1520,7 +1524,7 @@ test('AutoPlayer no calcula rutas hacia casillas que todavía no ha visto', () =
     GameState.seen[1][3] = true;
     AutoPlayer.reset({ goalDepth: 3 });
 
-    assert.deepEqual(AutoPlayer.findPathToTargets([{ x: 3, y: 1 }]).map(pos => [pos.x, pos.y]), [[2, 1], [3, 1]]);
+    assert.deepEqual(Array.from(AutoPlayer.findPathToTargets([{ x: 3, y: 1 }]), pos => [pos.x, pos.y]), [[2, 1], [3, 1]]);
     assert.equal(AutoPlayer.findPathToTargets([{ x: 4, y: 1 }]), null);
 });
 
@@ -1553,6 +1557,7 @@ test('AutoSimulation puede completar una expedición objetivo de profundidad 1 s
 
 (async () => {
     let passed = 0;
+    const watchdog = setTimeout(() => { console.error('La suite no ha completado sus pruebas asíncronas.'); process.exit(1); }, 30000);
     for (const { name, fn } of tests) {
         try {
             await fn();
@@ -1566,6 +1571,7 @@ test('AutoSimulation puede completar una expedición objetivo de profundidad 1 s
         }
     }
 
+    clearTimeout(watchdog);
     if (!process.exitCode) {
         console.log(`\n${passed}/${tests.length} pruebas superadas.`);
     }

@@ -34,7 +34,7 @@
     };
 
     document.addEventListener('keydown', (event) => {
-        if (event.repeat || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (event.defaultPrevented || event.repeat || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
         if (GameState.current !== STATE_ENUM.PLAYING) return;
         if (event.target && event.target.tagName === 'INPUT') return;
         if (!['3', '6', '9'].includes(event.key)) return;

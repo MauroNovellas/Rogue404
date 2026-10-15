@@ -266,6 +266,7 @@
 
     const runEscapeStep = async () => {
         ensureNavigationMemory();
+        if (GameState.current !== STATE_ENUM.PLAYING) return null;
         if (!AutoPlayer.memory || !AutoPlayer.memory.escapeTarget) return null;
 
         let attempts = 0;

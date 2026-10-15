@@ -171,6 +171,9 @@ h3 { margin: 18px 0 10px; font: 500 1.05rem Georgia, 'Times New Roman', serif; }
 #combat-status { display: flex; flex-wrap: wrap; gap: 5px; font-size: 0.62rem; line-height: 1.4; }
 #combat-status:empty { display: none; }
 #combat-status span { display: inline-block; padding: 3px 6px; background: #211c13; border: 1px solid var(--line); }
+#combat-status button { padding: 3px 6px; font-size: inherit; color: #8fcbd6; }
+.ranged-aim { background: #163039; box-shadow: inset 0 -2px #71b2c2; }
+.talent-badge { color: #19160f; background: #cfb477; padding: 1px 4px; font-weight: bold; }
 #weapon-bonus { color: var(--muted); }
 .legend-item { display: flex; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px dashed #3e3324; }
 button.legend-item { width: 100%; border: 0; border-bottom: 1px dashed #3e3324; border-radius: 0; background: transparent; text-align: left; font-size: 0.75rem; }
@@ -284,6 +287,24 @@ tr:last-child td { border-bottom: 0; }
 .gear-properties > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; border-top: 1px dashed var(--line); padding: 8px 0; }
 .gear-properties dt { color: var(--muted); }
 .gear-properties dd { margin: 0; color: var(--text); text-align: right; }
+#character-menu { width: min(900px, calc(100vw - 32px)); }
+.character-summary { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0 0 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.character-summary > div { display: flex; flex-direction: column; gap: 5px; }
+.character-summary dt { color: var(--muted); font-size: 0.66rem; }
+.character-summary dd { margin: 0; color: var(--text); font-size: 0.78rem; }
+.character-points { font-size: 0.8rem; color: #d9c08b; line-height: 1.5; }
+.talent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.talent-option { min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px; text-align: left; background: #211b12; }
+.talent-option.selected:not(:disabled) { border-color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
+.talent-option:disabled { opacity: 1; cursor: default; border-color: var(--line); }
+.talent-option:disabled:hover { background: #211b12; border-color: var(--line); }
+.talent-option:disabled .talent-action { color: var(--muted); }
+.talent-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
+.talent-name { color: var(--accent); font: 500 1.06rem Georgia, serif; }
+.talent-rank { color: var(--muted); font-size: 0.65rem; }
+.talent-description { color: var(--muted); font-size: 0.73rem; line-height: 1.6; flex: 1; }
+.talent-effect { color: var(--text); font-size: 0.76rem; line-height: 1.5; }
+.talent-action { padding-top: 10px; border-top: 1px dashed var(--line); color: #d6c184; font-size: 0.7rem; }
 .equip-active { color: var(--text); }
 .inv-help { font-size: 0.7rem; color: var(--muted); text-align: center; line-height: 1.7; }
 #action-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(240px, calc(100% - 24px)); z-index: 100; background: #211b12; border: 3px double var(--accent); border-radius: 0; overflow: hidden; box-shadow: 0 10px 45px #000; }
@@ -367,6 +388,9 @@ tr:last-child td { border-bottom: 0; }
     #left-rail { grid-template-columns: minmax(0, 1fr); }
     #equipment-preview { display: none; }
     .equipment-grid { grid-template-columns: minmax(0, 1fr); }
+    .talent-grid { grid-template-columns: minmax(0, 1fr); }
+    .talent-option { padding: 12px; }
+    .character-summary { gap: 10px 16px; }
     .gear-portrait { padding: 12px 0; }
     .gear-portrait .legend-symbol { font-size: 2rem; }
     .resource-values { font-size: 0.7rem; }

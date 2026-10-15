@@ -84,10 +84,12 @@ const player = {
 
 const context = {
     console,
+    STATE_ENUM: { PLAYING: 'PLAYING' },
     window: { AutoPlayer: player },
     AutoPlayer: player,
     CONFIG: { GRID: { cols, rows } },
     GameState: {
+        current: 'PLAYING',
         level: 1,
         seen: seen(),
         player: { x: 1, y: 1 }
