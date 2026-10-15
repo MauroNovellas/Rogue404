@@ -2,6 +2,10 @@
 
 Abre **Mochila [M]**, selecciona un objeto y consulta su ficha. Con **Acciones [Enter]** puedes consumirlo, equiparlo o tirarlo. Leer fichas no pasa el turno. Usar, invocar, equipar, quitar o tirar sí permite responder a los enemigos y avanza el hambre y la sed.
 
+Para comparar antes de recoger, pulsa **G**, usa el botón **Inspeccionar** o haz clic en un objeto visible del mapa. La ficha compara sus valores y propiedades con lo equipado sin gastar turno ni ocupar mochila. No muestra objetos ocultos por la niebla.
+
+Desde la misma casilla o una adyacente libre puedes **recoger** si hay un hueco, o **equipar e intercambiar** incluso con la mochila llena. La pieza anterior queda en esa casilla del suelo, recuperable; la mochila no cambia. Recoger o equipar cuesta exactamente un turno. Esc/G cierra sin actuar. Los hallazgos nuevos aparecen arriba de las columnas de objetos y criaturas.
+
 ## Reliquias: objetos consumibles, no equipo
 
 Todas se gastan al invocarlas. La ficha y el menú de acciones muestran el efecto, el coste, la duración y cualquier impedimento. Si no puedes pagar el coste o el efecto sería inútil, no se pierde el objeto ni pasa el turno. También puedes venderlas por 40 de oro.

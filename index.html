@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Dungeon Not Found</title>
-    <link rel="stylesheet" href="/404/style.css?v=balance-1">
+    <link rel="stylesheet" href="/404/style.css?v=ground-inspection-1">
 </head>
 <body>
 
@@ -14,6 +14,7 @@
             <nav class="ui-actions" aria-label="Menús de la partida">
                 <button id="character-button" type="button" onclick="openCharacter()">Personaje <span id="talent-points" class="hidden"></span> <kbd>N</kbd></button>
                 <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/8</span> <kbd>M</kbd></button>
+                <button type="button" onclick="inspectGround()">Inspeccionar <kbd>G</kbd></button>
                 <button type="button" onclick="openEquipment()">Equipo <kbd>O</kbd></button>
                 <button type="button" onclick="openBestiary()">Bestiario <kbd>B</kbd></button>
                 <button type="button" onclick="openControls()">Ayuda <kbd>I</kbd></button>
@@ -26,13 +27,13 @@
                 <div class="xp-meter" aria-label="Experiencia"><span id="xp-fill"></span></div>
                 <span id="xp-text" class="xp-text">0 / 100 XP</span>
             </div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">&gt;</span> Profundidad</span><span id="dungeon-lvl">-1</span></div>
-            <div class="hud-stat resource-stat hud-health"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">♥</span> Vida</span><div class="resource-values"><span id="hp-val">100/100</span><span id="hp-percent">100%</span></div><div id="hp-meter" class="resource-meter" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="hp-fill"></span></div></div>
-            <div class="hud-stat resource-stat"><span class="hud-label"><span class="hud-symbol food-symbol" aria-hidden="true">%</span> Comida</span><div class="resource-values"><span><span id="food-val">100</span>%</span></div><div id="food-meter" class="resource-meter" role="progressbar" aria-label="Comida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="food-fill"></span></div></div>
-            <div class="hud-stat resource-stat"><span class="hud-label"><span class="hud-symbol water-symbol" aria-hidden="true">~</span> Agua</span><div class="resource-values"><span><span id="water-val">100</span>%</span></div><div id="water-meter" class="resource-meter" role="progressbar" aria-label="Agua" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="water-fill"></span></div></div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol gold-symbol" aria-hidden="true">$</span> Oro</span><span id="score">0</span></div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">!</span> Ataque</span><span><span id="atk-val">3</span> <span id="weapon-bonus">(+0)</span></span></div>
-            <div class="hud-stat"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">]</span> Defensa</span><span><span id="def-val">0</span> <span id="armor-bonus">(+0)</span></span></div>
+            <div class="hud-stat hud-depth"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">&gt;</span> Profundidad</span><span id="dungeon-lvl">-1</span></div>
+            <div class="hud-stat resource-stat hud-health"><div class="resource-heading"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">♥</span> Vida</span><span id="hp-percent" class="resource-percent">100%</span></div><div id="hp-meter" class="resource-meter" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="hp-fill"></span></div><span id="hp-val" class="resource-amount">100/100</span></div>
+            <div class="hud-stat resource-stat hud-food"><div class="resource-heading"><span class="hud-label"><span class="hud-symbol food-symbol" aria-hidden="true">%</span> Comida</span><span class="resource-percent"><span id="food-val">100</span>%</span></div><div id="food-meter" class="resource-meter" role="progressbar" aria-label="Comida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="food-fill"></span></div></div>
+            <div class="hud-stat resource-stat hud-water"><div class="resource-heading"><span class="hud-label"><span class="hud-symbol water-symbol" aria-hidden="true">~</span> Agua</span><span class="resource-percent"><span id="water-val">100</span>%</span></div><div id="water-meter" class="resource-meter" role="progressbar" aria-label="Agua" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="water-fill"></span></div></div>
+            <div class="hud-stat hud-gold"><span class="hud-label"><span class="hud-symbol gold-symbol" aria-hidden="true">$</span> Oro</span><span id="score">0</span></div>
+            <div class="hud-stat hud-attack"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">!</span> Ataque</span><span><span id="atk-val">3</span> <span id="weapon-bonus">(+0)</span></span></div>
+            <div class="hud-stat hud-defense"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">]</span> Defensa</span><span><span id="def-val">0</span> <span id="armor-bonus">(+0)</span></span></div>
         </div>
         <div style="display:none">SEED: <span id="seed-val"></span></div>
     </header>
@@ -45,7 +46,7 @@
                 <div id="legend-monsters" class="legend-panel"><p class="legend-empty">Las criaturas aparecerán al descubrirlas.</p></div>
             </section>
             <section class="discovery-column" aria-labelledby="items-title">
-                <header class="column-heading"><span class="column-kicker">II · HALLAZGOS</span><h2 id="items-title">Objetos</h2><span id="legend-items-count" class="discovery-count">0</span><p>Símbolos y objetos que has encontrado.</p></header>
+                <header class="column-heading"><span class="column-kicker">II · HALLAZGOS</span><h2 id="items-title">Objetos</h2><span id="legend-items-count" class="discovery-count">0</span><p>Nuevos arriba · G inspecciona el suelo.</p></header>
                 <div id="legend-items" class="legend-panel"><p class="legend-empty">Explora para registrar nuevos hallazgos.</p></div>
             </section>
             </div>
@@ -79,12 +80,14 @@
         <div class="key-row" style="text-align:left;"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Interactuar / Escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
+        <div class="key-row"><span>Inspeccionar objetos del suelo</span><span><span class="key-btn">G</span> o clic en el objeto</span></div>
         <div class="key-row"><span>Equipo y propiedades</span><span class="key-btn">O</span></div>
         <div class="key-row"><span>Personaje y talentos</span><span class="key-btn">N</span></div>
         <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
         <div class="key-row"><span>Bestiario</span><span class="key-btn">B</span></div>
         <p class="control-hint">Mantén una tecla de movimiento para seguir avanzando. Suéltala para detenerte.</p>
+        <p class="control-hint">Inspeccionar y comparar no gasta turnos. Desde la misma casilla o una adyacente puedes recoger o equipar en un turno. Al equipar desde el suelo, la pieza anterior queda allí: no necesitas huecos libres.</p>
 
         <h3>Combate</h3>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span>Golpe normal</span> <span>Mover contra enemigo</span></div>
@@ -152,6 +155,12 @@
         <footer class="dialog-footer"><span class="muted">1–4 / Flechas + Enter · elegir<br>N / Esc · volver</span><button id="character-close" type="button" onclick="closeCharacter()">Volver</button></footer>
     </div>
 
+    <div id="ground-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="ground-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">OBJETOS DEL SUELO</span><h2 id="ground-title">Inspeccionar y comparar</h2></div><button type="button" onclick="closeGroundInspection()" aria-label="Cerrar inspección">×</button></header>
+        <div class="dialog-body"><p class="control-hint ground-hint">Solo objetos visibles · consultar no consume turnos.</p><div id="ground-list" aria-label="Objetos visibles"></div><section id="ground-detail" class="item-detail" aria-live="polite" aria-label="Propiedades y comparación"></section><p id="ground-status" class="control-hint"></p><div id="ground-actions" class="ground-actions"></div></div>
+        <footer class="dialog-footer"><span class="muted">Flechas · elegir &nbsp; G / Esc · volver</span><button type="button" onclick="closeGroundInspection()">Volver</button></footer>
+    </div>
+
     <div id="reward-choice" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Elegir recompensa" tabindex="-1">
         <header class="dialog-header"><div><span class="dialog-eyebrow">COFRE ABIERTO</span><h2>Elige una recompensa</h2></div></header>
         <div class="dialog-body"><div id="reward-choice-options"></div><p class="control-hint">Si no cabe en la mochila, el premio queda en el suelo. Puedes aplazar la elección: el cofre se marcará con ? y conservará estas mismas opciones.</p></div>
@@ -209,7 +218,7 @@
         <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
     </div>
 
-    <script src="/404/game.js?v=balance-1"></script>
+    <script src="/404/game.js?v=ground-inspection-1"></script>
     <script src="/404/dev-tools.js?v=targeting-scores-2"></script>
     <script src="/404/autoplayer.js?v=balance-1"></script>
     <script src="/404/autoplayer-profiles.js?v=relics-accessories-3"></script>

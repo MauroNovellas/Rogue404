@@ -13,12 +13,15 @@ module.exports = function harness({ renderInventory = false } = {}) {
     const element = (tagName = 'DIV') => {
         const classes = new Set();
         return {
-            tagName: tagName.toUpperCase(), style: {}, dataset: {}, children: [], isConnected: true, textContent: '',
+            tagName: tagName.toUpperCase(), style: {}, dataset: {}, children: [], isConnected: true,
+            get textContent() { return (this._text || '') + this.children.map(child => child.textContent || '').join(''); },
+            set textContent(value) { this._text = String(value); this.children = []; },
             classList: { add: (...names) => names.forEach(name => classes.add(name)), remove: (...names) => names.forEach(name => classes.delete(name)), contains: name => classes.has(name) },
             appendChild(child) { child.parentNode = this; child.isConnected = true; this.children.push(child); return child; },
+            prepend(child) { child.parentNode = this; child.isConnected = true; this.children.unshift(child); },
             remove() { if (this.parentNode) this.parentNode.children.splice(this.parentNode.children.indexOf(this), 1); this.isConnected = false; },
             get innerHTML() { return this._html || ''; },
-            set innerHTML(value) { this._html = value; this.children.forEach(child => { child.isConnected = false; }); this.children = []; },
+            set innerHTML(value) { this._html = value; this._text = ''; this.children.forEach(child => { child.isConnected = false; }); this.children = []; },
             get firstElementChild() { return this.children[0] || null; },
             get lastElementChild() { return this.children[this.children.length - 1] || null; },
             setAttribute(name, value) { this[name] = value; },
@@ -46,7 +49,7 @@ module.exports = function harness({ renderInventory = false } = {}) {
     };
     context.window = context;
     vm.createContext(context);
-    vm.runInContext(`${source}\n;globalThis.core = { CONFIG, GameState, STATE_ENUM, DOM, MovementInput, ProgressionSystem, BalanceSystem, EquipmentSystem, EntityFactory, ShopSystem, CombatSystem, GameLogic, MapSystem, FloorSystem, Renderer, UISystem, StateController, Utils, InventorySystem, Network };`, context);
+    vm.runInContext(`${source}\n;globalThis.core = { CONFIG, GameState, STATE_ENUM, DOM, MovementInput, ProgressionSystem, BalanceSystem, EquipmentSystem, EntityFactory, ShopSystem, CombatSystem, GameLogic, MapSystem, FloorSystem, Renderer, UISystem, StateController, Utils, InventorySystem, GroundSystem, Network };`, context);
     const core = context.core;
     core.GameState.current = core.STATE_ENUM.PLAYING;
     Object.assign(core.GameState.player, { hp: 100, maxHp: 100, food: 100, water: 100, baseAtk: 3, x: 20, y: 12, xp: 0, nextXp: 100 });

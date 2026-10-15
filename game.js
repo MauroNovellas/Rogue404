@@ -153,7 +153,7 @@ const CONFIG = {
 const STATE_ENUM = {
     PLAYING: 'PLAYING', CONTROLS: 'CONTROLS', INVENTORY: 'INVENTORY',
     MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE', BESTIARY: 'BESTIARY',
-    TARGETING: 'TARGETING', EQUIPMENT: 'EQUIPMENT', CHARACTER: 'CHARACTER'
+    TARGETING: 'TARGETING', EQUIPMENT: 'EQUIPMENT', CHARACTER: 'CHARACTER', INSPECT: 'INSPECT'
 };
 
 const GameState = {
@@ -196,6 +196,8 @@ const GameState = {
         characterIndex: 0,
         upgradePromptPending: false,
         rangedTarget: null,
+        groundItem: null,
+        groundReturnState: STATE_ENUM.PLAYING,
     }
 };
 
@@ -210,6 +212,7 @@ const DOM = {
         controls: document.getElementById('controls-menu'),
         bestiary: document.getElementById('bestiary-menu'),
         inventory: document.getElementById('inventory-menu'),
+        ground: document.getElementById('ground-menu'),
         equipment: document.getElementById('equipment-menu'),
         character: document.getElementById('character-menu'),
         main: document.getElementById('game-menu'),
@@ -1432,6 +1435,8 @@ const GameLogic = {
         ProgressionSystem.focus = null;
         GameState.ui.rangedTarget = null;
         GameState.ui.testMode = false;
+        GameState.ui.groundItem = null;
+        GameState.ui.groundReturnState = STATE_ENUM.PLAYING;
         GameState.runId = typeof window.crypto?.randomUUID === 'function' ? window.crypto.randomUUID() : `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         MovementInput.stop();
         FloorSystem.closeWarning();
@@ -2445,7 +2450,7 @@ const InventorySystem = {
     },
     pickup: (item, arrIndex, x, y, forced = false) => {
         if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) {
-            Utils.log('¡Mochila llena!', '#f00');
+            Utils.log('Mochila llena · G o clic en el objeto para comparar y equipar desde el suelo.', '#d7a56d');
             return;
         }
 
@@ -2576,6 +2581,65 @@ const InventorySystem = {
         DOM.menus.action.focus();
     },
     closeActionMenu: () => { GameState.ui.actionMenuOpen = false; DOM.menus.action.classList.add('hidden'); UISystem.renderInventory(); DOM.menus.inventory.focus(); }
+};
+
+// Consultar nunca altera el mundo. Recoger/equipar exige alcance y una respuesta real.
+const GroundSystem = {
+    visibleItems: () => GameState.entities.items.filter(item => item.type !== 'GOLD' && GameState.visible[item.y]?.[item.x])
+        .sort((a, b) => GroundSystem.distance(a) - GroundSystem.distance(b) || a.y - b.y || a.x - b.x),
+    distance: (item) => Math.max(Math.abs(item.x - GameState.player.x), Math.abs(item.y - GameState.player.y)),
+    canReach: (item) => {
+        if (!item || !GroundSystem.visibleItems().includes(item) || GroundSystem.distance(item) > 1) return false;
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen || MapSystem.isBlocked(item.x, item.y) || FloorSystem.isHole(item.x, item.y)) return false;
+        if (CombatSystem.projectileBlocked(item.x, item.y) || GameState.entities.enemies.some(enemy => enemy.x === item.x && enemy.y === item.y)) return false;
+        const dx = item.x - GameState.player.x, dy = item.y - GameState.player.y;
+        if (dx && dy && (CombatSystem.projectileBlocked(item.x, GameState.player.y) || CombatSystem.projectileBlocked(GameState.player.x, item.y))) return false;
+        return true;
+    },
+    open: (item = null) => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return false;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.INSPECT].includes(GameState.current)) return false;
+        const items = GroundSystem.visibleItems();
+        if (item && !items.includes(item)) return false;
+        if (GameState.current !== STATE_ENUM.INSPECT) GameState.ui.groundReturnState = GameState.current;
+        GameState.ui.groundItem = item || items[0] || null;
+        StateController.change(STATE_ENUM.INSPECT);
+        return true;
+    },
+    close: (afterAction = false) => {
+        if (GameState.current !== STATE_ENUM.INSPECT) return;
+        GameState.ui.groundItem = null;
+        StateController.change(afterAction ? STATE_ENUM.PLAYING : GameState.ui.groundReturnState);
+    },
+    select: (step) => {
+        const items = GroundSystem.visibleItems();
+        const index = Math.max(0, items.indexOf(GameState.ui.groundItem));
+        GameState.ui.groundItem = items[Math.max(0, Math.min(items.length - 1, index + step))] || null;
+        UISystem.renderGround();
+    },
+    pickup: () => {
+        const item = GameState.ui.groundItem;
+        if (GameState.current !== STATE_ENUM.INSPECT || !GroundSystem.canReach(item) || GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) return false;
+        InventorySystem.pickup(item, GameState.entities.items.indexOf(item), item.x, item.y);
+        GroundSystem.close(true); GameLogic.endTurn(true);
+        return true;
+    },
+    equip: () => {
+        const item = GameState.ui.groundItem;
+        if (GameState.current !== STATE_ENUM.INSPECT || !GroundSystem.canReach(item) || !EquipmentSystem.isEquipment(item)) return false;
+        const old = GameState.player.equipment[item.type];
+        GameState.entities.items.splice(GameState.entities.items.indexOf(item), 1);
+        MapSystem.markTaken(item.x, item.y); FloorSystem.removeRecoveryDrop(item.recoveryDropId);
+        GameState.player.equipment[item.type] = item;
+        if (old) FloorSystem.storeDrop(old, item);
+        const statKey = item.type === 'weapon' ? 'maxWeapon' : item.type === 'armor' ? 'maxArmor' : null;
+        if (statKey && item.value > GameState.player.stats[statKey].val) GameState.player.stats[statKey] = { name: item.name, val: item.value };
+        const discovery = Renderer.itemDiscovery(item);
+        if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
+        Utils.log(`Equipas ${item.name} desde el suelo.${old ? ` ${old.name} queda allí, recuperable.` : ''}`, item.color || '#cfb477');
+        GroundSystem.close(true); GameLogic.endTurn(true);
+        return true;
+    }
 };
 
 const ShopSystem = {
@@ -2810,7 +2874,9 @@ const Renderer = {
                 }
                 const aim = isVis && rangedCells.has(`${x},${y}`);
                 const selected = aim && x === GameState.ui.rangedTarget?.x && y === GameState.ui.rangedTarget?.y;
-                html += `<span data-map-x="${x}" data-map-y="${y}"${aim ? ` class="ranged-aim${selected ? ' ranged-target' : ''}"` : ''} style="${color}">${char === '<' ? '&lt;' : char === '>' ? '&gt;' : char}</span>`;
+                const inspectable = isVis && GameState.entities.items.some(item => item.x === x && item.y === y && item.type !== 'GOLD');
+                const classes = [aim ? `ranged-aim${selected ? ' ranged-target' : ''}` : '', inspectable ? 'ground-item' : ''].filter(Boolean).join(' ');
+                html += `<span data-map-x="${x}" data-map-y="${y}"${classes ? ` class="${classes}"` : ''}${inspectable ? ' title="Inspeccionar objeto · clic o G"' : ''} style="${color}">${char === '<' ? '&lt;' : char === '>' ? '&gt;' : char}</span>`;
             }
             if (y < view.y + view.rows - 1) html += "\n";
         }
@@ -2912,7 +2978,8 @@ const Renderer = {
             div.onclick = () => UISystem.openBestiary(id);
         }
         div.innerHTML = `<span class="legend-symbol" style="color:${data.color}">${data.symbol}</span><span class="legend-desc"><span class="legend-name">${data.name}</span>${!isMonster ? `<span class="legend-stats">${data.stats}</span>` : ''}</span>`;
-        panel.appendChild(div);
+        panel.prepend(div);
+        panel.scrollTop = 0;
         document.getElementById(type === 'monster' ? 'legend-monsters-count' : 'legend-items-count').textContent = panel.children.length;
     },
     resetLegend: () => {
@@ -2935,7 +3002,15 @@ const UISystem = {
             const distance = Math.max(Math.abs(dx), Math.abs(dy));
             const arrows = { '-1,-1': '↖', '0,-1': '↑', '1,-1': '↗', '-1,0': '←', '1,0': '→', '-1,1': '↙', '0,1': '↓', '1,1': '↘' };
             const marker = document.createElement('span'); marker.className = 'stair-marker'; marker.dataset.stair = kind;
-            marker.textContent = `${symbol} ${label} · ${distance === 0 ? 'aquí [Espacio]' : `${arrows[`${Math.sign(dx)},${Math.sign(dy)}`]} ${distance} casillas`}`;
+            const name = document.createElement('span'); name.textContent = `${symbol} ${label} · `;
+            const direction = document.createElement('span'); direction.className = 'stair-direction';
+            direction.textContent = distance === 0 ? '◎' : arrows[`${Math.sign(dx)},${Math.sign(dy)}`];
+            const detail = document.createElement('span'); detail.textContent = distance === 0 ? 'aquí [Espacio]' : String(distance);
+            if (distance > 0) {
+                const unit = document.createElement('span'); unit.className = 'stair-distance-unit'; unit.textContent = distance === 1 ? ' casilla' : ' casillas'; detail.appendChild(unit);
+            }
+            marker.appendChild(name); marker.appendChild(direction); marker.appendChild(detail);
+            marker.setAttribute('aria-label', `${label}: ${distance === 0 ? 'aquí, Espacio para usar' : `${direction.textContent}, a ${distance} casillas`}`);
             marker.title = 'Escalera descubierta. Dirección y distancia en línea recta, no una ruta segura.';
             compass.appendChild(marker);
         }
@@ -3124,10 +3199,11 @@ const UISystem = {
         if (previousFocus && previousFocus.isConnected) previousFocus.focus();
         UISystem.bestiaryFocus = null;
     },
+    discoveredCreatures: () => [...GameState.discoveredTypes].reverse().map(id => CONFIG.ENTITIES.enemies.find(def => def.id === id)).filter(Boolean),
     renderBestiary: () => {
         const list = document.getElementById('bestiary-list');
         const detail = document.getElementById('bestiary-detail');
-        const creatures = CONFIG.ENTITIES.enemies.filter(def => GameState.discoveredTypes.has(def.id));
+        const creatures = UISystem.discoveredCreatures();
         list.innerHTML = '';
         if (creatures.length === 0) {
             detail.innerHTML = '<p class="empty-state">Todavía no has descubierto criaturas. Cuando encuentres una, su historia y sus tácticas aparecerán aquí.</p>';
@@ -3252,11 +3328,7 @@ const UISystem = {
         }
         UISystem.renderItemDetail();
     },
-    renderItemDetail: () => {
-        const panel = document.getElementById('inv-item-detail'); panel.innerHTML = '';
-        const item = GameState.player.inventory[GameState.ui.inventoryIndex];
-        if (!item) { panel.textContent = 'Selecciona un objeto para consultar sus propiedades y cómo usarlo.'; return; }
-        const title = document.createElement('h3'); title.textContent = item.name; panel.appendChild(title);
+    itemDescription: (item, ground = false) => {
         const lines = [];
         if (item.type === 'relic') {
             const preview = InventorySystem.relicPreview(item);
@@ -3265,17 +3337,62 @@ const UISystem = {
         } else if (EquipmentSystem.isEquipment(item)) {
             lines.push(UISystem.traitSummary(item));
             const current = GameState.player.equipment[item.type];
-            lines.push(`Sustituye: ${current?.name || CONFIG.EQUIPMENT_SLOTS[item.type].empty}. El objeto anterior vuelve a la mochila.`);
+            lines.push(`Sustituye: ${current?.name || CONFIG.EQUIPMENT_SLOTS[item.type].empty}.${ground ? ' La pieza anterior queda en el suelo; no necesitas huecos libres.' : ' El objeto anterior vuelve a la mochila.'}`);
+            if (ground && current) lines.push(`Propiedades de lo equipado: ${UISystem.traitSummary(current)}.`);
             const before = EquipmentSystem.stats();
             const after = EquipmentSystem.stats({ ...GameState.player.equipment, [item.type]: item });
             const changes = [['attack', 'Ataque'], ['defense', 'Defensa'], ['speedMultiplier', 'Iniciativa'], ['rangedDamage', 'Dardo']].filter(([key]) => before[key] !== after[key] && (key !== 'rangedDamage' || ProgressionSystem.rank('ranged'))).map(([key, label]) => key === 'speedMultiplier' ? `${label}: ${Math.round(before[key]*100)}% → ${Math.round(after[key]*100)}%` : `${label}: ${before[key]} → ${after[key]}`);
             lines.push(changes.join(' · ') || 'No cambia tus cifras de combate. Consulta sus protecciones especiales.');
             lines.push('Equipar consume un turno. Su efecto es pasivo mientras lo llevas puesto.');
         } else lines.push(`Recupera hasta ${item.value} ${item.type === 'food' ? 'comida' : 'agua'} (ahora: ${Math.max(0, Math.min(item.value, 100 - GameState.player[item.type]))}). Se consume al usarlo y pasa un turno.`);
-        for (const line of lines) {
+        return lines;
+    },
+    renderItemDetail: () => {
+        const panel = document.getElementById('inv-item-detail'); panel.innerHTML = '';
+        const item = GameState.player.inventory[GameState.ui.inventoryIndex];
+        if (!item) { panel.textContent = 'Selecciona un objeto para consultar sus propiedades y cómo usarlo.'; return; }
+        const title = document.createElement('h3'); title.textContent = item.name; panel.appendChild(title);
+        for (const line of UISystem.itemDescription(item)) {
             const p = document.createElement('p'); p.textContent = line; panel.appendChild(p);
         }
         const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Acciones [Enter]'; button.onclick = InventorySystem.openActionMenu; panel.appendChild(button);
+    },
+    renderGround: () => {
+        const items = GroundSystem.visibleItems();
+        const list = document.getElementById('ground-list'); list.innerHTML = '';
+        const detail = document.getElementById('ground-detail'); detail.innerHTML = '';
+        const actions = document.getElementById('ground-actions'); actions.innerHTML = '';
+        const status = document.getElementById('ground-status'); status.textContent = '';
+        const item = items.includes(GameState.ui.groundItem) ? GameState.ui.groundItem : items[0];
+        GameState.ui.groundItem = item || null;
+        if (!item) { detail.textContent = 'No hay objetos visibles en el suelo. Acércate o explora para encontrar otros; la niebla no revela sus propiedades.'; return; }
+        for (const candidate of items) {
+            const button = document.createElement('button'); button.type = 'button';
+            button.className = `ground-choice${candidate === item ? ' selected' : ''}`;
+            button.setAttribute('aria-pressed', String(candidate === item));
+            const distance = GroundSystem.distance(candidate);
+            button.textContent = `${candidate.symbol || '&'} ${candidate.name} · ${distance === 0 ? 'aquí' : `${distance} ${distance === 1 ? 'casilla' : 'casillas'}`}`;
+            button.onclick = () => { GameState.ui.groundItem = candidate; UISystem.renderGround(); DOM.menus.ground.focus(); };
+            list.appendChild(button);
+        }
+        const title = document.createElement('h3'); title.textContent = item.name; detail.appendChild(title);
+        for (const line of UISystem.itemDescription(item, true)) {
+            const p = document.createElement('p'); p.textContent = line; detail.appendChild(p);
+        }
+        const reachable = GroundSystem.canReach(item);
+        const full = GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize;
+        status.textContent = !reachable ? 'Puedes compararlo, pero debes acercarte a una casilla de distancia y tener acceso libre para recoger o equipar.'
+            : full ? 'Mochila llena: puedes equiparlo directamente sin tirar nada de la mochila.'
+            : 'Al alcance · recoger o equipar consume un turno. Dejarlo y comparar es gratis.';
+        if (full && !EquipmentSystem.isEquipment(item) && reachable) status.textContent = 'Mochila llena: necesitas un hueco para recogerlo. Consultarlo no gasta turno.';
+        const pickup = document.createElement('button'); pickup.type = 'button';
+        pickup.textContent = full ? 'Recoger · mochila llena' : 'Recoger · 1 turno'; pickup.disabled = !reachable || full;
+        pickup.onclick = GroundSystem.pickup; actions.appendChild(pickup);
+        if (EquipmentSystem.isEquipment(item)) {
+            const equip = document.createElement('button'); equip.type = 'button'; equip.className = 'btn-primary';
+            equip.textContent = GameState.player.equipment[item.type] ? 'Equipar e intercambiar · 1 turno' : 'Equipar · 1 turno';
+            equip.disabled = !reachable; equip.onclick = GroundSystem.equip; actions.appendChild(equip);
+        }
     },
     renderActionMenu: (item) => {
         const list = document.getElementById('action-list');
@@ -3368,6 +3485,7 @@ const StateController = {
             case STATE_ENUM.CONTROLS: DOM.menus.controls.classList.remove('hidden'); break;
             case STATE_ENUM.BESTIARY: DOM.menus.bestiary.classList.remove('hidden'); UISystem.renderBestiary(); break;
             case STATE_ENUM.INVENTORY: DOM.menus.inventory.classList.remove('hidden'); UISystem.renderInventory(); break;
+            case STATE_ENUM.INSPECT: DOM.menus.ground.classList.remove('hidden'); UISystem.renderGround(); break;
             case STATE_ENUM.EQUIPMENT: DOM.menus.equipment.classList.remove('hidden'); UISystem.renderEquipment(); break;
             case STATE_ENUM.CHARACTER: DOM.menus.character.classList.remove('hidden'); UISystem.renderCharacter(); break;
             case STATE_ENUM.MENU: DOM.menus.main.classList.remove('hidden'); document.getElementById('menu-seed-display').innerText = GameState.seed; Network.fetchScores('menu-leaderboard'); break;
@@ -3435,6 +3553,17 @@ document.addEventListener('keydown', (e) => {
     if (e.target && ['BUTTON', 'SUMMARY'].includes(e.target.tagName) && ['enter', ' '].includes(key)) return;
     if (e.target === DOM.log && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'pageup', 'pagedown', 'home', 'end'].includes(key)) return;
 
+    if (GameState.current === STATE_ENUM.INSPECT) {
+        if (['g', 'escape'].includes(key)) { e.preventDefault(); GroundSystem.close(); }
+        else if (['arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
+            e.preventDefault(); GroundSystem.select(['arrowup', 'arrowleft'].includes(key) ? -1 : 1); DOM.menus.ground.focus();
+        }
+        return;
+    }
+    if (key === 'g' && [STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY].includes(GameState.current)) {
+        e.preventDefault(); GroundSystem.open(); return;
+    }
+
     if (GameState.current === STATE_ENUM.CHARACTER) {
         if (!['n', 'escape', '1', '2', '3', '4', 'enter', ' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) return;
         e.preventDefault();
@@ -3473,7 +3602,7 @@ document.addEventListener('keydown', (e) => {
         if (['b', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeBestiary(); }
         else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
             e.preventDefault();
-            const creatures = CONFIG.ENTITIES.enemies.filter(def => GameState.discoveredTypes.has(def.id));
+            const creatures = UISystem.discoveredCreatures();
             const index = creatures.findIndex(def => def.id === GameState.ui.bestiaryId);
             const direction = ['arrowup', 'arrowleft'].includes(key) ? -1 : 1;
             if (creatures.length) {
@@ -3578,9 +3707,14 @@ document.addEventListener('keyup', (e) => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) MovementInput.stop(); });
 document.addEventListener('click', (event) => {
-    if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged') return;
     const cell = event.target && typeof event.target.closest === 'function' ? event.target.closest('[data-map-x]') : null;
-    if (cell && DOM.container.contains(cell)) CombatSystem.fireRanged(Number(cell.dataset.mapX), Number(cell.dataset.mapY));
+    if (!cell || !DOM.container.contains(cell)) return;
+    const x = Number(cell.dataset.mapX), y = Number(cell.dataset.mapY);
+    if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged') CombatSystem.fireRanged(x, y);
+    else if (GameState.current === STATE_ENUM.PLAYING) {
+        const item = GroundSystem.visibleItems().find(item => item.x === x && item.y === y);
+        if (item) GroundSystem.open(item);
+    }
 });
 if (typeof window.addEventListener === 'function') window.addEventListener('blur', () => MovementInput.stop());
 
@@ -3588,6 +3722,8 @@ window.setGameState = (s) => StateController.change(s);
 window.openBestiary = (id) => UISystem.openBestiary(id);
 window.closeBestiary = () => UISystem.closeBestiary();
 window.openInventory = () => UISystem.openPanel(STATE_ENUM.INVENTORY);
+window.inspectGround = () => GroundSystem.open();
+window.closeGroundInspection = () => GroundSystem.close();
 window.openEquipment = () => UISystem.openEquipment();
 window.closeEquipment = () => UISystem.closeEquipment();
 window.openCharacter = () => ProgressionSystem.open();

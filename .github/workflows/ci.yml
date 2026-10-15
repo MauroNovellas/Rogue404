@@ -56,6 +56,9 @@ jobs:
       - name: Interface and held movement tests
         run: node tests/interface.test.cjs
 
+      - name: Ground inspection, direct swaps and discovery order
+        run: node tests/ground-inspection.test.cjs
+
       - name: Relic effects and accessory equipment
         run: node tests/relics-accessories.test.cjs
 
