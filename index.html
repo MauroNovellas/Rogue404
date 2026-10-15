@@ -2,199 +2,229 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Dungeon Not Found</title>
-    <link rel="stylesheet" href="/404/style.css">
-    <style>
-        .stat-box {
-            background: #111;
-            border: 1px dashed #444;
-            padding: 10px;
-            margin: 5px 0;
-            text-align: left;
-            font-size: 0.8rem;
-            color: #ccc;
-        }
-        .stat-box strong { color: #fff; }
-        
-        /* Estilos del Menú de Controles */
-        #controls-menu {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #000;
-            border: 4px double #fff;
-            padding: 30px;
-            z-index: 80;
-            width: 500px;
-            box-shadow: 0 0 50px #000;
-            text-align: center;
-        }
-        .key-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 2px;}
-        .key-btn { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-family: monospace;}
-    </style>
+    <link rel="stylesheet" href="/404/style.css?v=ground-inspection-1">
 </head>
 <body>
 
-    <div id="top-ui">
-        <div><span style="color:#fff">PJ</span> <span id="char-lvl" style="color:#33ff00">1</span></div>
-        <div><span style="color:#888">PISO</span> <span id="dungeon-lvl" style="color:#fff">-1</span></div>
-        
-        <div style="border-left: 1px solid #333; padding-left: 15px;">
-            <span style="color:#fff">MOCHILA (M):</span> 
-            <span id="bag-count" style="color:#ccc">0/6</span>
+    <header id="top-ui">
+        <div class="ui-heading">
+            <div class="game-brand">ROGUE<span>404</span><small>CRÓNICAS DE LA MAZMORRA</small></div>
+            <nav class="ui-actions" aria-label="Menús de la partida">
+                <button id="character-button" type="button" onclick="openCharacter()">Personaje <span id="talent-points" class="hidden"></span> <kbd>N</kbd></button>
+                <button type="button" onclick="openInventory()">Mochila <span id="bag-count">0/8</span> <kbd>M</kbd></button>
+                <button type="button" onclick="inspectGround()">Inspeccionar <kbd>G</kbd></button>
+                <button type="button" onclick="openEquipment()">Equipo <kbd>O</kbd></button>
+                <button type="button" onclick="openBestiary()">Bestiario <kbd>B</kbd></button>
+                <button type="button" onclick="openControls()">Ayuda <kbd>I</kbd></button>
+                <button type="button" onclick="openPause()">Pausa <kbd>P</kbd></button>
+            </nav>
         </div>
-
-        <div><span style="color:#f00">HP</span> <span id="hp-val">100/100</span></div>
-        <div><span style="color:#ffaa00">ATK</span> <span id="atk-val">3</span> <span id="weapon-bonus" style="font-size:0.8em; color:#ff00ff">(+0)</span></div>
-        <div><span style="color:#4682b4">DEF</span> <span id="armor-bonus" style="font-size:0.8em;">(+0)</span></div>
-        
-        <div style="border-left: 1px solid #333; padding-left: 15px;">
-            <span style="color:#ffaa00" title="Hambre">% <span id="food-val">100</span></span>
-            <span style="color:#00ffff; margin-left:10px;" title="Sed">~ <span id="water-val">100</span></span>
+        <div class="character-sheet" aria-label="Ficha del aventurero">
+            <div class="hud-level">
+                <div><span class="hud-label"><span class="hud-symbol" aria-hidden="true">@</span> Nivel</span> <span id="char-lvl">1</span></div>
+                <div class="xp-meter" aria-label="Experiencia"><span id="xp-fill"></span></div>
+                <span id="xp-text" class="xp-text">0 / 100 XP</span>
+            </div>
+            <div class="hud-stat hud-depth"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">&gt;</span> Profundidad</span><span id="dungeon-lvl">-1</span></div>
+            <div class="hud-stat resource-stat hud-health"><div class="resource-heading"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">♥</span> Vida</span><span id="hp-percent" class="resource-percent">100%</span></div><div id="hp-meter" class="resource-meter" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="hp-fill"></span></div><span id="hp-val" class="resource-amount">100/100</span></div>
+            <div class="hud-stat resource-stat hud-food"><div class="resource-heading"><span class="hud-label"><span class="hud-symbol food-symbol" aria-hidden="true">%</span> Comida</span><span class="resource-percent"><span id="food-val">100</span>%</span></div><div id="food-meter" class="resource-meter" role="progressbar" aria-label="Comida" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="food-fill"></span></div></div>
+            <div class="hud-stat resource-stat hud-water"><div class="resource-heading"><span class="hud-label"><span class="hud-symbol water-symbol" aria-hidden="true">~</span> Agua</span><span class="resource-percent"><span id="water-val">100</span>%</span></div><div id="water-meter" class="resource-meter" role="progressbar" aria-label="Agua" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="water-fill"></span></div></div>
+            <div class="hud-stat hud-gold"><span class="hud-label"><span class="hud-symbol gold-symbol" aria-hidden="true">$</span> Oro</span><span id="score">0</span></div>
+            <div class="hud-stat hud-attack"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">!</span> Ataque</span><span><span id="atk-val">3</span> <span id="weapon-bonus">(+0)</span></span></div>
+            <div class="hud-stat hud-defense"><span class="hud-label"><span class="hud-symbol" aria-hidden="true">]</span> Defensa</span><span><span id="def-val">0</span> <span id="armor-bonus">(+0)</span></span></div>
         </div>
-        
-        <div style="border-left: 1px solid #333; padding-left: 15px;">
-            <span style="color:#ffd700">Oro: <span id="score">0</span></span>
-        </div>
-        
-        <div style="font-size: 0.8em; color: #888;">AYUDA: <span style="color:#fff">I</span> | PAUSA: <span style="color:#fff">P</span></div>
         <div style="display:none">SEED: <span id="seed-val"></span></div>
-    </div>
+    </header>
 
     <div id="main-layout">
-        <div id="legend-monsters" class="legend-panel">
-            <div class="legend-title">Amenazas</div>
-        </div>
-        <div id="legend-items" class="legend-panel">
-            <div class="legend-title">Entorno</div>
-        </div>
-        <div id="game-wrapper">
-            <div id="fx-layer"></div>
-            <div id="combat-status"></div>
-            <div id="game-container"></div>
-            <div id="log">Explora lo desconocido...</div>
-        </div>
+        <aside id="left-rail" aria-label="Descubrimientos y equipo">
+            <div id="discovery-sidebar" aria-label="Cuadernos de descubrimientos">
+            <section class="discovery-column" aria-labelledby="creatures-title">
+                <header class="column-heading"><span class="column-kicker">I · CRIATURAS</span><h2 id="creatures-title">Bestiario</h2><span id="legend-monsters-count" class="discovery-count">0</span><p>Historia y tácticas al pulsar.</p></header>
+                <div id="legend-monsters" class="legend-panel"><p class="legend-empty">Las criaturas aparecerán al descubrirlas.</p></div>
+            </section>
+            <section class="discovery-column" aria-labelledby="items-title">
+                <header class="column-heading"><span class="column-kicker">II · HALLAZGOS</span><h2 id="items-title">Objetos</h2><span id="legend-items-count" class="discovery-count">0</span><p>Nuevos arriba · G inspecciona el suelo.</p></header>
+                <div id="legend-items" class="legend-panel"><p class="legend-empty">Explora para registrar nuevos hallazgos.</p></div>
+            </section>
+            </div>
+            <section id="equipment-preview" aria-labelledby="equipped-preview-title">
+                <header class="equipment-preview-heading"><h2 id="equipped-preview-title">Llevas equipado</h2><button type="button" onclick="openEquipment()">Ver ficha <kbd>O</kbd></button></header>
+                <div id="equipped-preview-grid" class="equipped-preview-grid"></div>
+            </section>
+        </aside>
+        <main id="play-area" aria-label="Expedición">
+            <div id="stair-compass" class="hidden" aria-label="Escaleras descubiertas"></div>
+            <div id="combat-status" role="status" aria-label="Efectos de la partida"></div>
+            <div id="game-wrapper"><div id="fx-layer"></div><div id="game-container" tabindex="-1" aria-label="Mapa de la mazmorra"></div></div>
+            <section id="action-journal" aria-labelledby="journal-title">
+                <header class="journal-heading"><h2 id="journal-title">Últimas acciones</h2><span>Recientes al final</span></header>
+                <div id="log" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Registro de la mazmorra" tabindex="0"><div class="log-empty">WASD / flechas · moverse. Espacio · interactuar.</div></div>
+            </section>
+        </main>
     </div>
 
-    <div id="floor-warning" class="hidden">
-        <div id="floor-warning-title" class="floor-warning-title">⚠ NIVEL ESPECIAL</div>
-        <div id="floor-warning-text" class="floor-warning-text"></div>
-        <button onclick="closeFloorWarning()" class="floor-warning-button">ENTENDIDO</button>
-        <div class="floor-warning-hint">ENTER / ESPACIO / ESC</div>
+    <div id="floor-warning" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="floor-warning-title" tabindex="-1">
+        <header class="dialog-header"><h2 id="floor-warning-title" class="floor-warning-title">⚠ NIVEL ESPECIAL</h2></header>
+        <div class="dialog-body"><div id="floor-warning-text" class="floor-warning-text"></div></div>
+        <footer class="dialog-footer"><span class="floor-warning-hint">Enter / Espacio / Esc</span><button onclick="closeFloorWarning()" class="btn-primary floor-warning-button">Entendido</button></footer>
     </div>
 
-    <div id="controls-menu" class="hidden">
-        <h2 style="color:#fff; border-bottom:2px solid #555; margin-top:0;">CONTROLES</h2>
+    <div id="controls-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="controls-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">GUÍA RÁPIDA</span><h2 id="controls-title">Cómo jugar</h2></div><button type="button" onclick="setGameState('PLAYING')" aria-label="Cerrar ayuda">×</button></header>
+        <div class="dialog-body">
         
         <div class="key-row" style="text-align:left;"><span>Movimiento</span> <span><span class="key-btn">WASD</span> o <span class="key-btn">FLECHAS</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Diagonales</span> <span><span class="key-btn">Q</span><span class="key-btn">E</span><span class="key-btn">Z</span><span class="key-btn">X</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Interactuar / Escaleras</span> <span><span class="key-btn">ESPACIO</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Mochila</span> <span><span class="key-btn">M</span></span></div>
+        <div class="key-row"><span>Inspeccionar objetos del suelo</span><span><span class="key-btn">G</span> o clic en el objeto</span></div>
+        <div class="key-row"><span>Equipo y propiedades</span><span class="key-btn">O</span></div>
+        <div class="key-row"><span>Personaje y talentos</span><span class="key-btn">N</span></div>
         <div class="key-row" style="text-align:left;"><span>Pausa</span> <span><span class="key-btn">P</span></span></div>
         <div class="key-row" style="text-align:left;"><span>Ayuda</span> <span><span class="key-btn">I</span> o <span class="key-btn">H</span></span></div>
+        <div class="key-row"><span>Bestiario</span><span class="key-btn">B</span></div>
+        <p class="control-hint">Mantén una tecla de movimiento para seguir avanzando. Suéltala para detenerte.</p>
+        <p class="control-hint">Inspeccionar y comparar no gasta turnos. Desde la misma casilla o una adyacente puedes recoger o equipar en un turno. Al equipar desde el suelo, la pieza anterior queda allí: no necesitas huecos libres.</p>
 
-        <div style="color:#33ff00; margin:14px 0 8px; border-bottom:1px dashed #444; padding-bottom:4px; text-align:left; font-weight:bold;">COMBATE</div>
+        <h3>Combate</h3>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span>Golpe normal</span> <span>Mover contra enemigo</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">R</span> Rápido</span> <span>Menos daño; descoloca (no encadena)</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">F</span> Salvaje</span> <span>Más daño; si sobrevive, contraataca</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">R</span> Rápido</span> <span>Menos daño; descoloca cada 3 acciones</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">F</span> Salvaje</span> <span>Más daño; el objetivo gana iniciativa</span></div>
         <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">T</span> Barrido</span> <span>Golpea las 8 casillas; tiene enfriamiento</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">C</span> Esperar</span> <span>Prepara +2 daño para el próximo R/F</span></div>
-        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>+50% DEF durante la respuesta enemiga</span></div>
-        <div style="text-align:left; color:#777; font-size:0.72em; margin-top:6px;">R y F: pulsa la tecla y después elige dirección. ESC cancela.</div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">C</span> Esperar</span> <span>Prepara +2 daño para el próximo golpe</span></div>
+        <div class="key-row" style="text-align:left; font-size:0.82em;"><span><span class="key-btn">V</span> Defender</span> <span>DEF: (defensa + 2) × 1,5 por una respuesta</span></div>
+        <p class="control-hint">R y F: pulsa la tecla y después elige dirección. Esc cancela.</p>
+        <div class="key-row"><span><span class="key-btn">L</span> Dardo arcano</span><span>Tab/flechas: objetivo · Enter o clic: disparar</span></div>
+        <p class="control-hint">El dardo alcanza enemigos en cualquier ángulo con línea de tiro. Esc cancela; apuntar y cambiar de objetivo no gastan turnos. Las escaleras descubiertas siguen marcadas y muestran su dirección sobre el mapa.</p>
+        <p class="control-hint">Al subir de nivel: +10 vida máxima, vida restaurada y 1 punto para elegir Fuerza, Resistencia, Velocidad o Dardo arcano. Puedes mezclar caminos o guardar puntos con N.</p>
         
-        <div style="margin-top:20px;">
-            <button onclick="setGameState('PLAYING')" style="background:#33ff00; color:#000; font-weight:bold; padding:10px 30px; border:none; cursor:pointer;">
-                ¡ENTENDIDO, A JUGAR!
-            </button>
         </div>
-        
-        <div style="margin-top:10px; font-style:italic; color:#888; font-size: 0.8em;">
-            (Pulsa ESC, ENTER o el botón para cerrar)
-        </div>
+        <footer class="dialog-footer"><span class="muted">Esc / Enter · cerrar</span><button class="btn-primary" onclick="setGameState('PLAYING')">Jugar</button></footer>
     </div>
 
-    <div id="inventory-menu" class="hidden">
-        <div class="inv-header">
-            <span>MOCHILA</span>
-            <span id="inv-capacity">0/6</span>
+    <div id="bestiary-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="bestiary-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">CRIATURAS DESCUBIERTAS</span><h2 id="bestiary-title">Bestiario</h2></div><button type="button" onclick="closeBestiary()" aria-label="Cerrar bestiario">×</button></header>
+        <div class="dialog-body bestiary-layout">
+            <nav id="bestiary-list" aria-label="Elegir criatura"></nav>
+            <article id="bestiary-detail"></article>
         </div>
+        <footer class="dialog-footer"><span class="muted">↑ ↓ · consultar &nbsp; B / Esc · volver</span><button type="button" onclick="closeBestiary()">Volver</button></footer>
+    </div>
+
+    <div id="inventory-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Mochila" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">EQUIPO DEL AVENTURERO</span><h2>Mochila <span id="inv-capacity" class="muted">0/8</span></h2></div><button type="button" onclick="closeInventory()" aria-label="Cerrar mochila">×</button></header>
+        <div class="dialog-body">
         <div id="inv-grid" class="inv-grid"></div>
+        <section id="inv-item-detail" class="item-detail" aria-live="polite" aria-label="Objeto seleccionado"></section>
         <div class="equipment-section">
+            <div class="equipment-link"><span>Equipo actual</span><button type="button" onclick="openEquipment()">Ver propiedades <kbd>O</kbd></button></div>
             <div id="equip-weapon">Arma: <span class="w">Puños</span></div>
             <div id="equip-armor">Armadura: <span class="w">Ropa</span></div>
+            <div id="equip-boots">Botas: Sin botas</div>
+            <div id="equip-ring">Anillo: Sin anillo</div>
         </div>
-        <div class="inv-help">
+        </div>
+        <footer class="dialog-footer"><div class="inv-help">
             <span class="key-hint">FLECHAS</span> Navegar &nbsp; 
             <span class="key-hint">ENTER</span> Acciones &nbsp; 
-            <span class="key-hint">M</span> Cerrar
-        </div>
-        <div id="action-menu" class="hidden">
+        </div><button type="button" onclick="closeInventory()">Volver <kbd>M</kbd></button></footer>
+        <div id="action-menu" class="hidden" role="dialog" aria-modal="true" aria-labelledby="action-title" tabindex="-1">
             <div id="action-title" class="action-title">Objeto</div>
+            <p id="action-description" class="action-description"></p>
             <div id="action-list"></div>
         </div>
     </div>
 
-    <div id="shop-menu" class="hidden">
-        <div class="shop-title">MERCADER ERRANTE</div>
-        <div id="shop-items-container"></div>
-        <button onclick="closeShop()" class="btn-close">Salir de la Tienda</button>
+    <div id="equipment-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="equipment-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">FICHA DEL AVENTURERO</span><h2 id="equipment-title">Equipo actual</h2></div><button type="button" onclick="closeEquipment()" aria-label="Cerrar equipo">×</button></header>
+        <div class="dialog-body"><div id="equipment-grid" class="equipment-grid"></div><p class="control-hint">Cuatro huecos: arma, armadura, un par de botas y un anillo. Equipa desde la mochila; los accesorios actúan solos mientras los llevas puestos. Las resistencias se combinan, no se suman. Equipar o quitar una pieza consume un turno.</p><button type="button" onclick="openCharacter()">Atributos y talentos <kbd>N</kbd></button></div>
+        <footer class="dialog-footer"><span class="muted">O / Esc · volver</span><button type="button" onclick="closeEquipment()">Volver</button></footer>
     </div>
 
-    <div id="game-menu" class="hidden">
-        <h2 style="color: #33ff00; margin: 0;">PAUSA</h2>
-        <p style="margin:5px 0; font-size:0.8em">Seed: <span id="menu-seed-display"></span></p>
-        <div style="display:flex; gap:5px; margin-bottom: 10px;">
-            <input type="number" id="seed-input" placeholder="Seed..." style="width: 60%; margin:0;">
-            <button onclick="restartWithSeed()" style="width: 40%; margin:0;">Cargar</button>
+    <div id="character-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="character-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">CAMINOS DEL AVENTURERO</span><h2 id="character-title">Tu personaje</h2></div><button type="button" onclick="closeCharacter()" aria-label="Cerrar personaje">×</button></header>
+        <div class="dialog-body" tabindex="0" aria-label="Atributos y caminos de mejora">
+            <dl id="character-summary" class="character-summary"></dl>
+            <p id="character-points" class="character-points" role="status"></p>
+            <div id="talent-options" class="talent-grid" aria-label="Caminos de mejora"></div>
+            <p class="control-hint">Mejoras permanentes durante esta expedición, compatibles entre sí. La fuerza no tiene límite; los demás caminos indican su rango máximo. Puedes decidir más tarde sin perder puntos. Nada avanza mientras consultas esta ficha.</p>
         </div>
-        <button onclick="showMenuScores()">Ver Salón de la Fama</button>
-        <div id="menu-scores-container">
-            <div id="menu-leaderboard">Cargando...</div>
-        </div>
-        <button onclick="harakiri()" class="btn-danger" style="margin-top: 10px;">HARAKIRI</button>
-        <button onclick="toggleMenu()" style="margin-top: 10px;">VOLVER</button>
+        <footer class="dialog-footer"><span class="muted">1–4 / Flechas + Enter · elegir<br>N / Esc · volver</span><button id="character-close" type="button" onclick="closeCharacter()">Volver</button></footer>
     </div>
 
-    <div id="game-over" class="hidden">
-        <h2 style="color: #f00;">HAS MUERTO</h2>
-        <p>Nivel Alcanzado: <span id="final-level">1</span></p>
-        <p>Oro Final: <span id="final-score">0</span></p>
-        
-        <div class="stat-box">
-            <strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span><br>
-            <strong>Mejor Equipo:</strong> <span id="death-best-gear">Ninguno</span>
-        </div>
-
-        <input type="text" id="player-name" placeholder="Nombre (5 letras)" maxlength="5">
-        <button onclick="saveScore()">Grabar Legado</button>
-        
-        <div style="font-size: 0.8em; color: #666; margin-top: 10px;">
-            (Presiona <span style="color:#fff; border:1px solid #444; padding:0 4px;">I</span> para cerrar y reiniciar)
-        </div>
-
-        <div id="leaderboard" style="margin-top:10px;"></div>
+    <div id="ground-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="ground-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">OBJETOS DEL SUELO</span><h2 id="ground-title">Inspeccionar y comparar</h2></div><button type="button" onclick="closeGroundInspection()" aria-label="Cerrar inspección">×</button></header>
+        <div class="dialog-body"><p class="control-hint ground-hint">Solo objetos visibles · consultar no consume turnos.</p><div id="ground-list" aria-label="Objetos visibles"></div><section id="ground-detail" class="item-detail" aria-live="polite" aria-label="Propiedades y comparación"></section><p id="ground-status" class="control-hint"></p><div id="ground-actions" class="ground-actions"></div></div>
+        <footer class="dialog-footer"><span class="muted">Flechas · elegir &nbsp; G / Esc · volver</span><button type="button" onclick="closeGroundInspection()">Volver</button></footer>
     </div>
 
-    <div id="victory-screen" class="hidden" style="border-color: #ffd700; box-shadow: 0 0 50px #ffd700;">
-        <h2 style="color: #ffd700;">¡VICTORIA!</h2>
-        <p id="victory-message" style="color: #fff;">Has escapado...</p>
-        <p>Puntuación Total: <span id="victory-score" style="color:#ffd700; font-weight:bold;">0</span></p>
-        
-        <div class="stat-box">
-            <strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span><br>
-            <strong>Mejor Equipo:</strong> <span id="win-best-gear">Ninguno</span>
-        </div>
-
-        <input type="text" id="winner-name" placeholder="Nombre (5 letras)" maxlength="5">
-        <button onclick="saveScore()" style="border-color: #ffd700; color: #ffd700;">Inscribir Leyenda</button>
-        
-        <div style="font-size: 0.8em; color: #666; margin-top: 10px;">
-            (Presiona <span style="color:#fff; border:1px solid #444; padding:0 4px;">I</span> para cerrar y reiniciar)
-        </div>
-
-        <div id="victory-leaderboard" style="margin-top:15px; text-align: left; font-size: 0.8em;"></div>
+    <div id="reward-choice" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Elegir recompensa" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">COFRE ABIERTO</span><h2>Elige una recompensa</h2></div></header>
+        <div class="dialog-body"><div id="reward-choice-options"></div><p class="control-hint">Si no cabe en la mochila, el premio queda en el suelo. Puedes aplazar la elección: el cofre se marcará con ? y conservará estas mismas opciones.</p></div>
+        <footer class="dialog-footer"><span class="muted">Flechas · elegir &nbsp; Enter · aceptar</span><button type="button" onclick="GameLogic.cancelChestReward()">Dejarlo <kbd>Esc</kbd></button></footer>
     </div>
 
-    <script src="/404/game.js"></script>
-    <script src="/404/dev-tools.js"></script>
+    <div id="shop-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-label="Mercader errante" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">PROVISIONES Y TRUEQUE</span><h2>Mercader errante</h2></div><button type="button" onclick="closeShop()" aria-label="Cerrar tienda">×</button></header>
+        <div class="dialog-body"><div id="shop-items-container"></div></div>
+        <footer class="dialog-footer"><span class="muted">Esc · volver</span><button onclick="closeShop()">Salir de la tienda</button></footer>
+    </div>
+
+    <div id="game-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title" tabindex="-1">
+        <header class="dialog-header"><h2 id="pause-title">Pausa</h2><button type="button" onclick="toggleMenu()" aria-label="Cerrar pausa">×</button></header>
+        <div class="dialog-body pause-options">
+            <button onclick="openBestiary()">Consultar bestiario <kbd>B</kbd></button>
+            <button onclick="showMenuScores()">Ver puntuaciones</button>
+            <div id="menu-scores-container"><div id="menu-leaderboard">Cargando...</div></div>
+            <details class="seed-options"><summary>Otra mazmorra · semilla <span id="menu-seed-display"></span></summary><label for="seed-input">Semilla de generación</label><div class="save-row"><input type="number" id="seed-input" placeholder="Número de semilla"><button onclick="restartWithSeed()">Cargar</button></div></details>
+        </div>
+        <footer class="dialog-footer"><button onclick="harakiri()" class="btn-danger">Abandonar partida</button><button onclick="toggleMenu()" class="btn-primary">Continuar</button></footer>
+    </div>
+
+    <div id="game-over" class="ui-dialog result-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="death-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">FIN DE LA EXPEDICIÓN</span><h2 id="death-title">Has muerto</h2></div><span class="result-mark" aria-hidden="true">×</span></header>
+        <div class="dialog-body">
+            <p class="result-cause">Causa: <span id="death-cause">Desconocida</span></p>
+            <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="final-level">1</strong></div><div><span>Puntuación total</span><strong id="final-score">0</strong></div></div>
+            <p id="death-gold" class="control-hint"></p><p class="control-hint">Balance 1 · el historial conserva también partidas de reglas anteriores.</p>
+            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span></p><p><strong>Equipo de la expedición:</strong> <span id="death-best-gear">Ninguno</span></p></details>
+            <label for="player-name">Tu nombre en el ranking</label>
+            <div class="save-row"><input type="text" id="player-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="death-save-button" onclick="saveScore()">Guardar puntuación</button></div>
+            <p id="death-save-status" class="save-status" role="status"></p>
+            <h3>Puntuaciones</h3>
+            <div class="score-scroll" tabindex="0" aria-label="Puntuaciones, desplázate para ver la lista completa"><div id="leaderboard"></div></div>
+            <p class="score-hint">Desliza la tabla para ver más filas y columnas.</p>
+        </div>
+        <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
+    </div>
+
+    <div id="victory-screen" class="ui-dialog result-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="victory-title" tabindex="-1">
+        <header class="dialog-header"><div><span class="dialog-eyebrow">DE VUELTA A LA SUPERFICIE</span><h2 id="victory-title">Has escapado</h2></div><span class="victory-mark" aria-hidden="true">&lt;</span></header>
+        <div class="dialog-body">
+            <p id="victory-message" class="result-cause">Has escapado de la mazmorra.</p>
+            <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="win-level">1</strong></div><div><span>Puntuación total</span><strong id="victory-score">0</strong></div></div>
+            <p id="win-gold" class="control-hint"></p><p class="control-hint">Balance 1 · el historial conserva también partidas de reglas anteriores.</p>
+            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span></p><p><strong>Equipo de la expedición:</strong> <span id="win-best-gear">Ninguno</span></p></details>
+            <label for="winner-name">Tu nombre en el ranking</label>
+            <div class="save-row"><input type="text" id="winner-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="win-save-button" onclick="saveScore()">Guardar puntuación</button></div>
+            <p id="win-save-status" class="save-status" role="status"></p>
+            <h3>Puntuaciones</h3>
+            <div class="score-scroll" tabindex="0" aria-label="Puntuaciones, desplázate para ver la lista completa"><div id="victory-leaderboard"></div></div>
+            <p class="score-hint">Desliza la tabla para ver más filas y columnas.</p>
+        </div>
+        <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
+    </div>
+
+    <script src="/404/game.js?v=ground-inspection-1"></script>
+    <script src="/404/dev-tools.js?v=targeting-scores-2"></script>
+    <script src="/404/autoplayer.js?v=balance-1"></script>
+    <script src="/404/autoplayer-profiles.js?v=relics-accessories-3"></script>
+    <script src="/404/autoplayer-navigation.js"></script>
+    <script src="/404/autoplayer-mission.js"></script>
+    <script src="/404/autoplayer-audit.js"></script>
+    <script src="/404/autoplayer-audit-1.2.js"></script>
 </body>
 </html>

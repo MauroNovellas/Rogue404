@@ -5,8 +5,10 @@
 // ============================================================================
 const CONFIG = {
     GRID: { cols: 70, rows: 24 },
+    INPUT: { holdDelay: 250, repeatInterval: 170 },
     MAP: {
         maxRooms: 28, minRoomSize: 6, maxRoomSize: 14, viewRadius: 9,
+        roomShapes: ['RECTANGLE', 'OVAL', 'CHAMFERED', 'L_SHAPED', 'PILLARED'],
         colors: { wall: '#222', wallVisible: '#444', floor: '#888', fog: '#222' }
     },
     FLOORS: {
@@ -38,7 +40,7 @@ const CONFIG = {
         MAGMA: {
             enabled: true,
             label: 'MAGMA',
-            thirstMultiplier: 2,
+            thirstMultiplier: 1.5,
             fumarole: {
                 enabled: true,
                 waterCostPerTurn: 2,
@@ -50,12 +52,12 @@ const CONFIG = {
             },
             colors: { wall: '#42130d', wallVisible: '#9c3520', floor: '#d56832', fog: '#210b08' },
             warningTitle: '⚠ CÁMARA MAGMÁTICA',
-            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza al doble de velocidad.<br>• Las cámaras de fumarola consumen agua cada turno, pero esconden botín superior.<br>• La malla térmica reduce la presión del calor y permite descansar.'
+            warningText: 'EL CALOR ASFIXIA ESTE NIVEL.<br>• Descansar no recupera vida.<br>• La sed avanza un 50% más deprisa.<br>• Las fumarolas consumen agua adicional y esconden equipo especial.<br>• La malla térmica reduce el calor y permite descansar.'
         },
         UNSTABLE: {
             enabled: true,
             label: 'INESTABLE',
-            fallHpLoss: 0.75,
+            fallHpLoss: 0.50,
             collapseAnimationMs: 180,
             rift: {
                 enabled: true,
@@ -68,33 +70,55 @@ const CONFIG = {
             },
             colors: { wall: '#302820', wallVisible: '#725d49', floor: '#b08b67', fog: '#241d17' },
             warningTitle: '⚠ ESTRATO INESTABLE',
-            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• En zonas abiertas, volver a pisar una grieta provoca la caída.<br>• Los pasillos de una sola casilla permiten una segunda pasada: ╬ indica suelo crítico y una nueva entrada lo hará ceder.<br>• Los Pasajes de Falla usan esta misma regla y permiten una retirada antes de volverse letales.<br>• La caída te deja con solo el 25% de tu vida y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés ligero reduce la caída y conserva lo equipado.'
+            warningText: 'EL SUELO RECUERDA TUS PASOS.<br>• Cada casilla que abandonas queda agrietada.<br>• En zonas abiertas, volver a pisar una grieta provoca la caída.<br>• Los pasillos permiten una segunda pasada: ╬ indica suelo crítico.<br>• Los Pasajes de Falla permiten una retirada antes de ceder.<br>• Una caída pierde el 50% de tu vida actual y dispersa mochila y equipo.<br>• Las escaleras son roca firme. El arnés reduce la caída y conserva lo equipado.'
         }
     },
     PLAYER: {
-        startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 6,
+        startHP: 100, startFood: 100, startWater: 100, baseAtk: 3, inventorySize: 8,
         survival: { hungerRate: 10, thirstRate: 6, starvationDmg: 2, dehydrationDmg: 3 },
-        leveling: { baseXp: 100, xpScaling: 1.5, statGain: { hp: 10, atk: 2 } }
+        leveling: { baseXp: 100, xpScaling: 1.5, statGain: { hp: 10 } }
     },
+    PROGRESSION: {
+        strength: { name: 'Fuerza', symbol: '!', attack: 2 },
+        resilience: { name: 'Resistencia', symbol: ']', defense: 1, maxRank: 5 },
+        speed: { name: 'Velocidad', symbol: '»', initiative: 0.15, maxRank: 3 },
+        ranged: { name: 'Dardo arcano', symbol: '*', damage: 2, baseRange: 3, maxRank: 5 }
+    },
+    EQUIPMENT_SLOTS: {
+        weapon: { label: 'Arma', symbol: '!', empty: 'Puños' },
+        armor: { label: 'Armadura', symbol: ']', empty: 'Ropa' },
+        boots: { label: 'Botas', symbol: '}', empty: 'Sin botas' },
+        ring: { label: 'Anillo', symbol: 'o', empty: 'Sin anillo' }
+    },
+    ACCESSORIES: [
+        { id: 'LIGHT_BOOTS', type: 'boots', name: 'Botas del caminante', symbol: '}', color: '#c9b281', price: 160, traits: { initiativeBonus: 0.10 } },
+        { id: 'ROCK_BOOTS', type: 'boots', name: 'Botas de roca', symbol: '}', color: '#d7a56d', price: 140, traits: { fallDamageResist: 0.25 } },
+        { id: 'ASH_BOOTS', type: 'boots', name: 'Botas de ceniza', symbol: '}', color: '#ffb347', price: 180, traits: { heatResist: 0.5, thirstResist: 0.35 } },
+        { id: 'FORCE_RING', type: 'ring', name: 'Anillo de fuerza', symbol: 'o', color: '#ff9b80', price: 180, traits: { attackBonus: 1 } },
+        { id: 'GUARD_RING', type: 'ring', name: 'Anillo del guardián', symbol: 'o', color: '#8adfff', price: 180, traits: { defenseBonus: 1 } },
+        { id: 'ECHO_RING', type: 'ring', name: 'Anillo del eco arcano', symbol: 'o', color: '#b48cff', price: 180, traits: { rangedDamageBonus: 2 } }
+    ],
     COMBAT: {
         variability: 0.2, critChance: 0.10, critMult: 1.5, baseWeaponVal: 2, baseArmorVal: 1,
+        maxMitigation: 0.75, defendMitigation: 0.90,
         // Configuración de Habilidades
         quick:  { dmgMult: 0.8,  var: 0.05, critBonus: 0,   label: "Rápido" },
-        savage: { dmgMult: 1.4,  var: 0.40, critBonus: 0.2, label: "Salvaje" },
-        area:   { dmgMult: 0.5,  cooldown: 5, label: "Barrido" },
+        savage: { dmgMult: 1.3, var: 0.25, critBonus: 0.1, initiativeCost: 0.25, label: 'Salvaje' },
+        area:   { dmgMult: 0.6, cooldown: 4, label: 'Barrido' },
+        ranged: { dmgMult: 1, var: 0.1, cooldown: 2, label: 'Dardo arcano' },
         wait:   { atkBonus: 2 }, // Daño extra al siguiente turno tras esperar
         defend: { defMult: 1.5 } // Multiplicador defensa
     },
     VARIANCE: {
-        enabled: true, min: 0.5, max: 2.0,
+        enabled: true,
         tiers: [
-            { label: "PÉSIMO",    threshold: 0.65, color: "#777777" },
-            { label: "MALO",      threshold: 0.85, color: "#aaaaaa" },
-            { label: "MEDIOCRE",  threshold: 0.95, color: "#ffffff" },
-            { label: "NORMAL",    threshold: 1.05, color: "#ffffff" },
-            { label: "BUENO",     threshold: 1.25, color: "#00ff00" },
-            { label: "EXCELENTE", threshold: 1.60, color: "#0088ff" },
-            { label: "ÉPICO",     threshold: 9.99, color: "#ff00ff" }
+            { label: 'PÉSIMO', threshold: 0.01, multiplier: 0.65, color: '#777777' },
+            { label: 'MALO', threshold: 0.05, multiplier: 0.8, color: '#aaaaaa' },
+            { label: 'MEDIOCRE', threshold: 0.15, multiplier: 0.9, color: '#ffffff' },
+            { label: 'NORMAL', threshold: 0.60, multiplier: 1, color: '#ffffff' },
+            { label: 'BUENO', threshold: 0.85, multiplier: 1.15, color: '#00ff00' },
+            { label: 'EXCELENTE', threshold: 0.97, multiplier: 1.3, color: '#0088ff' },
+            { label: 'ÉPICO', threshold: 1, multiplier: 1.5, color: '#ff00ff' }
         ]
     },
     ENTITIES: {
@@ -102,10 +126,15 @@ const CONFIG = {
             // Cada criatura tendrá una regla reconocible y una pista táctica en la leyenda.
             { id: 'BAT',    name: 'Murciélago', symbol: 'M', color: '#a64dff', minLevel: 1, hp: 5,  atk: 2,  xp: 10, speed: 1.0, behavior: 'DIVER', diveChance: 0.35, role: 'Acechador de grietas', lore: 'Caza por eco entre las fisuras y se deja caer cuando percibe una abertura.', tactic: 'PICADO: a 2 casillas puede acercarse y atacar en la misma acción. RÁPIDO rompe su ritmo.' },
             { id: 'GOBLIN', name: 'Goblin',     symbol: 'G', color: '#00ff00', minLevel: 3, hp: 15, atk: 5,  xp: 25, speed: 1.0, behavior: 'THIEF', stealGold: 20, greedRange: 6, fleeHp: 0.30, role: 'Saqueador de las profundidades', lore: 'No busca una pelea justa: escucha monedas, calcula una ruta y solo entonces enseña los dientes.', tactic: 'CODICIA: persigue oro cercano. ROBO: si te hiere puede birlar 20 oro y huir hacia una escalera. Mátalo antes de que escape para recuperarlo.' },
-            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 40, atk: 12, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
+            { id: 'TROLL',  name: 'Trasgo',     symbol: 'T', color: '#0088ff', minLevel: 5, hp: 32, atk: 8.5, xp: 60, speed: 1.0, behavior: 'WARDEN', territoryRadius: 5, pressureRange: 2, smashMult: 1.5, homeRegen: 2, role: 'Guardián territorial', lore: 'Marca una cámara como suya y prefiere hacerte retroceder antes que perseguirte por toda la mazmorra.', tactic: 'TERRITORIO: no te persigue fuera de su guarida. PRESIÓN: a ≤2 casillas RUGE; si sigues junto a él al siguiente turno, APLASTA con +50% fuerza. RETÍRATE o DEFIENDE.' }
         ],
-        items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
+        items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 45, drinkRestore: 35 },
         chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, colors: { closed: '#DAA520', open: '#555' } },
+        relics: [
+            { id: 'BLOOD_CHALICE', name: 'Cáliz de Sangre', color: '#ff3355', effect: 'heal', heal: 35, foodCost: 12, waterCost: 8, lore: 'Una vida prestada exige alimento y agua a cambio.' },
+            { id: 'ECHO_BELL', name: 'Campana Hueca', color: '#b48cff', effect: 'stun', stunTurns: 2, lore: 'Su tañido rompe el ritmo de quienes lo escuchan.' },
+            { id: 'WARD_STONE', name: 'Piedra de Guardia', color: '#66d9ef', effect: 'guard', shieldBonus: 3, turns: 3, strikeBonus: 2, waterCost: 6, lore: 'Un juramento tallado en piedra protege a su portador.' }
+        ],
         shops: {
             levels: [3, 6, 9, 12], priceMultiplier: 1.0, sellMultiplier: 0.5,
             inventory: [
@@ -123,28 +152,31 @@ const CONFIG = {
 // ============================================================================
 const STATE_ENUM = {
     PLAYING: 'PLAYING', CONTROLS: 'CONTROLS', INVENTORY: 'INVENTORY',
-    MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER',
-    TARGETING: 'TARGETING'
+    MENU: 'MENU', SHOP: 'SHOP', GAMEOVER: 'GAMEOVER', REWARD_CHOICE: 'REWARD_CHOICE', BESTIARY: 'BESTIARY',
+    TARGETING: 'TARGETING', EQUIPMENT: 'EQUIPMENT', CHARACTER: 'CHARACTER', INSPECT: 'INSPECT'
 };
 
 const GameState = {
     current: STATE_ENUM.CONTROLS,
-    seed: 0, rng: null, level: 1, maxLevel: 1, score: 0, moves: 0,
+    seed: 0, rng: null, level: 1, maxLevel: 1, score: 0, points: 0, moves: 0,
+    floorStates: {}, loadedLevel: null, loadedSeed: null, visitedDepths: new Set([1]),
     entryMethod: 'start', deathCause: "Desconocido",
     floor: { type: 'NORMAL' },
     map: [], seen: [], visible: [], rooms: [],
     stairs: { up: {x:0, y:0}, down: {x:0, y:0} },
-    persistence: {}, shopStocks: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
+    persistence: {}, knownStairs: {}, shopStocks: {}, recoveryDrops: {}, recoveryDropSeq: 0, discoveredTypes: new Set(),
     entities: { enemies: [], items: [], chests: [], shops: [] },
     player: {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
         level: 1, xp: 0, nextXp: 0, baseAtk: 0,
-        inventory: [], equipment: { weapon: null, armor: null },
+        talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
+        inventory: [], equipment: { weapon: null, armor: null, boots: null, ring: null },
         stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
         combat: {
             isDefending: false,
             waitBonus: 0,
-            cooldowns: { area: 0 },
+            wardTurns: 0, wardDefense: 0, wardStrike: 0,
+            cooldowns: { area: 0, ranged: 0 },
             pendingAttack: null
         }
     },
@@ -156,6 +188,16 @@ const GameState = {
         shopStock: [],
         floorWarningOpen: false,
         movementLocked: false,
+        rewardChoice: { options: [], index: 0 },
+        bestiaryId: null,
+        bestiaryReturnState: STATE_ENUM.PLAYING,
+        equipmentReturnState: STATE_ENUM.PLAYING,
+        characterReturnState: STATE_ENUM.PLAYING,
+        characterIndex: 0,
+        upgradePromptPending: false,
+        rangedTarget: null,
+        groundItem: null,
+        groundReturnState: STATE_ENUM.PLAYING,
     }
 };
 
@@ -168,9 +210,14 @@ const DOM = {
     floorWarningText: document.getElementById('floor-warning-text'),
     menus: {
         controls: document.getElementById('controls-menu'),
+        bestiary: document.getElementById('bestiary-menu'),
         inventory: document.getElementById('inventory-menu'),
+        ground: document.getElementById('ground-menu'),
+        equipment: document.getElementById('equipment-menu'),
+        character: document.getElementById('character-menu'),
         main: document.getElementById('game-menu'),
         shop: document.getElementById('shop-menu'),
+        rewardChoice: document.getElementById('reward-choice'),
         gameOver: document.getElementById('game-over'),
         victory: document.getElementById('victory-screen'),
         action: document.getElementById('action-menu')
@@ -184,46 +231,136 @@ const Utils = {
     mulberry32: (a) => { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } },
     random: () => GameState.rng ? GameState.rng() : Math.random(),
     
-    // [LOG GHOST STYLE]
-    log: (msg, color="#ccc") => { 
-        // Evitamos spam idéntico consecutivo rápido
-        const lastMsg = DOM.log.firstElementChild;
-        if (lastMsg && lastMsg.innerText === msg && lastMsg.style.opacity > 0.5) {
-             // Pequeño efecto de "pulso" si se repite
-             lastMsg.style.transform = "scale(1.1)";
-             setTimeout(() => lastMsg.style.transform = "scale(1)", 100);
-             return;
+    // [REGISTRO DE LA MAZMORRA]
+    log: (msg, color="#ccc") => {
+        const emptyMsg = typeof DOM.log.querySelector === 'function'
+            ? DOM.log.querySelector('.log-empty')
+            : null;
+        if (emptyMsg) emptyMsg.remove();
+
+        const lastMsg = DOM.log.lastElementChild;
+        if (lastMsg && lastMsg._logMessage === msg) {
+            lastMsg._logCount++;
+            lastMsg._logRepeat.textContent = `×${lastMsg._logCount}`;
+            DOM.log.scrollTop = DOM.log.scrollHeight;
+            return;
         }
 
         const div = document.createElement('div');
-        div.innerHTML = `<span style="color:${color}">${msg}</span>`;
-        DOM.log.prepend(div); // Insertar arriba (visual abajo por flex-reverse)
-        
-        // Mantener limpio el DOM (max 6 mensajes)
-        if (DOM.log.children.length > 6) DOM.log.lastElementChild.remove();
-        
-        // Auto-desvanecer a los 4 segundos
-        setTimeout(() => {
-            if(div.parentNode) {
-                div.style.transition = "opacity 1s";
-                div.style.opacity = "0";
-                setTimeout(() => div.remove(), 1000);
-            }
-        }, 4000);
+        div._logMessage = msg;
+        div._logCount = 1;
+        div.className = 'log-entry';
+        const marker = document.createElement('span');
+        marker.className = 'log-marker';
+        marker.textContent = '>';
+        marker.style.color = color;
+        marker.ariaHidden = 'true';
+        const text = document.createElement('span');
+        text.className = 'log-text';
+        text.textContent = msg;
+        const repeat = document.createElement('span');
+        repeat.className = 'log-repeat';
+        div._logRepeat = repeat;
+        div.appendChild(marker);
+        div.appendChild(text);
+        div.appendChild(repeat);
+        DOM.log.appendChild(div);
+        if (DOM.log.children.length > 6) DOM.log.firstElementChild.remove();
+        DOM.log.scrollTop = DOM.log.scrollHeight;
+    },
+    resetLog: () => {
+        while (DOM.log.firstElementChild) DOM.log.firstElementChild.remove();
+        DOM.log.textContent = '';
     },
 
     applyVariance: (baseValue) => {
         if (!CONFIG.VARIANCE.enabled) return { value: baseValue, label: "NORMAL", color: "#fff", multiplier: 1 };
-        const rand = (Utils.random() + Utils.random()) / 2;
-        const multiplier = CONFIG.VARIANCE.min + (rand * (CONFIG.VARIANCE.max - CONFIG.VARIANCE.min));
+        const rand = Utils.random();
+        const tier = CONFIG.VARIANCE.tiers.find(t => rand < t.threshold) || CONFIG.VARIANCE.tiers[CONFIG.VARIANCE.tiers.length - 1];
+        const multiplier = tier.multiplier;
         let newValue = Math.round(baseValue * multiplier);
         if (newValue < 1) newValue = 1;
-        let tier = CONFIG.VARIANCE.tiers.find(t => multiplier <= t.threshold) || CONFIG.VARIANCE.tiers[CONFIG.VARIANCE.tiers.length - 1];
         return { value: newValue, label: tier.label, color: tier.color, multiplier: multiplier };
     }
 };
 
+// Propiedades permanentes del equipo. Las resistencias se combinan sin sumar inmunidades.
+const BalanceSystem = {
+    version: 'balance-1',
+    monsterBase: (type, depth = GameState.level) => ({
+        hp: type.id === 'TROLL' ? type.hp + depth * 2.5 : (type.hp + depth * 2) * 1.25,
+        atk: type.id === 'TROLL' ? type.atk + Math.floor(depth / 2) * 1.25 : (type.atk + Math.floor(depth / 2)) * 1.25
+    }),
+    gearPower: (type, source = 'ground', depth = GameState.level) => {
+        const tier = Math.max(0, Math.floor(depth / 3) - 1);
+        if (source === 'shop') return type === 'weapon' ? Math.round(4 + tier * 2.5) : 3 + tier * 2;
+        if (source === 'special') return type === 'weapon' ? 3 + Math.floor(depth / 3) * 3 : 1 + Math.floor(depth / 3) * 2;
+        const base = type === 'weapon' ? 2 + Math.max(0, Math.floor((depth - 1) / 2)) : 1 + Math.floor((depth - 1) / 3);
+        return base + (source === 'chest' ? 1 : 0);
+    },
+    shopPrice: (type, depth = GameState.level) => {
+        const tier = Math.max(0, Math.floor(depth / 3) - 1);
+        const prices = { weapon: [225, 350, 500, 700], armor: [200, 320, 460, 650], food: [80, 100, 120, 140], water: [90, 110, 130, 150] };
+        const list = prices[type];
+        return list ? list[Math.min(tier, 3)] + Math.max(0, tier - 3) * (type === 'weapon' || type === 'armor' ? 150 : 20) : 180 + tier * 20;
+    },
+    award: (gold, points = gold) => {
+        // `score` conserva el nombre histórico de la cartera; `points` es el ranking.
+        GameState.score += gold;
+        GameState.points = (GameState.points || 0) + points;
+    },
+    bounty: (enemy) => {
+        const gold = ({ BAT: 10, GOBLIN: 20, TROLL: 40 })[enemy.typeId] || 25;
+        BalanceSystem.award(Math.round(gold * (enemy.elite ? 1.5 : 1)), Math.round(gold * 2 * (enemy.elite ? 1.5 : 1)));
+    }
+};
+
+const EquipmentSystem = {
+    slots: () => Object.keys(CONFIG.EQUIPMENT_SLOTS),
+    isEquipment: (item) => Boolean(item && Object.hasOwn(CONFIG.EQUIPMENT_SLOTS, item.type)),
+    traits: (equipment = GameState.player.equipment) => {
+        const result = {};
+        for (const slot of EquipmentSystem.slots()) {
+            for (const [key, value] of Object.entries(equipment[slot]?.traits || {})) {
+                if (typeof value === 'boolean') result[key] = Boolean(result[key] || value);
+                else if (Number.isFinite(value)) {
+                    if (key.endsWith('Resist')) result[key] = 1 - (1 - (result[key] || 0)) * (1 - Math.max(0, Math.min(1, value)));
+                    else if (key.endsWith('RestHeal')) result[key] = Math.max(result[key] || 0, value);
+                    else result[key] = (result[key] || 0) + value;
+                }
+            }
+        }
+        return result;
+    },
+    stats: (equipment = GameState.player.equipment) => {
+        const traits = EquipmentSystem.traits(equipment);
+        const baseAttack = GameState.player.baseAtk + (traits.attackBonus || 0);
+        return {
+            baseAttack,
+            attack: baseAttack + (Number(equipment.weapon?.value) || 0),
+            defense: ProgressionSystem.defense() + (Number(equipment.armor?.value) || 0) + (traits.defenseBonus || 0),
+            speedMultiplier: 1 + ProgressionSystem.rank('speed') * CONFIG.PROGRESSION.speed.initiative + (traits.initiativeBonus || 0),
+            rangedDamage: baseAttack + ProgressionSystem.rank('ranged') * CONFIG.PROGRESSION.ranged.damage + (traits.rangedDamageBonus || 0)
+        };
+    }
+};
+
 const VisualFX = {
+    positionText: (el, x, y) => {
+        const view = Renderer.viewport || { x: 0, y: 0, cols: CONFIG.GRID.cols, rows: CONFIG.GRID.rows, fontSize: 20 };
+        const grid = DOM.container.firstElementChild;
+        const layer = document.getElementById('fx-layer');
+        el.style.display = x < view.x || y < view.y || x >= view.x + view.cols || y >= view.y + view.rows ? 'none' : '';
+        if (grid && typeof grid.getBoundingClientRect === 'function' && typeof layer.getBoundingClientRect === 'function') {
+            const rect = grid.getBoundingClientRect();
+            const origin = layer.getBoundingClientRect();
+            el.style.left = `${rect.left - origin.left + (x - view.x + 0.5) * rect.width / view.cols}px`;
+            el.style.top = `${rect.top - origin.top + (y - view.y) * rect.height / view.rows}px`;
+        } else {
+            el.style.left = `${12 + (x - view.x) * view.fontSize * 0.6}px`;
+            el.style.top = `${12 + (y - view.y) * view.fontSize}px`;
+        }
+    },
     floatText: (x, y, text, color, kind = 'auto') => {
         const layer = document.getElementById('fx-layer');
         if (!layer) return;
@@ -240,8 +377,9 @@ const VisualFX = {
 
         el.innerText = textValue;
         el.style.color = color;
-        el.style.left = `calc(15px + ${x} * 0.6em)`;
-        el.style.top = `calc(15px + ${y} * 1.0em)`;
+        el._worldX = x;
+        el._worldY = y;
+        VisualFX.positionText(el, x, y);
 
         if (resolvedKind === 'incoming') {
             el.style.marginLeft = '-18px';
@@ -416,10 +554,7 @@ const FloorSystem = {
     isFrozenVaultTile: (x, y) => FloorSystem.is('FROZEN') && FloorSystem.isRiskZoneTile(x, y, 'FROZEN_VAULT'),
     isMagmaFumaroleTile: (x, y) => FloorSystem.is('MAGMA') && FloorSystem.isRiskZoneTile(x, y, 'MAGMA_FUMAROLE'),
     isUnstableRiftTile: (x, y) => FloorSystem.is('UNSTABLE') && FloorSystem.isRiskZoneTile(x, y, 'UNSTABLE_RIFT'),
-    armorTraits: () => {
-        const armor = GameState.player.equipment.armor;
-        return armor && armor.traits ? armor.traits : {};
-    },
+    armorTraits: () => EquipmentSystem.traits(),
     slipChance: () => {
         if (!FloorSystem.is('FROZEN')) return 0;
         const config = CONFIG.FLOORS.FROZEN;
@@ -458,7 +593,7 @@ const FloorSystem = {
         if (MapSystem.isBlocked(x, y)) return false;
         if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
         if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
-        if (GameState.entities.chests.some(c => c.x === x && c.y === y)) return false;
+        if (GameState.entities.chests.some(c => c.x === x && c.y === y && !c.isOpen)) return false;
         return true;
     },
     thirstRate: () => {
@@ -467,13 +602,13 @@ const FloorSystem = {
         const config = CONFIG.FLOORS.MAGMA;
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().thirstResist) || 0));
         const pressure = 1 + (config.thirstMultiplier - 1) * (1 - resist);
-        return Math.max(1, Math.round(baseRate / pressure));
+        return Math.max(1, baseRate / pressure);
     },
     magmaRiskWaterCost: () => {
         if (!FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y)) return 0;
         const config = CONFIG.FLOORS.MAGMA.fumarole;
         const resist = Math.max(0, Math.min(1, Number(FloorSystem.armorTraits().heatResist) || 0));
-        return Math.max(0, Math.ceil(config.waterCostPerTurn * (1 - resist)));
+        return Math.max(0, config.waterCostPerTurn * (1 - resist));
     },
     restHealing: () => {
         if (FloorSystem.is('FROZEN')) return Math.max(0, Number(FloorSystem.armorTraits().frozenRestHeal) || 0);
@@ -561,11 +696,15 @@ const FloorSystem = {
         const positions = FloorSystem.recoveryPositions(items.length);
         items.forEach((item, index) => {
             const pos = positions[index] || { x: GameState.player.x, y: GameState.player.y };
-            const recoveryDropId = `RECOVERY_${GameState.level}_${++GameState.recoveryDropSeq}`;
-            const dropped = { ...item, x: pos.x, y: pos.y, recoveryDropId };
-            GameState.recoveryDrops[GameState.level].push({ ...dropped });
-            GameState.entities.items.push(dropped);
+            FloorSystem.storeDrop(item, pos);
         });
+    },
+    storeDrop: (item, pos) => {
+        const recoveryDropId = `RECOVERY_${GameState.level}_${++GameState.recoveryDropSeq}`;
+        const dropped = { ...item, x: pos.x, y: pos.y, recoveryDropId };
+        (GameState.recoveryDrops[GameState.level] ||= []).push({ ...dropped });
+        GameState.entities.items.push(dropped);
+        return dropped;
     },
     restoreRecoveryDrops: () => {
         const drops = GameState.recoveryDrops[GameState.level] || [];
@@ -588,10 +727,10 @@ const FloorSystem = {
         const hpLoss = FloorSystem.fallHpLoss();
         const itemsToScatter = [...GameState.player.inventory];
         if (!keepEquipped) {
-            if (GameState.player.equipment.weapon) itemsToScatter.push(GameState.player.equipment.weapon);
-            if (GameState.player.equipment.armor) itemsToScatter.push(GameState.player.equipment.armor);
-            GameState.player.equipment.weapon = null;
-            GameState.player.equipment.armor = null;
+            EquipmentSystem.slots().forEach(slot => {
+                if (GameState.player.equipment[slot]) itemsToScatter.push(GameState.player.equipment[slot]);
+                GameState.player.equipment[slot] = null;
+            });
         }
         GameState.player.inventory = [];
 
@@ -620,6 +759,7 @@ const FloorSystem = {
     showWarning: () => {
         const config = FloorSystem.config();
         if (!config || !config.warningTitle || !DOM.floorWarning) return;
+        MovementInput.stop();
         DOM.floorWarningTitle.textContent = config.warningTitle;
         DOM.floorWarningText.innerHTML = config.warningText;
         DOM.floorWarning.classList.remove('floor-warning-frozen', 'floor-warning-magma', 'floor-warning-unstable');
@@ -651,17 +791,24 @@ const FloorSystem = {
 // ============================================================================
 const Network = {
     isSaving: false,
+    setSaveButtons: (disabled, label = 'Guardar puntuación') => {
+        for (const id of ['death-save-button', 'win-save-button']) {
+            const button = document.getElementById(id);
+            if (button) { button.disabled = disabled; button.textContent = label; }
+        }
+    },
     fetchScores: async (targetId) => {
         const target = document.getElementById(targetId);
         if (!target) return;
         target.innerHTML = 'Cargando...';
         try {
-            const r = await fetch('/404/rogue_api.php?v=' + Date.now());
+            const r = await fetch('/404/rogue_api.php?v=' + Date.now(), { cache: 'no-store' });
             const d = await r.json();
+            if (!r.ok || !Array.isArray(d)) throw new Error(d?.error || 'La API no ha devuelto un ranking válido.');
             Network.renderLeaderboard(d, targetId);
         } catch (e) {
             console.error(e);
-            target.innerHTML = 'Offline o Error de Conexión';
+            target.textContent = `No se pudo cargar el ranking: ${e.message}`;
         }
     },
     saveScore: async () => {
@@ -670,17 +817,29 @@ const Network = {
         const isVictory = !DOM.menus.victory.classList.contains('hidden');
         const input = document.getElementById(isVictory ? 'winner-name' : 'player-name');
         const name = ((input && input.value.trim()) || 'UNK').toUpperCase();
+        const status = document.getElementById(isVictory ? 'win-save-status' : 'death-save-status');
+        if (GameState.ui.testMode) {
+            if (status) status.textContent = 'Expedición de pruebas: no se envía al ranking. Inicia una partida normal para guardar resultados.';
+            return;
+        }
+        const runId = GameState.runId;
         const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
-        const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
+        const gearStr = UISystem.expeditionGear();
 
         Network.isSaving = true;
+        Network.setSaveButtons(true, 'Guardando…');
+        if (status) status.textContent = 'Guardando puntuación…';
         try {
             const r = await fetch('/404/rogue_api.php', {
                 method: 'POST',
+                cache: 'no-store',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    runId,
+                    responseVersion: 2,
                     name,
-                    score: GameState.score,
+                    score: GameState.points || 0,
+                    ruleset: BalanceSystem.version,
                     level: GameState.maxLevel,
                     seed: GameState.seed,
                     cause: GameState.deathCause,
@@ -688,17 +847,22 @@ const Network = {
                     equipment: gearStr
                 })
             });
-            if (!r.ok) throw new Error('Error en servidor');
-
-            const d = await r.json();
-            Network.renderLeaderboard(d, 'leaderboard');
-            Network.renderLeaderboard(d, 'victory-leaderboard');
+            let d;
+            try { d = await r.json(); } catch (_) { throw new Error('La API no devuelve JSON. Puede estar respondiendo la página 404 en lugar del servidor de puntuaciones.'); }
+            if (!r.ok) throw new Error(d?.error || `El servidor ha rechazado el guardado (HTTP ${r.status}).`);
+            if (d?.saved !== true || d.entry?.runId !== runId || !Array.isArray(d.leaderboard) || !Number.isInteger(d.rank) || d.rank < 1 || !Number.isInteger(d.total) || d.total < d.rank) throw new Error('El servidor no ha confirmado esta expedición. Recarga la web y vuelve a intentarlo.');
+            if (GameState.runId !== runId) return;
+            Network.renderLeaderboard(d.leaderboard, 'leaderboard');
+            Network.renderLeaderboard(d.leaderboard, 'victory-leaderboard');
             Utils.log('¡Legado guardado!', '#ffd700');
-            setTimeout(() => GameLogic.init(), 2000);
+            Network.setSaveButtons(true, 'Guardada');
+            if (status) status.textContent = `Guardada en el servidor: ${d.entry.name}, ${d.entry.score} oro. Puesto ${d.rank} de ${d.total}.${d.rank > 20 ? ' Fuera del Top 20; tu resultado sí queda conservado.' : ''}`;
         } catch (e) {
+            if (GameState.runId !== runId) return;
             Network.isSaving = false;
+            Network.setSaveButtons(false, 'Reintentar guardado');
+            if (status) status.textContent = `No se pudo guardar: ${e.message} Puedes volver a intentarlo.`;
             console.error(e);
-            alert('Error guardando datos.');
         }
     },
     renderLeaderboard: (data, targetId) => {
@@ -706,7 +870,7 @@ const Network = {
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[ch]);
 
-        let h = '<table><tr><th>NOM</th><th>LVL</th><th>ORO</th><th>CAUSA</th><th>FECHA</th></tr>';
+        let h = '<table aria-label="Ranking de expediciones"><thead><tr><th scope="col">Nombre</th><th scope="col" class="score-number">Prof.</th><th scope="col" class="score-number">Puntos</th><th scope="col">Causa</th><th scope="col">Fecha</th></tr></thead><tbody>';
         if (Array.isArray(data)) {
             data.forEach((e) => {
                 const name = escapeHtml(e.name || 'UNK');
@@ -715,10 +879,11 @@ const Network = {
                 const score = Number.isFinite(Number(e.score)) ? Number(e.score) : 0;
                 const cause = escapeHtml(e.cause || 'Desconocido');
                 const details = escapeHtml(`Equipo: ${e.equipment || 'Ninguno'}\nBajas: ${e.kills || 'Ninguna'}`);
-                h += `<tr title="${details}"><td>${name}</td><td style='text-align:center'>${lvl}</td><td style='text-align:right; color:#ffd700'>${score}</td><td style='color:#aaa; font-style:italic'>${cause}</td><td style='text-align:right; font-size:0.8em'>${date}</td></tr>`;
+                h += `<tr title="${details}"><td>${name}</td><td class="score-number">${lvl}</td><td class="score-number">${score}</td><td class="score-cause">${cause}</td><td class="score-date">${date}</td></tr>`;
             });
         }
-        h += '</table>';
+        if (!Array.isArray(data) || data.length === 0) h += '<tr><td colspan="5">Aún no hay expediciones registradas.</td></tr>';
+        h += '</tbody></table>';
         const target = document.getElementById(targetId);
         if (target) target.innerHTML = h;
     }
@@ -728,7 +893,17 @@ const Network = {
 // 5. SISTEMA DE MAPA Y GENERACIÓN
 // ============================================================================
 const MapSystem = {
+    saveFloor: () => {
+        if (GameState.loadedLevel === null || GameState.loadedSeed !== GameState.seed) return;
+        GameState.floorStates[GameState.loadedLevel] = {
+            entities: JSON.parse(JSON.stringify(GameState.entities)),
+            seen: GameState.seen.map(row => [...row])
+        };
+    },
     initLevel: () => {
+        if (GameState.loadedSeed !== GameState.seed) { GameState.floorStates = {}; GameState.visitedDepths = new Set([1]); }
+        MapSystem.saveFloor();
+        const saved = GameState.loadedSeed === GameState.seed ? GameState.floorStates[GameState.level] : null;
         GameState.rng = Utils.mulberry32(GameState.seed + GameState.level);
         if (GameState.level > GameState.maxLevel) GameState.maxLevel = GameState.level;
         GameState.map = []; GameState.seen = []; GameState.visible = []; GameState.rooms = [];
@@ -741,20 +916,49 @@ const MapSystem = {
             GameState.map.push(new Array(CONFIG.GRID.cols).fill('#'));
         }
         MapSystem.generateDungeon(); FloorSystem.prepareRiskZone(); EntityFactory.spawnAll();
+        if (saved) {
+            GameState.entities = JSON.parse(JSON.stringify(saved.entities));
+            GameState.entities.items = GameState.entities.items.filter(item => item.recoveryDropId || item.stolenFromGoblin || !MapSystem.isTaken(item.x, item.y));
+            GameState.entities.chests.forEach(chest => { chest.isOpen ||= MapSystem.isTaken(`CHEST_${chest.x},${chest.y}`); });
+            GameState.seen = saved.seen.map(row => [...row]);
+        }
+        GameState.loadedLevel = GameState.level; GameState.loadedSeed = GameState.seed;
         FloorSystem.restoreRecoveryDrops();
         if (GameState.entryMethod === 'falling') {
             const landing = EntityFactory.getEmptyPos() || GameState.stairs.up;
             GameState.player.x = landing.x; GameState.player.y = landing.y;
         } else {
-            const stairs = GameState.entryMethod === 'descending' ? GameState.stairs.up : GameState.stairs.down;
+            const stairs = ['descending', 'start'].includes(GameState.entryMethod) ? GameState.stairs.up : GameState.stairs.down;
             GameState.player.x = stairs.x; GameState.player.y = stairs.y;
         }
-        GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null };
+        // La entrada siempre queda libre, sin curar ni duplicar al enemigo desplazado.
+        GameState.entities.enemies.forEach(enemy => {
+            if (enemy.x === GameState.player.x && enemy.y === GameState.player.y) {
+                const pos = EntityFactory.getEmptyPos();
+                if (pos) { enemy.x = pos.x; enemy.y = pos.y; }
+            }
+        });
+        const cooldowns = { area: 0, ranged: 0, ...GameState.player.combat.cooldowns };
+        GameState.player.combat = { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns, pendingAttack: null };
+        GameState.ui.rangedTarget = null;
+        if (!GameState.visitedDepths.has(GameState.level)) {
+            GameState.visitedDepths.add(GameState.level);
+            ProgressionSystem.gainXp(25);
+            Utils.log('Nueva profundidad: +25 XP de exploración. Esta recompensa no se repite.', '#bde78a');
+        }
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
         FloorSystem.onEnter();
     },
     generateDungeon: () => {
+        // La arquitectura usa su propia secuencia para no alterar el sorteo de
+        // tamaños y conexiones. Cada bloque de salas mezcla todas las formas.
+        const architectureRng = Utils.mulberry32((GameState.seed ^ Math.imul(GameState.level, 0x9e3779b9)) >>> 0);
+        const shapes = [...CONFIG.MAP.roomShapes];
+        for (let i = shapes.length - 1; i > 0; i--) {
+            const j = Math.floor(architectureRng() * (i + 1));
+            [shapes[i], shapes[j]] = [shapes[j], shapes[i]];
+        }
         for (let i = 0; i < CONFIG.MAP.maxRooms; i++) {
             let w = Math.floor(Utils.random() * (CONFIG.MAP.maxRoomSize - CONFIG.MAP.minRoomSize + 1)) + CONFIG.MAP.minRoomSize;
             let h = Math.floor(Utils.random() * (CONFIG.MAP.maxRoomSize - CONFIG.MAP.minRoomSize + 1)) + CONFIG.MAP.minRoomSize;
@@ -763,6 +967,8 @@ const MapSystem = {
             let newRoom = { x, y, w, h, center: {x: Math.floor(x+w/2), y: Math.floor(y+h/2)} };
             let failed = GameState.rooms.some(other => newRoom.x <= other.x + other.w && newRoom.x + newRoom.w >= other.x && newRoom.y <= other.y + other.h && newRoom.y + newRoom.h >= other.y);
             if (!failed) {
+                newRoom.shape = shapes[GameState.rooms.length % shapes.length];
+                newRoom.orientation = Math.floor(architectureRng() * 4);
                 MapSystem.carveRoom(newRoom);
                 if (GameState.rooms.length > 0) {
                     let prev = GameState.rooms[GameState.rooms.length - 1];
@@ -777,7 +983,45 @@ const MapSystem = {
             GameState.stairs.down = { x: last.center.x, y: last.center.y };
         }
     },
-    carveRoom: (r) => { for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) GameState.map[y][x] = '.'; },
+    roomContainsFloor: (r, x, y) => {
+        const u = x - r.x;
+        const v = y - r.y;
+        if (u < 0 || u >= r.w || v < 0 || v >= r.h) return false;
+        if (r.shape === 'OVAL') {
+            const nx = (u - (r.w - 1) / 2) / (r.w / 2);
+            const ny = (v - (r.h - 1) / 2) / (r.h / 2);
+            return nx * nx + ny * ny <= 1;
+        }
+        if (r.shape === 'CHAMFERED') {
+            const cornerCut = Math.max(1, Math.floor(Math.min(r.w, r.h) * 0.22));
+            return Math.min(u, r.w - 1 - u) + Math.min(v, r.h - 1 - v) >= cornerCut;
+        }
+        if (r.shape === 'L_SHAPED') {
+            const cornerX = (r.orientation & 1) ? r.w - 1 - u : u;
+            const cornerY = (r.orientation & 2) ? r.h - 1 - v : v;
+            // El recorte nunca alcanza el centro: las escaleras y ambos ejes
+            // de conexión quedan transitables en las cuatro orientaciones.
+            return cornerX >= Math.floor((r.w - 1) / 2) || cornerY >= Math.floor((r.h - 1) / 2);
+        }
+        if (r.shape === 'PILLARED') {
+            const centerX = Math.floor(r.w / 2);
+            const centerY = Math.floor(r.h / 2);
+            if (u === centerX || v === centerY) return true;
+            const pillarX = u === Math.floor(r.w / 3) || u === Math.floor(r.w * 2 / 3);
+            const pillarY = v === Math.floor(r.h / 3) || v === Math.floor(r.h * 2 / 3);
+            return !(pillarX && pillarY);
+        }
+        return true;
+    },
+    carveRoom: (r) => {
+        for (let y = r.y; y < r.y + r.h; y++) {
+            for (let x = r.x; x < r.x + r.w; x++) {
+                // Solo abre roca: respeta cualquier pasillo ya tallado que
+                // atraviese la huella de esta sala, incluso junto a un pilar.
+                if (MapSystem.roomContainsFloor(r, x, y)) GameState.map[y][x] = '.';
+            }
+        }
+    },
     carveHCorridor: (x1, x2, y) => { for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) GameState.map[y][x] = '.'; },
     carveVCorridor: (y1, y2, x) => { for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) GameState.map[y][x] = '.'; },
     updateFog: () => {
@@ -796,10 +1040,31 @@ const MapSystem = {
                 if (GameState.map[my][mx] === '#') break;
             }
         }
+        const known = GameState.knownStairs[GameState.level] || (GameState.knownStairs[GameState.level] = {});
+        for (const kind of ['up', 'down']) {
+            const stair = GameState.stairs[kind];
+            if (GameState.seen[stair.y]?.[stair.x]) known[kind] = true;
+            if (known[kind] && GameState.seen[stair.y]) GameState.seen[stair.y][stair.x] = true;
+        }
     },
     isBlocked: (x, y) => { if (x < 0 || x >= CONFIG.GRID.cols || y < 0 || y >= CONFIG.GRID.rows) return true; return GameState.map[y][x] === '#' || FloorSystem.isHole(x, y); },
     isTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; return GameState.persistence[GameState.level].includes(key); },
     markTaken: (keyOrX, y) => { let key = (y !== undefined) ? `${keyOrX},${y}` : keyOrX; if (!GameState.persistence[GameState.level].includes(key)) GameState.persistence[GameState.level].push(key); },
+    safeObstacle: (x, y) => {
+        const blocked = new Set([...GameState.entities.shops, ...GameState.entities.chests.filter(chest => !chest.isOpen), { x, y }].map(entity => `${entity.x},${entity.y}`));
+        const start = GameState.stairs.up;
+        const seen = new Set([`${start.x},${start.y}`]), queue = [start];
+        for (let i = 0; i < queue.length; i++) {
+            for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+                const nx = queue[i].x + dx, ny = queue[i].y + dy, key = `${nx},${ny}`;
+                if (GameState.map[ny]?.[nx] !== '.' || blocked.has(key) || seen.has(key)) continue;
+                seen.add(key); queue.push({ x: nx, y: ny });
+            }
+        }
+        let floor = 0;
+        GameState.map.forEach((row, y) => row.forEach((tile, x) => { if (tile === '.' && !blocked.has(`${x},${y}`)) floor++; }));
+        return seen.size === floor;
+    },
 };
 
 // ============================================================================
@@ -814,7 +1079,7 @@ const EntityFactory = {
     },
     spawnAll: () => {
         const enemyCount = 3 + GameState.level + Math.floor(Utils.random() * 3);
-        for (let i = 0; i < enemyCount; i++) EntityFactory.spawnEnemy();
+        for (let i = 0; i < enemyCount; i++) EntityFactory.spawnEnemy(GameState.level === 5 && i === 0 ? 'TROLL' : null);
 
         const spawns = [
             { count: 8, type: 'GOLD', chance: 1.0 },
@@ -823,7 +1088,7 @@ const EntityFactory = {
             { count: 1, type: 'FOOD', chance: CONFIG.ENTITIES.items.foodChance },
             { count: 1, type: 'WATER', chance: CONFIG.ENTITIES.items.drinkChance },
             { count: 1, type: 'WEAPON', chance: (GameState.level % 2 === 0) ? 1.0 : 0 },
-            { count: 1, type: 'ARMOR', chance: (GameState.level % 5 === 0) ? 1.0 : 0 }
+            { count: 1, type: 'ARMOR', chance: (GameState.level === 2 || GameState.level % 5 === 0) ? 1.0 : 0 }
         ];
 
         spawns.forEach(spawn => {
@@ -834,8 +1099,8 @@ const EntityFactory = {
                 if (spawn.type === 'GOLD') EntityFactory.createItem(pos, 'GOLD', 10);
                 else if (spawn.type === 'FOOD') EntityFactory.createSmartItem(pos, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
                 else if (spawn.type === 'WATER') EntityFactory.createSmartItem(pos, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
-                else if (spawn.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', CONFIG.COMBAT.baseWeaponVal, 'Arma', '!', '#ff00ff');
-                else if (spawn.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', CONFIG.COMBAT.baseArmorVal, 'Malla', ']', '#4682b4');
+                else if (spawn.type === 'WEAPON') EntityFactory.createSmartItem(pos, 'weapon', BalanceSystem.gearPower('weapon'), 'Arma', '!', '#ff00ff');
+                else if (spawn.type === 'ARMOR') EntityFactory.createSmartItem(pos, 'armor', BalanceSystem.gearPower('armor'), 'Malla', ']', '#4682b4');
             }
         });
 
@@ -858,6 +1123,14 @@ const EntityFactory = {
                 name: 'Cofre',
                 isOpen: MapSystem.isTaken(chestKey)
             });
+        }
+        // Un accesorio por planta; posición y modelo se regeneran con la misma semilla.
+        const accessoryType = GameState.level % 2 ? 'boots' : 'ring';
+        const candidates = EntityFactory.accessoryPool(accessoryType);
+        const definition = candidates[GameState.level <= 2 ? 0 : Math.floor(Utils.random() * candidates.length)];
+        const accessoryPos = EntityFactory.getEmptyPos();
+        if (accessoryPos && !MapSystem.isTaken(accessoryPos.x, accessoryPos.y)) {
+            GameState.entities.items.push(EntityFactory.createAccessoryItem(definition, accessoryPos));
         }
     },
     spawnRiskReward: () => {
@@ -884,7 +1157,7 @@ const EntityFactory = {
             const candidates = [];
             for (let y = zone.y1; y <= zone.y2; y++) {
                 for (let x = zone.x1; x <= zone.x2; x++) {
-                    if (MapSystem.isBlocked(x, y) || EntityFactory.isStartEnd(x, y) || EntityFactory.isOccupied(x, y)) continue;
+                    if (MapSystem.isBlocked(x, y) || EntityFactory.isStartEnd(x, y) || EntityFactory.isOccupied(x, y) || !MapSystem.safeObstacle(x, y)) continue;
                     candidates.push({ x, y, dist: Math.abs(x - GameState.stairs.up.x) + Math.abs(y - GameState.stairs.up.y) });
                 }
             }
@@ -911,11 +1184,11 @@ const EntityFactory = {
             GameState.entities.items.push({
                 x: pos.x,
                 y: pos.y,
-                type: 'armor',
+                type: 'boots',
                 specialId: 'FROZEN_CRAMPONS',
-                name: 'Arnés polar con crampones',
-                value: 1,
-                symbol: ']',
+                name: 'Botas polares con crampones',
+                value: 0,
+                symbol: '}',
                 color: '#8adfff',
                 qualityColor: '#bdefff',
                 traits: { slipResist: 0.75, frozenRestHeal: 1 }
@@ -948,16 +1221,26 @@ const EntityFactory = {
             });
         }
     },
-    spawnEnemy: () => {
-        let pos = EntityFactory.getEmptyPos(); if (!pos) return;
-        const possible = CONFIG.ENTITIES.enemies.filter(e => e.minLevel <= GameState.level);
-        const type = possible.length > 0 ? possible[Math.floor(Utils.random() * possible.length)] : CONFIG.ENTITIES.enemies[0];
-        let baseHp = type.hp + (GameState.level * 2); let hpVar = Utils.applyVariance(baseHp);
-        let baseAtk = type.atk + Math.floor(GameState.level/2); let atkVar = Utils.applyVariance(baseAtk);
-        let name = type.name; if (hpVar.multiplier > 1.3) name += " Alfa"; else if (hpVar.multiplier < 0.8) name += " Enclenque";
+    spawnEnemy: (forcedType = null) => {
+        let pos = null;
+        for (let i = 0; i < 50; i++) {
+            const candidate = EntityFactory.getEmptyPos();
+            if (candidate && Math.max(Math.abs(candidate.x - GameState.stairs.up.x), Math.abs(candidate.y - GameState.stairs.up.y)) >= 4) { pos = candidate; break; }
+        }
+        if (!pos) return;
+        const trollCount = GameState.entities.enemies.filter(enemy => enemy.typeId === 'TROLL').length;
+        const trollCap = Math.max(1, GameState.level - 4);
+        const possible = CONFIG.ENTITIES.enemies.filter(e => e.minLevel <= GameState.level && (e.id !== 'TROLL' || trollCount < trollCap));
+        const type = possible.find(enemy => enemy.id === forcedType) || possible[Math.floor(Utils.random() * possible.length)];
+        const elite = Utils.random() < 0.08;
+        const base = BalanceSystem.monsterBase(type);
+        const hp = Math.max(1, Math.round(base.hp * (0.85 + Utils.random() * 0.3) * (elite ? 1.25 : 1)));
+        const atk = Math.max(1, Math.round(base.atk * (0.85 + Utils.random() * 0.3) * (elite ? 1.1 : 1)));
+        const name = type.name + (elite ? ' Alfa' : '');
         GameState.entities.enemies.push({
             x: pos.x, y: pos.y,
             typeId: type.id,
+            elite,
             behavior: type.behavior,
             diveChance: Number(type.diveChance) || 0,
             stealGold: Number(type.stealGold) || 0,
@@ -971,16 +1254,42 @@ const EntityFactory = {
             homeX: pos.x, homeY: pos.y,
             _trollPressurePrimed: false,
             name: name, symbol: type.symbol,
-            color: (hpVar.multiplier > 1.2 ? '#ff4444' : type.color),
-            hp: hpVar.value, maxHp: hpVar.value,
-            atk: atkVar.value, xp: type.xp, speed: type.speed,
+            color: elite ? '#ff4444' : type.color,
+            hp, maxHp: hp,
+            atk, xp: Math.round(type.xp * (elite ? 1.4 : 1)), speed: type.speed,
             energy: 0, isSleeping: Utils.random() < 0.3,
             tookDamage: false
         });
     },
     createSmartItem: (pos, type, baseVal, baseName, symbol, color) => {
         let v = Utils.applyVariance(baseVal);
-        GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, name: `${baseName} [${v.label}]`, value: v.value, qualityColor: v.color, symbol: symbol, color: color });
+        const item = { x: pos.x, y: pos.y, type, name: `${baseName} [${v.label}]`, value: v.value, qualityColor: v.color, symbol, color, foundAt: GameState.level };
+        GameState.entities.items.push(item);
+        return item;
+    },
+    accessoryPool: (type) => CONFIG.ACCESSORIES.filter(item => {
+        if (item.type !== type) return false;
+        if (type !== 'boots' || item.id === 'LIGHT_BOOTS') return true;
+        return [GameState.level, GameState.level + 1, GameState.level + 2].some(level => FloorSystem.typeForLevel(level) === (item.id === 'ASH_BOOTS' ? 'MAGMA' : 'UNSTABLE'));
+    }),
+    createAccessoryItem: (definition, pos = {}) => ({
+        ...pos, type: definition.type, gearId: definition.id, name: definition.name,
+        value: 0, symbol: definition.symbol, color: definition.color,
+        qualityColor: definition.color, traits: { ...definition.traits }
+    }),
+    createRelicItem: (pos, relicId = null) => {
+        const relics = CONFIG.ENTITIES.relics;
+        const relic = relics.find(candidate => candidate.id === relicId) || relics[Math.floor(Utils.random() * relics.length)];
+        GameState.entities.items.push({
+            x: pos.x, y: pos.y,
+            type: 'relic',
+            relicId: relic.id,
+            name: relic.name,
+            value: 0,
+            symbol: '&',
+            color: relic.color,
+            qualityColor: relic.color
+        });
     },
     createItem: (pos, type, val) => { GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, value: val, name: type === 'GOLD' ? 'Oro' : 'Item', symbol: '$', color: '#ffd700' }); },
     getEmptyPos: () => {
@@ -999,7 +1308,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isBlocked(x, y) && !MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !MapSystem.isTaken(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y) && MapSystem.safeObstacle(x, y)) return { x, y };
         }
         return null;
     },
@@ -1010,7 +1319,7 @@ const EntityFactory = {
             const r = GameState.rooms[Math.floor(Utils.random() * GameState.rooms.length)];
             const x = r.x + Math.floor(Utils.random() * r.w);
             const y = r.y + Math.floor(Utils.random() * r.h);
-            if (!MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y)) return { x, y };
+            if (!MapSystem.isBlocked(x, y) && !EntityFactory.isStartEnd(x, y) && !EntityFactory.isOccupied(x, y) && MapSystem.safeObstacle(x, y)) return { x, y };
         }
         return null;
     },
@@ -1018,8 +1327,94 @@ const EntityFactory = {
 };
 
 // ============================================================================
-// 7. SISTEMA DE JUEGO PRINCIPAL
+// 7. PROGRESIÓN Y SISTEMA DE JUEGO PRINCIPAL
 // ============================================================================
+const ProgressionSystem = {
+    focus: null,
+    rank: (id) => Math.max(0, Number(GameState.player.talents?.[id]) || 0),
+    defense: () => ProgressionSystem.rank('resilience') * CONFIG.PROGRESSION.resilience.defense,
+    speedMultiplier: () => EquipmentSystem.stats().speedMultiplier,
+    rangedRange: () => ProgressionSystem.rank('ranged') > 0 ? CONFIG.PROGRESSION.ranged.baseRange + ProgressionSystem.rank('ranged') : 0,
+    rangedDamage: () => EquipmentSystem.stats().rangedDamage,
+    options: () => Object.entries(CONFIG.PROGRESSION).map(([id, definition]) => {
+        const rank = ProgressionSystem.rank(id);
+        let description, effect;
+        if (id === 'strength') {
+            description = 'Aumenta el daño de todos tus ataques, incluido el dardo. Se suma a tu arma.';
+            effect = `Ataque base: ${GameState.player.baseAtk} → ${GameState.player.baseAtk + definition.attack}`;
+        } else if (id === 'resilience') {
+            description = 'Bloqueas más daño de los enemigos. Se suma a la armadura y funciona al defenderte; no protege del hambre, calor o caídas.';
+            effect = `Defensa natural: ${ProgressionSystem.defense()} → ${ProgressionSystem.defense() + definition.defense}`;
+        } else if (id === 'speed') {
+            description = 'Ganas iniciativa: actúas más a menudo que los enemigos. No cambia la velocidad del teclado ni el consumo por acción.';
+            effect = `Velocidad: ${Math.round(ProgressionSystem.speedMultiplier() * 100)}% → ${Math.round((ProgressionSystem.speedMultiplier() + definition.initiative) * 100)}%`;
+        } else {
+            description = 'Elige cualquier enemigo con alcance y línea de tiro, sin munición ni arma extra. Lo detienen paredes, cofres y mercaderes. Recarga: 2 acciones.';
+            effect = rank === 0
+                ? `Desbloquea [L] · alcance 4 · daño base ${ProgressionSystem.rangedDamage() + definition.damage}`
+                : `Alcance ${ProgressionSystem.rangedRange()} → ${ProgressionSystem.rangedRange() + 1} · daño base ${ProgressionSystem.rangedDamage()} → ${ProgressionSystem.rangedDamage() + definition.damage}`;
+        }
+        const capped = Boolean(definition.maxRank && rank >= definition.maxRank);
+        return { id, ...definition, rank, description, effect: capped ? 'Has alcanzado el rango máximo de este camino.' : effect, capped };
+    }),
+    gainXp: (amount) => {
+        if (!Number.isFinite(amount) || amount <= 0 || GameState.current === STATE_ENUM.GAMEOVER) return;
+        const player = GameState.player;
+        player.xp += amount;
+        let levels = 0;
+        // Un barrido o una recompensa puede conceder varios niveles: ningún punto se pierde.
+        while (player.nextXp > 0 && player.xp >= player.nextXp) {
+            player.xp -= player.nextXp;
+            player.level++;
+            player.nextXp = Math.max(player.nextXp + 1, Math.floor(player.nextXp * CONFIG.PLAYER.leveling.xpScaling));
+            player.maxHp += CONFIG.PLAYER.leveling.statGain.hp;
+            player.hp = player.maxHp;
+            player.talentPoints = (player.talentPoints || 0) + 1;
+            levels++;
+        }
+        if (levels > 0) {
+            GameState.ui.upgradePromptPending = true;
+            MovementInput.stop();
+            Utils.log(`¡Nivel ${player.level}! +${levels * CONFIG.PLAYER.leveling.statGain.hp} vida máxima. Tienes ${player.talentPoints} ${player.talentPoints === 1 ? 'punto' : 'puntos'} de talento [N].`, '#bde78a');
+        } else Utils.log(`+${amount} XP · ${player.xp}/${player.nextXp}`, '#8fff98');
+    },
+    offerUpgrade: () => {
+        if (!GameState.ui.upgradePromptPending || GameState.player.talentPoints <= 0) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY].includes(GameState.current) || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        ProgressionSystem.open();
+    },
+    open: () => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.EQUIPMENT, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
+        ProgressionSystem.focus = document.activeElement;
+        GameState.ui.characterReturnState = GameState.current;
+        GameState.ui.characterIndex = 0;
+        GameState.ui.upgradePromptPending = false;
+        if (GameState.ui.actionMenuOpen) InventorySystem.closeActionMenu();
+        StateController.change(STATE_ENUM.CHARACTER);
+    },
+    close: () => {
+        if (GameState.current !== STATE_ENUM.CHARACTER) return;
+        StateController.change(GameState.ui.characterReturnState);
+        if (ProgressionSystem.focus?.isConnected) ProgressionSystem.focus.focus();
+        ProgressionSystem.focus = null;
+    },
+    choose: (id) => {
+        if (GameState.current !== STATE_ENUM.CHARACTER || GameState.player.talentPoints <= 0) return false;
+        const option = ProgressionSystem.options().find(option => option.id === id);
+        if (!option || option.capped) return false;
+        GameState.ui.characterIndex = Object.keys(CONFIG.PROGRESSION).indexOf(id);
+        GameState.player.talents[id]++;
+        GameState.player.talentPoints--;
+        if (id === 'strength') GameState.player.baseAtk += option.attack;
+        Utils.log(`${option.name} · rango ${option.rank + 1}. ${option.effect}`, '#cfb477');
+        if (GameState.player.talentPoints === 0) ProgressionSystem.close();
+        else { UISystem.renderCharacter(); DOM.menus.character.focus(); }
+        UISystem.updateHUD();
+        return true;
+    }
+};
+
 const GameLogic = {
     init: (seedInput = null) => {
         GameState.entryMethod = 'start';
@@ -1031,19 +1426,36 @@ const GameLogic = {
         GameState.ui.shopStock = [];
         GameState.ui.floorWarningOpen = false;
         GameState.ui.movementLocked = false;
+        GameState.ui.bestiaryId = null;
+        GameState.ui.bestiaryReturnState = STATE_ENUM.PLAYING;
+        GameState.ui.equipmentReturnState = STATE_ENUM.PLAYING;
+        GameState.ui.characterReturnState = STATE_ENUM.PLAYING;
+        GameState.ui.characterIndex = 0;
+        GameState.ui.upgradePromptPending = false;
+        ProgressionSystem.focus = null;
+        GameState.ui.rangedTarget = null;
+        GameState.ui.testMode = false;
+        GameState.ui.groundItem = null;
+        GameState.ui.groundReturnState = STATE_ENUM.PLAYING;
+        GameState.runId = typeof window.crypto?.randomUUID === 'function' ? window.crypto.randomUUID() : `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        MovementInput.stop();
         FloorSystem.closeWarning();
         Network.isSaving = false;
+        Utils.resetLog();
 
         GameState.seed = seedInput !== null ? seedInput : Math.floor(Math.random() * 999999);
-        GameState.level = 1; GameState.score = 0; GameState.moves = 0; GameState.maxLevel = 1;
+        GameState.level = 1; GameState.score = 0; GameState.points = 0; GameState.moves = 0; GameState.maxLevel = 1;
+        GameState.floorStates = {}; GameState.loadedLevel = null; GameState.loadedSeed = null;
         const pConf = CONFIG.PLAYER;
         GameState.player = {
             ...GameState.player, hp: pConf.startHP, maxHp: pConf.startHP, food: pConf.startFood, water: pConf.startWater,
             level: 1, xp: 0, nextXp: pConf.leveling.baseXp, baseAtk: pConf.baseAtk, inventory: [],
-            equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
-            combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0 }, pendingAttack: null }
+            survival: { waterDebt: 0, heatDebt: 0 },
+            talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
+            equipment: { weapon: null, armor: null, boots: null, ring: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
+            combat: { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null }
         };
-        GameState.persistence = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
+        GameState.persistence = {}; GameState.knownStairs = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
 
         // Una partida nueva entra por las escaleras que comunican con la superficie.
@@ -1057,23 +1469,30 @@ const GameLogic = {
         StateController.change(STATE_ENUM.CONTROLS);
     },
     endTurn: (didAction = true) => {
-        if (!didAction || GameState.current === STATE_ENUM.GAMEOVER) return;
+        if (!didAction || [STATE_ENUM.GAMEOVER, STATE_ENUM.CHARACTER].includes(GameState.current)) return;
         if (GameState.player.combat.cooldowns.area > 0) GameState.player.combat.cooldowns.area--;
+        if (GameState.player.combat.cooldowns.ranged > 0) GameState.player.combat.cooldowns.ranged--;
 
         GameLogic.updateEnemies();
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
 
         // Defender cubre únicamente la respuesta enemiga del turno actual.
         GameState.player.combat.isDefending = false;
+        if (GameState.player.combat.wardTurns > 0 && --GameState.player.combat.wardTurns === 0) {
+            GameState.player.combat.wardDefense = 0;
+            Utils.log(`La protección de la piedra termina.${GameState.player.combat.wardStrike > 0 ? ' El golpe cargado se conserva hasta acertar o cambiar de planta.' : ''}`, '#66d9ef');
+        }
         GameLogic.processSurvival();
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
 
         MapSystem.updateFog();
         Renderer.draw();
         UISystem.updateHUD();
+        // El turno se resuelve completo antes de elegir: no se interrumpe un barrido ni la respuesta enemiga.
+        ProgressionSystem.offerUpgrade();
     },
     movePlayer: async (dx, dy) => {
-        if (GameState.ui.movementLocked) return false;
+        if (GameState.ui.movementLocked || GameState.current !== STATE_ENUM.PLAYING) return false;
 
         const nx = GameState.player.x + dx;
         const ny = GameState.player.y + dy;
@@ -1081,7 +1500,7 @@ const GameLogic = {
         if (MapSystem.isBlocked(nx, ny)) return false;
         if (GameState.entities.shops.some(s => s.x === nx && s.y === ny)) { ShopSystem.open(); return false; }
 
-        const chest = GameState.entities.chests.find(c => c.x === nx && c.y === ny);
+        const chest = GameState.entities.chests.find(c => c.x === nx && c.y === ny && !c.isOpen);
         if (chest) {
             if (!chest.isOpen) Utils.log('Cofre cerrado. Presiona ESPACIO.', CONFIG.ENTITIES.chests.colors.closed);
             else Utils.log('Cofre vacío.', '#777');
@@ -1175,11 +1594,13 @@ const GameLogic = {
         for (let i = GameState.entities.items.length - 1; i >= 0; i--) {
             const item = GameState.entities.items[i];
             if (item.x !== x || item.y !== y) continue;
+            const discovery = Renderer.itemDiscovery(item);
+            if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
 
             if (item.type === 'GOLD') {
-                GameState.score += item.value;
+                BalanceSystem.award(item.value, item.pointValue ?? item.value);
                 VisualFX.floatText(x, y, `+$${item.value}`, '#ffd700');
-                Utils.log('¡Oro!', '#ffd700');
+                Utils.log(`Recoges ${item.value} de oro.`, '#ffd700');
                 GameState.entities.items.splice(i, 1);
                 MapSystem.markTaken(x, y);
             } else {
@@ -1192,19 +1613,20 @@ const GameLogic = {
             if (enemy._rogueQuickStaggerPending) {
                 enemy.energy = (enemy.energy || 0) - 1;
                 enemy._rogueQuickStaggerPending = false;
-                enemy._rogueQuickStaggerImmune = true;
-            } else if (enemy._rogueQuickStaggerImmune) {
-                enemy._rogueQuickStaggerImmune = false;
+                enemy._rogueQuickStaggerCooldown = Math.max(3, enemy._rogueQuickStaggerCooldown || 0);
             }
+            if (enemy._rogueQuickStaggerCooldown > 0) enemy._rogueQuickStaggerCooldown--;
+            enemy._rogueQuickStaggerImmune = enemy._rogueQuickStaggerCooldown > 0;
         });
 
         GameState.entities.enemies.forEach(e => {
             e.tookDamage = false; 
+            if (e.relicStun > 0) { e.relicStun--; e._trollPressurePrimed = false; return; }
             let dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
             if (e.isSleeping) { if (dist <= 3) { e.isSleeping = false; Utils.log(`${e.name} despierta!`, "#ff8800"); } else { if(e.hp < e.maxHp && Utils.random() < 0.1) e.hp++; return; } }
             
-            e.energy += e.speed; let actions = 0;
-            while(e.energy >= 1.0 && actions < 5) {
+            e.energy += e.speed / ProgressionSystem.speedMultiplier(); let actions = 0;
+            while(e.energy >= 1.0 - 1e-9 && actions < 5) {
                 e.energy -= 1.0; actions++;
                 dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
 
@@ -1382,6 +1804,7 @@ const GameLogic = {
 
         GameState.score -= amount;
         e.stolenGold = (e.stolenGold || 0) + amount;
+        e.stolenFromPlayer = (e.stolenFromPlayer || 0) + amount;
         Utils.log(`¡${e.name} te roba ${amount} oro! Va hacia una escalera.`, '#7fff00');
         VisualFX.floatText(GameState.player.x, GameState.player.y, `-$${amount}`, '#7fff00', 'incoming');
         UISystem.updateHUD();
@@ -1421,7 +1844,8 @@ const GameLogic = {
         e.stolenGold = 0;
         GameState.entities.items.push({
             x: e.x, y: e.y, type: 'GOLD', value: amount,
-            name: 'Bolsa de oro robado', symbol: '$', color: '#ffd700', stolenFromGoblin: true
+            name: 'Bolsa de oro robado', symbol: '$', color: '#ffd700', stolenFromGoblin: true,
+            pointValue: Math.max(0, amount - (e.stolenFromPlayer || 0))
         });
         Utils.log(`El Goblin deja caer una bolsa con ${amount} oro.`, '#ffd700');
         return amount;
@@ -1485,7 +1909,7 @@ const GameLogic = {
         if (x === GameState.player.x && y === GameState.player.y) return false;
         if (GameState.entities.enemies.some(e => e.x === x && e.y === y)) return false;
         if (GameState.entities.shops.some(s => s.x === x && s.y === y)) return false;
-        if (GameState.entities.chests.some(c => c.x === x && c.y === y)) return false;
+        if (GameState.entities.chests.some(c => c.x === x && c.y === y && !c.isOpen)) return false;
         return true;
     },
     processSurvival: () => {
@@ -1494,12 +1918,16 @@ const GameLogic = {
         const s = CONFIG.PLAYER.survival;
         GameState.moves++;
         if (GameState.moves % s.hungerRate === 0) GameState.player.food--;
-        const thirstRate = FloorSystem.thirstRate();
-        if (GameState.moves % thirstRate === 0) GameState.player.water--;
-        const magmaRiskCost = FloorSystem.magmaRiskWaterCost();
-        if (magmaRiskCost > 0) {
-            GameState.player.water -= magmaRiskCost;
-            VisualFX.floatText(GameState.player.x, GameState.player.y, `-${magmaRiskCost} AGUA`, '#57d7ff', 'incoming');
+        const debt = GameState.player.survival ||= { waterDebt: 0, heatDebt: 0 };
+        debt.waterDebt += 1 / FloorSystem.thirstRate();
+        const waterCost = Math.floor(debt.waterDebt + 1e-9);
+        GameState.player.water -= waterCost; debt.waterDebt -= waterCost;
+        debt.heatDebt += FloorSystem.magmaRiskWaterCost();
+        const heatCost = Math.floor(debt.heatDebt + 1e-9);
+        debt.heatDebt -= heatCost;
+        if (heatCost > 0) {
+            GameState.player.water -= heatCost;
+            VisualFX.floatText(GameState.player.x, GameState.player.y, `-${heatCost} AGUA`, '#57d7ff', 'incoming');
         }
 
         if (GameState.player.food <= 0) {
@@ -1521,11 +1949,15 @@ const GameLogic = {
         }
     },
     interactAction: () => {
-        const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+        const dirs = [[0,0],[0,1],[0,-1],[1,0],[-1,0]];
         for(let d of dirs) {
             let tx = GameState.player.x + d[0], ty = GameState.player.y + d[1];
-            let chestIdx = GameState.entities.chests.findIndex(c => c.x === tx && c.y === ty && !c.isOpen);
-            if (chestIdx !== -1) { GameLogic.openChest(chestIdx); GameLogic.endTurn(true); return; }
+            let chestIdx = GameState.entities.chests.findIndex(c => c.x === tx && c.y === ty && (!c.isOpen || (c.rewardOptions && !c.rewardClaimed)));
+            if (chestIdx !== -1) {
+                const turnConsumed = GameLogic.openChest(chestIdx);
+                if (turnConsumed !== false) GameLogic.endTurn(true);
+                return;
+            }
         }
         if (GameState.player.x === GameState.stairs.down.x && GameState.player.y === GameState.stairs.down.y) { GameState.level++; GameState.entryMethod = 'descending'; MapSystem.initLevel(); }
         else if (GameState.player.x === GameState.stairs.up.x && GameState.player.y === GameState.stairs.up.y) { if (GameState.level === 1) GameLogic.win(); else { GameState.level--; GameState.entryMethod = 'ascending'; MapSystem.initLevel(); } }
@@ -1536,7 +1968,7 @@ const GameLogic = {
                     GameState.player.hp = Math.min(GameState.player.hp + healing, GameState.player.maxHp);
                     if (FloorSystem.is('FROZEN')) Utils.log(`El equipo polar te permite recuperar ${healing} HP.`, '#8adfff');
                     else if (FloorSystem.is('MAGMA')) Utils.log(`La malla térmica te permite recuperar ${healing} HP.`, '#ff8a4c');
-                    else Utils.log('Descansas...', '#ccc');
+                    else Utils.log(`Descansas y recuperas ${healing} HP.`, '#ccc');
                 } else if (FloorSystem.is('FROZEN')) {
                     Utils.log('El frío es demasiado intenso: descansar no recupera vida.', '#8adfff');
                 } else if (FloorSystem.is('MAGMA')) {
@@ -1550,75 +1982,95 @@ const GameLogic = {
     },
     openChest: (idx) => {
         const chest = GameState.entities.chests[idx];
-        if (!chest || chest.isOpen) return;
-
-        chest.isOpen = true;
-        MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
-
-        if (chest.specialId === 'FROZEN_VAULT_CHEST') {
-            const vault = CONFIG.FLOORS.FROZEN.vault;
-            const weaponReward = Utils.random() < 0.5;
-            if (weaponReward) {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + vault.rewardBonus, 'Arma de escarcha', '!', '#8df3ff');
-            } else {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + vault.rewardBonus, 'Malla de escarcha', ']', '#8df3ff');
+        if (!chest || (chest.isOpen && (!chest.rewardOptions || chest.rewardClaimed))) return;
+        if (!chest.isOpen) {
+            chest.isOpen = true;
+            MapSystem.markTaken(`CHEST_${chest.x},${chest.y}`);
+            if (!chest.specialId && Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
+                chest.rewardClaimed = true;
+                Utils.log('¡TRAMPA! El cofre explota.', '#f00');
+                GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
+                GameState.entities.enemies.forEach(enemy => { enemy.isSleeping = false; });
+                if (GameState.player.hp <= 0) GameLogic.die('Cofre Trampa');
+                return;
             }
-            const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de escarcha se abre sin trampa. Dentro hay equipo excepcional.', vault.chestColor);
-            InventorySystem.pickup(reward, -1, -1, -1, true);
-            return;
+            chest.rewardOptions = chest.specialId ? GameLogic.buildSpecialRewards(chest) : GameLogic.buildChestRewardOptions();
         }
-
-        if (chest.specialId === 'MAGMA_FUMAROLE_CHEST') {
-            const fumarole = CONFIG.FLOORS.MAGMA.fumarole;
-            const weaponReward = Utils.random() < 0.5;
-            if (weaponReward) {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + fumarole.rewardBonus, 'Arma de obsidiana', '!', fumarole.chestColor);
-            } else {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + fumarole.rewardBonus, 'Malla volcánica', ']', fumarole.chestColor);
-            }
-            const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de brasa cede al calor. Dentro hay equipo excepcional.', fumarole.chestColor);
-            InventorySystem.pickup(reward, -1, -1, -1, true);
-            return;
+        GameState.ui.rewardChoice = { options: chest.rewardOptions, index: 0, chest: { x: chest.x, y: chest.y } };
+        Utils.log(chest.specialId ? 'Equipo especial: elige arma o armadura. Los valores mostrados son definitivos.' : 'El cofre ofrece dos recompensas. Elige una.', '#DAA520');
+        StateController.change(STATE_ENUM.REWARD_CHOICE);
+        return false;
+    },
+    rewardOption: (item) => ({
+        kind: item.type, name: item.name, color: item.qualityColor || item.color, item,
+        gearId: item.gearId, relicId: item.relicId,
+        detail: EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item)
+            : item.type === 'relic' ? InventorySystem.relicPreview(item).effect + ' · un uso'
+            : `+${item.value} ${item.type === 'food' ? 'comida' : 'agua'}`
+    }),
+    rollReward: (type, source = 'chest', name = null, color = null) => {
+        const base = EquipmentSystem.slots().includes(type) ? BalanceSystem.gearPower(type, source) : type === 'food' ? 60 : 50;
+        EntityFactory.createSmartItem({ x: 0, y: 0 }, type, base, name || ({ weapon: 'Arma', armor: 'Malla', food: 'Ración reforzada', water: 'Cantimplora llena' })[type], ({ weapon: '!', armor: ']', food: '%', water: '~' })[type], color || ({ weapon: '#ff00ff', armor: '#4682b4', food: '#ffaa00', water: '#00ffff' })[type]);
+        return GameState.entities.items.pop();
+    },
+    buildSpecialRewards: (chest) => {
+        const names = {
+            FROZEN_VAULT_CHEST: ['Arma de escarcha', 'Malla de escarcha', '#8df3ff'],
+            MAGMA_FUMAROLE_CHEST: ['Arma de obsidiana', 'Malla volcánica', '#ff5a2b'],
+            UNSTABLE_RIFT_CHEST: ['Hoja de falla', 'Malla tectónica', '#ffd27a']
+        }[chest.specialId];
+        return ['weapon', 'armor'].map((type, i) => GameLogic.rewardOption(GameLogic.rollReward(type, 'special', names[i], names[2])));
+    },
+    buildChestRewardOptions: () => {
+        const options = ['food', 'water', 'weapon', 'armor'].map(type => GameLogic.rewardOption(GameLogic.rollReward(type)));
+        const relics = CONFIG.ENTITIES.relics;
+        const definition = relics[Math.floor(Utils.random() * relics.length)];
+        EntityFactory.createRelicItem({ x: 0, y: 0 }, definition.id);
+        options.push(GameLogic.rewardOption(GameState.entities.items.pop()));
+        const gold = 50 + GameState.level * 10;
+        options.push({ kind: 'gold', name: 'Bolsa de oro', value: gold, detail: `+${gold} oro · no ocupa mochila`, color: '#ffd700' });
+        for (const type of ['boots', 'ring']) {
+            const pool = EntityFactory.accessoryPool(type);
+            options.push(GameLogic.rewardOption(EntityFactory.createAccessoryItem(pool[Math.floor(Utils.random() * pool.length)])));
         }
-
-        if (chest.specialId === 'UNSTABLE_RIFT_CHEST') {
-            const rift = CONFIG.FLOORS.UNSTABLE.rift;
-            const weaponReward = Utils.random() < 0.5;
-            if (weaponReward) {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level + rift.rewardBonus, 'Hoja de falla', '!', rift.chestColor);
-            } else {
-                EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level + rift.rewardBonus, 'Malla tectónica', ']', rift.chestColor);
-            }
-            const reward = GameState.entities.items.pop();
-            Utils.log('El cofre de falla se abre. El pasaje aguantará la retirada, pero quedará al límite.', rift.chestColor);
-            InventorySystem.pickup(reward, -1, -1, -1, true);
-            return;
-        }
-
-        if (Utils.random() < CONFIG.ENTITIES.chests.trapChance) {
-            Utils.log('¡TRAMPA! El cofre explota.', '#f00');
-            GameState.player.hp -= CONFIG.ENTITIES.chests.trapDmg;
-            GameState.entities.enemies.forEach(e => { if (e.isSleeping) e.isSleeping = false; });
-            if (GameState.player.hp <= 0) GameLogic.die('Cofre Trampa');
-            return;
-        }
-
-        Utils.log('Abres el cofre...', CONFIG.ENTITIES.chests.colors.closed);
-        const r = Utils.random();
-        if (r < 0.3) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore, 'Comida', '%', '#ffaa00');
-        else if (r < 0.5) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'water', CONFIG.ENTITIES.items.drinkRestore, 'Agua', '~', '#00ffff');
-        else if (r < 0.7) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'weapon', CONFIG.COMBAT.baseWeaponVal + GameState.level, 'Arma Rara', '!', '#ff00ff');
-        else if (r < 0.9) EntityFactory.createSmartItem({ x: 0, y: 0 }, 'armor', CONFIG.COMBAT.baseArmorVal + GameState.level, 'Malla Rara', ']', '#4682b4');
-
-        if (r < 0.9) {
-            const newItem = GameState.entities.items.pop();
-            InventorySystem.pickup(newItem, -1, -1, -1, true);
+        const first = Math.min(options.length - 1, Math.floor(Utils.random() * options.length));
+        const offset = 1 + Math.floor(Utils.random() * (options.length - 1));
+        return [options[first], options[(first + offset) % options.length]];
+    },
+    chooseChestReward: (index) => {
+        const choice = GameState.ui.rewardChoice, reward = choice.options[index];
+        if (!reward) return;
+        const chest = choice.chest && GameState.entities.chests.find(chest => chest.x === choice.chest.x && chest.y === choice.chest.y);
+        if (chest?.rewardClaimed) return;
+        if (reward.kind === 'gold') {
+            const amount = reward.value || 50 + GameState.level * 10;
+            BalanceSystem.award(amount);
+            Utils.log(`Recoges ${amount} de oro.`, '#ffd700');
         } else {
-            GameState.score += 50;
-            Utils.log('¡Encuentras oro!', '#ffd700');
+            let item = reward.item;
+            if (!item && reward.kind === 'relic') { EntityFactory.createRelicItem({ x: 0, y: 0 }, reward.relicId); item = GameState.entities.items.pop(); }
+            if (!item && ['boots', 'ring'].includes(reward.kind)) {
+                const definition = CONFIG.ACCESSORIES.find(item => item.id === reward.gearId);
+                if (definition) item = EntityFactory.createAccessoryItem(definition);
+            }
+            if (!item && ['weapon', 'armor', 'food', 'water'].includes(reward.kind)) item = GameLogic.rollReward(reward.kind);
+            if (!item) return;
+            if (GameState.player.inventory.length < CONFIG.PLAYER.inventorySize) InventorySystem.pickup(item, -1, -1, -1, true);
+            else {
+                FloorSystem.storeDrop(item, chest || GameState.player);
+                Utils.log(`Mochila llena: ${item.name} queda en el suelo, sin perderse.`, '#d7a56d');
+            }
         }
+        if (chest) { chest.rewardClaimed = true; chest.rewardOptions = null; }
+        GameState.ui.rewardChoice = { options: [], index: 0 };
+        StateController.change(STATE_ENUM.PLAYING);
+        GameLogic.endTurn(true);
+    },
+    cancelChestReward: () => {
+        GameState.ui.rewardChoice = { options: [], index: 0 };
+        Utils.log('Las recompensas siguen en el cofre. Vuelve con Espacio para elegir.', '#888');
+        StateController.change(STATE_ENUM.PLAYING);
+        GameLogic.endTurn(true);
     },
     die: (cause) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
@@ -1644,7 +2096,7 @@ const GameLogic = {
             }
         }
 
-        GameState.deathCause = 'Vio la luz'; GameState.score += (GameState.maxLevel * 100);
+        GameState.deathCause = 'Vio la luz'; GameState.points = (GameState.points || 0) + GameState.maxLevel * 100;
         StateController.change(STATE_ENUM.GAMEOVER); DOM.menus.gameOver.classList.add('hidden'); DOM.menus.victory.classList.remove('hidden');
         UISystem.fillEndGameStats('win');
         Network.fetchScores('victory-leaderboard');
@@ -1657,19 +2109,103 @@ const GameLogic = {
 
 const CombatSystem = {
     startTargeting: (attackType) => {
-        if (!['quick', 'savage'].includes(attackType)) return;
+        if (!['quick', 'savage', 'ranged'].includes(attackType)) return;
+        if (GameState.current !== STATE_ENUM.PLAYING || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (attackType === 'ranged') {
+            if (!ProgressionSystem.rank('ranged')) { Utils.log('Aprende Dardo arcano al subir de nivel [N].', '#b4a58b'); return; }
+            const cooldown = GameState.player.combat.cooldowns.ranged || 0;
+            if (cooldown > 0) { Utils.log(`Dardo arcano recarga: faltan ${cooldown} acciones.`, '#8fcbd6'); return; }
+            const targets = CombatSystem.rangedTargets();
+            if (!targets.length) { Utils.log(`No hay enemigos visibles con línea de tiro a ${ProgressionSystem.rangedRange()} casillas.`, '#8fcbd6'); return; }
+            GameState.ui.rangedTarget = { x: targets[0].x, y: targets[0].y };
+        }
 
         GameState.player.combat.pendingAttack = attackType;
         StateController.change(STATE_ENUM.TARGETING);
-        const label = attackType === 'quick' ? 'Rápido' : 'Salvaje';
-        Utils.log(`[${label}] Selecciona dirección...`, '#0ff');
+        const label = CONFIG.COMBAT[attackType].label;
+        Utils.log(attackType === 'ranged' ? '[Dardo] Tab/flechas: objetivo. Enter o clic: disparar. Esc: cancelar.' : `[${label}] Elige dirección. Esc cancela sin gastar turno.`, '#8fcbd6');
+        Renderer.draw();
         UISystem.updateHUD();
     },
 
-    executeAttack: (dx, dy) => {
+    projectileBlocked: (x, y) => GameState.map[y]?.[x] === undefined || GameState.map[y][x] === '#'
+        || GameState.entities.chests.some(chest => chest.x === x && chest.y === y && !chest.isOpen)
+        || GameState.entities.shops.some(shop => shop.x === x && shop.y === y),
+
+    projectilePathTo: (tx, ty) => {
+        if (![tx, ty].every(Number.isInteger)) return [];
+        const dx = tx - GameState.player.x, dy = ty - GameState.player.y;
+        if ((!dx && !dy) || Math.max(Math.abs(dx), Math.abs(dy)) > ProgressionSystem.rangedRange()) return [];
+        const path = [];
+        let x = GameState.player.x, y = GameState.player.y;
+        const sx = Math.sign(dx), sy = Math.sign(dy);
+        const deltaX = dx ? 1 / Math.abs(dx) : Infinity, deltaY = dy ? 1 / Math.abs(dy) : Infinity;
+        let crossX = deltaX / 2, crossY = deltaY / 2;
+        // Recorre todas las celdas que cruza la recta entre centros, con cualquier pendiente.
+        while (x !== tx || y !== ty) {
+            if (Math.abs(crossX - crossY) < 1e-9) {
+                if (CombatSystem.projectileBlocked(x + sx, y) || CombatSystem.projectileBlocked(x, y + sy)) break;
+                x += sx; y += sy; crossX += deltaX; crossY += deltaY;
+            } else if (crossX < crossY) { x += sx; crossX += deltaX; }
+            else { y += sy; crossY += deltaY; }
+            if (CombatSystem.projectileBlocked(x, y) || !GameState.visible[y]?.[x]) break;
+            path.push({ x, y });
+            if (GameState.entities.enemies.some(enemy => enemy.x === x && enemy.y === y)) break;
+        }
+        return path;
+    },
+
+    projectilePath: (dx, dy) => {
+        if (![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return [];
+        return CombatSystem.projectilePathTo(GameState.player.x + dx * ProgressionSystem.rangedRange(), GameState.player.y + dy * ProgressionSystem.rangedRange());
+    },
+
+    rangedTargets: () => GameState.entities.enemies.filter(enemy => {
+        if (enemy.hp <= 0 || !GameState.visible[enemy.y]?.[enemy.x]) return false;
+        const line = CombatSystem.projectilePathTo(enemy.x, enemy.y);
+        const last = line[line.length - 1];
+        return last && last.x === enemy.x && last.y === enemy.y;
+    }).sort((a, b) => {
+        const distance = enemy => Math.max(Math.abs(enemy.x - GameState.player.x), Math.abs(enemy.y - GameState.player.y));
+        return distance(a) - distance(b) || a.y - b.y || a.x - b.x;
+    }),
+
+    cycleRangedTarget: (step = 1) => {
+        if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged') return;
+        const targets = CombatSystem.rangedTargets();
+        if (!targets.length) return;
+        const index = targets.findIndex(enemy => enemy.x === GameState.ui.rangedTarget?.x && enemy.y === GameState.ui.rangedTarget?.y);
+        const target = targets[(index + step + targets.length) % targets.length];
+        GameState.ui.rangedTarget = { x: target.x, y: target.y };
+        Renderer.draw(); UISystem.updateHUD();
+    },
+
+    rangedCells: () => {
+        const target = GameState.ui.rangedTarget;
+        return new Set(target ? CombatSystem.projectilePathTo(target.x, target.y).map(cell => `${cell.x},${cell.y}`) : []);
+    },
+
+    fireRanged: (tx = GameState.ui.rangedTarget?.x, ty = GameState.ui.rangedTarget?.y) => {
+        if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged' || (GameState.player.combat.cooldowns.ranged || 0) > 0) return false;
+        const target = CombatSystem.rangedTargets().find(enemy => enemy.x === tx && enemy.y === ty);
+        if (!target) { Utils.log('Ese objetivo no tiene alcance o línea de tiro. No gastas turno.', '#8fcbd6'); return false; }
+        const bonus = GameState.player.combat.waitBonus;
+        GameState.player.combat.pendingAttack = null; GameState.ui.rangedTarget = null;
+        GameState.player.combat.waitBonus = 0; GameState.player.combat.isDefending = false;
         StateController.change(STATE_ENUM.PLAYING);
+        GameState.player.combat.cooldowns.ranged = CONFIG.COMBAT.ranged.cooldown + 1;
+        CombatSystem.applyDamage(GameState.entities.enemies.indexOf(target), 'ranged', bonus + CombatSystem.consumeWardStrike());
+        VisualFX.floatText(GameState.player.x, GameState.player.y, '* DARDO', '#8fcbd6');
+        GameLogic.endTurn(true);
+        return true;
+    },
+
+    executeAttack: (dx, dy) => {
         const type = GameState.player.combat.pendingAttack;
+        if (!['quick', 'savage', 'ranged'].includes(type) || ![dx, dy].every(value => Number.isInteger(value) && Math.abs(value) <= 1) || (!dx && !dy)) return;
+        if (type === 'ranged') return CombatSystem.fireRanged();
         GameState.player.combat.pendingAttack = null;
+        StateController.change(STATE_ENUM.PLAYING);
         
         let tx = GameState.player.x + dx; let ty = GameState.player.y + dy;
         let enemyIdx = GameState.entities.enemies.findIndex(e => e.x === tx && e.y === ty);
@@ -1686,21 +2222,16 @@ const CombatSystem = {
         }
 
         // [FIX] Guardamos la referencia porque si muere, el índice cambia
-        let targetEnemy = GameState.entities.enemies[enemyIdx];
-
-        CombatSystem.applyDamage(enemyIdx, type, bonusDmg);
-        
-        if (type === 'savage') {
-             // Usamos la referencia guardada para verificar vida
-             if (targetEnemy && targetEnemy.hp > 0) {
-                 Utils.log("¡El ataque salvaje provoca un contraataque!", "#fa0");
-                 CombatSystem.enemyAttack(targetEnemy);
-             }
-        }
+        CombatSystem.applyDamage(enemyIdx, type, bonusDmg + CombatSystem.consumeWardStrike());
         
         GameLogic.endTurn(true);
     },
 
+    consumeWardStrike: () => {
+        const bonus = GameState.player.combat.wardStrike || 0;
+        GameState.player.combat.wardStrike = 0;
+        return bonus;
+    },
     applyDamage: (enemyIdx, type, bonus) => {
         let e = GameState.entities.enemies[enemyIdx];
         if (!e) return;
@@ -1709,10 +2240,9 @@ const CombatSystem = {
         if (e.isSleeping) { e.isSleeping = false; Utils.log(`¡${e.name} despierta!`, "#fa0"); }
 
         let conf = CONFIG.COMBAT[type];
-        let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
-        let baseDmg = GameState.player.baseAtk + weaponVal + bonus;
+        let baseDmg = (type === 'ranged' ? ProgressionSystem.rangedDamage() : EquipmentSystem.stats().attack) + bonus;
 
-        baseDmg = Math.floor(baseDmg * conf.dmgMult);
+        baseDmg = Math.round(baseDmg * conf.dmgMult);
 
         let vari = conf.var || CONFIG.COMBAT.variability;
         let varianceMult = 1.0 + (Utils.random() * (vari * 2) - vari);
@@ -1732,10 +2262,10 @@ const CombatSystem = {
         let dmgColor = isCrit ? "#ff00ff" : "#ffffff";
         let dmgText = isCrit ? `¡${finalDmg}!` : `${finalDmg}`;
         VisualFX.floatText(e.x, e.y, dmgText, dmgColor);
-        Utils.log(`Golpeas a ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
+        Utils.log(`${type === 'ranged' ? 'Dardo contra' : 'Golpeas a'} ${e.name}: ${finalDmg}${isCrit?' CRÍTICO':''}`, dmgColor);
 
         if (e.hp <= 0) {
-            CombatSystem.gainXp(e.xp); GameState.score += 25;
+            CombatSystem.gainXp(e.xp); BalanceSystem.bounty(e);
             if (!GameState.player.stats.kills[e.name]) GameState.player.stats.kills[e.name] = 0; GameState.player.stats.kills[e.name]++;
 
             GameLogic.dropGoblinLoot(e);
@@ -1748,17 +2278,19 @@ const CombatSystem = {
         const enemySurvives = e.hp > 0 && GameState.entities.enemies.includes(e);
         if (type === 'quick' && enemySurvives && !e._rogueQuickStaggerImmune) {
             e._rogueQuickStaggerPending = true;
+            e._rogueQuickStaggerCooldown = 3;
             Utils.log(`${e.name} queda descolocado.`, '#00ffff');
         }
-        if (type === 'savage' && enemySurvives) {
-            e._rogueSavageCounterPending = true;
+        if (type === 'savage' && enemySurvives && !(e.relicStun > 0)) {
+            e.energy = (e.energy || 0) + CONFIG.COMBAT.savage.initiativeCost;
+            Utils.log('Quedas expuesto: el objetivo gana iniciativa, conservando su comportamiento.', '#fa0');
         }
     },
 
     performDefend: () => {
         GameState.player.combat.isDefending = true;
         GameState.player.combat.waitBonus = 0;
-        Utils.log("Posición defensiva (+50% Def).", "#4682b4");
+        Utils.log('Posición defensiva: (defensa + 2) × 1,5 durante esta respuesta.', '#4682b4');
         GameLogic.endTurn(true);
     },
 
@@ -1782,13 +2314,15 @@ const CombatSystem = {
 
         const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
         let hit = false;
+        let wardBonus = 0;
 
         dirs.forEach(d => {
             let ex = GameState.player.x + d[0];
             let ey = GameState.player.y + d[1];
             let idx = GameState.entities.enemies.findIndex(e => e.x === ex && e.y === ey);
             if (idx !== -1) {
-                CombatSystem.applyDamage(idx, 'area', 0);
+                if (!hit) wardBonus = CombatSystem.consumeWardStrike();
+                CombatSystem.applyDamage(idx, 'area', wardBonus);
                 hit = true;
             }
         });
@@ -1811,8 +2345,8 @@ const CombatSystem = {
     bumpAttack: (enemy) => {
         if (!enemy) return;
 
-        let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
-        let baseDmg = GameState.player.baseAtk + weaponVal;
+        let baseDmg = EquipmentSystem.stats().attack + CombatSystem.consumeWardStrike() + (GameState.player.combat.waitBonus || 0);
+        GameState.player.combat.waitBonus = 0;
 
         // Bump es decente pero no tan fuerte como un ataque especial
         let finalDmg = Math.max(1, Math.round(baseDmg * 0.9 + Utils.random() * 2));
@@ -1830,7 +2364,7 @@ const CombatSystem = {
 
         if (enemy.hp <= 0) {
             CombatSystem.gainXp(enemy.xp);
-            GameState.score += 25;
+            BalanceSystem.bounty(enemy);
             if (!GameState.player.stats.kills[enemy.name]) GameState.player.stats.kills[enemy.name] = 0;
             GameState.player.stats.kills[enemy.name]++;
 
@@ -1844,17 +2378,18 @@ const CombatSystem = {
 
     enemyAttack: (e) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
-        const isSavageCounter = Boolean(e && e._rogueSavageCounterPending);
+        if (e.relicStun > 0) return;
 
-        let armorVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
+        let armorVal = EquipmentSystem.stats().defense + (GameState.player.combat.wardTurns > 0 ? GameState.player.combat.wardDefense || 0 : 0);
         if (GameState.player.combat.isDefending) {
             armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult);
         }
 
-        let dmg = Math.max(0, e.atk - armorVal);
+        const cap = GameState.player.combat.isDefending ? CONFIG.COMBAT.defendMitigation : CONFIG.COMBAT.maxMitigation;
+        let dmg = Math.max(e.atk * (1 - cap), e.atk - armorVal);
         let variance = 1.0 + (Utils.random() * 0.2 - 0.1);
         dmg = Math.round(dmg * variance);
-        if (dmg < 0) dmg = 0;
+        if (e.atk > 0) dmg = Math.max(Math.ceil(e.atk * (1 - cap)), dmg);
 
         let enemyCritChance = GameState.player.combat.isDefending ? 0.0 : 0.05;
         if (Utils.random() < enemyCritChance) {
@@ -1874,36 +2409,55 @@ const CombatSystem = {
         if (dmg > 0 && GameState.player.hp > 0) GameLogic.goblinStealGold(e);
         if (GameState.player.hp <= 0) GameLogic.die(e.name);
 
-        if (isSavageCounter && e) {
-            e._rogueSavageCounterPending = false;
-            e.energy = (e.energy || 0) - 1;
-        }
     },
 
-    gainXp: (amount) => {
-        GameState.player.xp += amount;
-        if (GameState.player.xp >= GameState.player.nextXp) {
-            GameState.player.level++; GameState.player.xp -= GameState.player.nextXp;
-            GameState.player.nextXp = Math.floor(GameState.player.nextXp * CONFIG.PLAYER.leveling.xpScaling);
-            GameState.player.maxHp += CONFIG.PLAYER.leveling.statGain.hp; GameState.player.hp = GameState.player.maxHp;
-            GameState.player.baseAtk += CONFIG.PLAYER.leveling.statGain.atk;
-            Utils.log(`¡NIVEL UP! Nivel ${GameState.player.level}`, "#3f0");
-        }
-    }
+    gainXp: (amount) => ProgressionSystem.gainXp(amount)
 };
 
 // ============================================================================
 // 9. INVENTARIO Y TIENDA
 // ============================================================================
 const InventorySystem = {
+    relicDef: (item) => CONFIG.ENTITIES.relics.find(relic => relic.id === item.relicId) || null,
+    relicPreview: (item) => {
+        const relic = InventorySystem.relicDef(item);
+        if (!relic) return { canUse: false, reason: 'Reliquia desconocida.', effect: 'Sin efecto conocido', cost: '—', duration: '—', advice: '' };
+        const player = GameState.player;
+        const cost = [[relic.foodCost, 'comida'], [relic.waterCost, 'agua']]
+            .filter(([amount]) => amount > 0).map(([amount, resource]) => `${amount} ${resource}`).join(' + ') || 'Sin coste de comida ni agua';
+        const preview = { canUse: true, reason: '', cost, duration: 'Un uso · consume un turno', advice: '' };
+        if (relic.effect === 'heal') {
+            preview.heal = Math.max(relic.heal, Math.ceil(player.maxHp * 0.35));
+            preview.effect = `Cura hasta ${preview.heal} vida (ahora: ${Math.max(0, Math.min(preview.heal, player.maxHp - player.hp))})`;
+            preview.advice = 'Para recuperarte antes de un combate. Escala con tu vida máxima; no sustituye la comida ni el agua.';
+            if (player.hp >= player.maxHp) preview.reason = 'Ya tienes toda la vida: no se consume.';
+        } else if (relic.effect === 'stun') {
+            const targets = GameState.entities.enemies.filter(enemy => GameState.visible[enemy.y]?.[enemy.x]);
+            preview.effect = `Impide actuar a todos los enemigos visibles (${targets.length} ahora)`;
+            preview.duration += ` · ${relic.stunTurns} respuestas enemigas, incluida la invocación`;
+            preview.advice = 'Invoca para romper un cerco o un rugido y ganar una acción libre para huir o atacar. No afecta a enemigos fuera de tu visión.';
+            if (!targets.length) preview.reason = 'No hay enemigos visibles: no se consume.';
+        } else if (relic.effect === 'guard') {
+            preview.effect = `+${relic.shieldBonus} defensa y +${relic.strikeBonus} potencia al próximo ataque que acierte`;
+            preview.duration += ` · defensa: ${relic.turns} respuestas, incluida la invocación`;
+            preview.advice = 'Para entrar en una pelea o resistir varios ataques. Caminar no borra la carga; esta dura hasta acertar o cambiar de planta. El daño varía según el ataque.';
+            if (player.combat.wardTurns > 0 || player.combat.wardStrike > 0) preview.reason = 'Ya tienes una protección o un golpe cargado de esta piedra: no se consume.';
+        }
+        if (player.food < (relic.foodCost || 0) || player.water < (relic.waterCost || 0)) preview.reason = 'No tienes reservas suficientes para pagar el coste.';
+        preview.canUse = !preview.reason;
+        if (preview.canUse && (player.food === relic.foodCost || player.water === relic.waterCost)) preview.advice += ' Atención: el coste agotará una reserva y la supervivencia se resuelve al terminar el turno.';
+        return preview;
+    },
     pickup: (item, arrIndex, x, y, forced = false) => {
         if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) {
-            Utils.log('¡Mochila llena!', '#f00');
+            Utils.log('Mochila llena · G o clic en el objeto para comparar y equipar desde el suelo.', '#d7a56d');
             return;
         }
 
         const inventorySizeBefore = GameState.player.inventory.length;
         GameState.player.inventory.push(item);
+        const discovery = Renderer.itemDiscovery(item);
+        if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
         Utils.log(`Recogido: ${item.name}`, item.qualityColor || item.color);
         if (!forced && arrIndex >= 0) {
             GameState.entities.items.splice(arrIndex, 1);
@@ -1927,28 +2481,76 @@ const InventorySystem = {
     },
     executeAction: () => {
         const actions = GameState.ui.currentActions; const selectedAction = actions[GameState.ui.actionIndex]; const itemIdx = GameState.ui.inventoryIndex;
+        if (!selectedAction || selectedAction.disabled) return;
         if (selectedAction.code === 'USE') InventorySystem.useItem(itemIdx); else if (selectedAction.code === 'DROP') InventorySystem.dropItem(itemIdx);
+        else if (selectedAction.code === 'CANCEL') InventorySystem.closeActionMenu();
+    },
+    useRelic: (item) => {
+        const relic = InventorySystem.relicDef(item);
+        if (!relic) return false;
+        const preview = InventorySystem.relicPreview(item);
+        if (!preview.canUse) { Utils.log(preview.reason, '#d7a56d'); return false; }
+
+        if (relic.effect === 'heal') {
+            const before = GameState.player.hp;
+            GameState.player.hp = Math.min(GameState.player.maxHp, GameState.player.hp + preview.heal);
+            GameState.player.food = Math.max(0, GameState.player.food - (relic.foodCost || 0));
+            GameState.player.water = Math.max(0, GameState.player.water - (relic.waterCost || 0));
+            const healed = GameState.player.hp - before;
+            Utils.log(`${relic.name}: +${healed} vida · -${relic.foodCost} comida · -${relic.waterCost} agua. Se consume.`, relic.color);
+            VisualFX.floatText(GameState.player.x, GameState.player.y, `+${healed} HP`, relic.color, 'pickup');
+            return true;
+        }
+
+        if (relic.effect === 'stun') {
+            let affected = 0;
+            GameState.entities.enemies.forEach(enemy => {
+                const visible = GameState.visible[enemy.y] && GameState.visible[enemy.y][enemy.x];
+                if (visible) {
+                    enemy.relicStun = Math.max(enemy.relicStun || 0, relic.stunTurns);
+                    enemy._trollPressurePrimed = false;
+                    enemy.isSleeping = false;
+                    affected++;
+                    VisualFX.floatText(enemy.x, enemy.y, '¡ECO!', relic.color);
+                }
+            });
+            Utils.log(`${relic.name}: ${affected} enemigo(s) sin actuar durante ${relic.stunTurns} respuestas, incluida esta. Se consume.`, relic.color);
+            return true;
+        }
+
+        if (relic.effect === 'guard') {
+            Object.assign(GameState.player.combat, { wardTurns: relic.turns, wardDefense: relic.shieldBonus, wardStrike: relic.strikeBonus });
+            GameState.player.water = Math.max(0, GameState.player.water - (relic.waterCost || 0));
+            Utils.log(`${relic.name}: +${relic.shieldBonus} defensa durante ${relic.turns} respuestas y próximo ataque +${relic.strikeBonus} potencia · -${relic.waterCost} agua. Se consume.`, relic.color);
+            VisualFX.floatText(GameState.player.x, GameState.player.y, 'GUARDIA', relic.color, 'pickup');
+            return true;
+        }
+
+        return false;
     },
     useItem: (idx) => {
         let item = GameState.player.inventory[idx]; let consumed = false;
+        if (!item) return;
+        if (['food', 'water'].includes(item.type) && GameState.player[item.type] >= 100) {
+            Utils.log(`Ya tienes toda la reserva de ${item.type === 'food' ? 'comida' : 'agua'}. No se consume.`, '#d7a56d'); return;
+        }
         if (item.type === 'food') { GameState.player.food = Math.min(GameState.player.food + item.value, 100); Utils.log(`Comes ${item.name}`, "#fa0"); consumed = true; }
         else if (item.type === 'water') { GameState.player.water = Math.min(GameState.player.water + item.value, 100); Utils.log(`Bebes ${item.name}`, "#0ff"); consumed = true; }
-        else if (item.type === 'weapon') {
-            let old = GameState.player.equipment.weapon; GameState.player.equipment.weapon = item;
-            if (item.value > GameState.player.stats.maxWeapon.val) GameState.player.stats.maxWeapon = {name: item.name, val: item.value};
-            Utils.log(`Equipas ${item.name}`, "#f0f"); consumed = true;
+        else if (EquipmentSystem.isEquipment(item)) {
+            let old = GameState.player.equipment[item.type]; GameState.player.equipment[item.type] = item;
+            const statKey = item.type === 'weapon' ? 'maxWeapon' : item.type === 'armor' ? 'maxArmor' : null;
+            if (statKey && item.value > GameState.player.stats[statKey].val) GameState.player.stats[statKey] = {name: item.name, val: item.value};
+            Utils.log(`Equipas ${item.name} · ${UISystem.traitSummary(item)}`, item.color || '#cfb477'); consumed = true;
             if(old) GameState.player.inventory.push(old);
-        } else if (item.type === 'armor') {
-            let old = GameState.player.equipment.armor; GameState.player.equipment.armor = item;
-            if (item.value > GameState.player.stats.maxArmor.val) GameState.player.stats.maxArmor = {name: item.name, val: item.value};
-            Utils.log(`Vistes ${item.name}`, "#468"); consumed = true;
-            if(old) GameState.player.inventory.push(old);
+        } else if (item.type === 'relic') {
+            consumed = InventorySystem.useRelic(item);
         }
         if (consumed) { 
             GameState.player.inventory.splice(idx, 1); 
             InventorySystem.closeActionMenu(); 
             UISystem.updateHUD();
             GameLogic.endTurn(true); 
+            if (GameState.current === STATE_ENUM.INVENTORY) UISystem.renderInventory();
         }
     },
     dropItem: (idx) => {
@@ -1956,38 +2558,109 @@ const InventorySystem = {
         if (!item) return;
 
         Utils.log(`Tiras ${item.name}`, '#888');
-        GameState.entities.items.push({ ...item, x: GameState.player.x, y: GameState.player.y });
+        FloorSystem.storeDrop(item, GameState.player);
         GameState.player.inventory.splice(idx, 1);
         InventorySystem.closeActionMenu();
         Renderer.draw();
         GameLogic.endTurn(true);
     },
+    unequip: (slot) => {
+        if (GameState.current !== STATE_ENUM.EQUIPMENT || !EquipmentSystem.slots().includes(slot)) return false;
+        const item = GameState.player.equipment[slot];
+        if (!item) return false;
+        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) { Utils.log('Necesitas un hueco en la mochila para quitarte esa pieza.', '#d7a56d'); return false; }
+        GameState.player.inventory.push(item); GameState.player.equipment[slot] = null;
+        Utils.log(`Guardas ${item.name} en la mochila.`, '#cfb477');
+        GameLogic.endTurn(true); UISystem.renderEquipment(); UISystem.updateHUD();
+        return true;
+    },
     openActionMenu: () => {
         if (GameState.ui.inventoryIndex >= GameState.player.inventory.length) return;
         GameState.ui.actionMenuOpen = true; GameState.ui.actionIndex = 0;
         UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]);
+        DOM.menus.action.focus();
     },
-    closeActionMenu: () => { GameState.ui.actionMenuOpen = false; DOM.menus.action.classList.add('hidden'); UISystem.renderInventory(); }
+    closeActionMenu: () => { GameState.ui.actionMenuOpen = false; DOM.menus.action.classList.add('hidden'); UISystem.renderInventory(); DOM.menus.inventory.focus(); }
+};
+
+// Consultar nunca altera el mundo. Recoger/equipar exige alcance y una respuesta real.
+const GroundSystem = {
+    visibleItems: () => GameState.entities.items.filter(item => item.type !== 'GOLD' && GameState.visible[item.y]?.[item.x])
+        .sort((a, b) => GroundSystem.distance(a) - GroundSystem.distance(b) || a.y - b.y || a.x - b.x),
+    distance: (item) => Math.max(Math.abs(item.x - GameState.player.x), Math.abs(item.y - GameState.player.y)),
+    canReach: (item) => {
+        if (!item || !GroundSystem.visibleItems().includes(item) || GroundSystem.distance(item) > 1) return false;
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen || MapSystem.isBlocked(item.x, item.y) || FloorSystem.isHole(item.x, item.y)) return false;
+        if (CombatSystem.projectileBlocked(item.x, item.y) || GameState.entities.enemies.some(enemy => enemy.x === item.x && enemy.y === item.y)) return false;
+        const dx = item.x - GameState.player.x, dy = item.y - GameState.player.y;
+        if (dx && dy && (CombatSystem.projectileBlocked(item.x, GameState.player.y) || CombatSystem.projectileBlocked(GameState.player.x, item.y))) return false;
+        return true;
+    },
+    open: (item = null) => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return false;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.INSPECT].includes(GameState.current)) return false;
+        const items = GroundSystem.visibleItems();
+        if (item && !items.includes(item)) return false;
+        if (GameState.current !== STATE_ENUM.INSPECT) GameState.ui.groundReturnState = GameState.current;
+        GameState.ui.groundItem = item || items[0] || null;
+        StateController.change(STATE_ENUM.INSPECT);
+        return true;
+    },
+    close: (afterAction = false) => {
+        if (GameState.current !== STATE_ENUM.INSPECT) return;
+        GameState.ui.groundItem = null;
+        StateController.change(afterAction ? STATE_ENUM.PLAYING : GameState.ui.groundReturnState);
+    },
+    select: (step) => {
+        const items = GroundSystem.visibleItems();
+        const index = Math.max(0, items.indexOf(GameState.ui.groundItem));
+        GameState.ui.groundItem = items[Math.max(0, Math.min(items.length - 1, index + step))] || null;
+        UISystem.renderGround();
+    },
+    pickup: () => {
+        const item = GameState.ui.groundItem;
+        if (GameState.current !== STATE_ENUM.INSPECT || !GroundSystem.canReach(item) || GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) return false;
+        InventorySystem.pickup(item, GameState.entities.items.indexOf(item), item.x, item.y);
+        GroundSystem.close(true); GameLogic.endTurn(true);
+        return true;
+    },
+    equip: () => {
+        const item = GameState.ui.groundItem;
+        if (GameState.current !== STATE_ENUM.INSPECT || !GroundSystem.canReach(item) || !EquipmentSystem.isEquipment(item)) return false;
+        const old = GameState.player.equipment[item.type];
+        GameState.entities.items.splice(GameState.entities.items.indexOf(item), 1);
+        MapSystem.markTaken(item.x, item.y); FloorSystem.removeRecoveryDrop(item.recoveryDropId);
+        GameState.player.equipment[item.type] = item;
+        if (old) FloorSystem.storeDrop(old, item);
+        const statKey = item.type === 'weapon' ? 'maxWeapon' : item.type === 'armor' ? 'maxArmor' : null;
+        if (statKey && item.value > GameState.player.stats[statKey].val) GameState.player.stats[statKey] = { name: item.name, val: item.value };
+        const discovery = Renderer.itemDiscovery(item);
+        if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
+        Utils.log(`Equipas ${item.name} desde el suelo.${old ? ` ${old.name} queda allí, recuperable.` : ''}`, item.color || '#cfb477');
+        GroundSystem.close(true); GameLogic.endTurn(true);
+        return true;
+    }
 };
 
 const ShopSystem = {
     stockKey: () => String(GameState.level),
     createStock: () => {
-        const tier = (GameState.level / 3) - 1;
-        const priceMult = CONFIG.ENTITIES.shops.priceMultiplier * Math.pow(4, tier);
-        const powerMult = Math.pow(2, tier);
-        return CONFIG.ENTITIES.shops.inventory.map(baseItem => {
-            const variance = Utils.applyVariance(baseItem.value);
-            const finalVal = Math.floor(variance.value * powerMult);
-            const finalPrice = Math.floor(baseItem.price * priceMult * variance.multiplier);
+        const stock = CONFIG.ENTITIES.shops.inventory.map(base => {
+            const gear = ['weapon', 'armor'].includes(base.type);
+            const variance = gear ? Utils.applyVariance(BalanceSystem.gearPower(base.type, 'shop')) : { value: 60, multiplier: 1, label: 'NORMAL', color: base.color };
             return {
-                ...baseItem,
-                name: `${baseItem.name} [${variance.label}]${tier > 0 ? ' +'+Math.ceil(tier) : ''}`,
-                value: finalVal,
-                price: finalPrice,
-                qualityColor: variance.color
+                ...base, name: gear ? `${base.name} [${variance.label}]` : base.name,
+                value: variance.value, price: Math.round(BalanceSystem.shopPrice(base.type) * variance.multiplier),
+                qualityColor: variance.color, foundAt: GameState.level
             };
         });
+        for (const type of ['boots', 'ring']) {
+            const pool = EntityFactory.accessoryPool(type);
+            const definition = pool[Math.floor(Utils.random() * pool.length)];
+            const tier = Math.max(0, Math.floor(GameState.level / 3) - 1);
+            stock.push({ ...EntityFactory.createAccessoryItem(definition), icon: definition.symbol, price: definition.price + tier * 20, foundAt: GameState.level });
+        }
+        return stock;
     },
     getStock: () => {
         const key = ShopSystem.stockKey();
@@ -2003,10 +2676,14 @@ const ShopSystem = {
     estimateValue: (item) => {
         if (!item) return 0;
         if (Number.isFinite(item.buyPrice) && item.buyPrice > 0) return Math.round(item.buyPrice);
+        if (item.type === 'relic') return 80;
+        if (item.type === 'boots' || item.type === 'ring') return CONFIG.ACCESSORIES.find(definition => definition.id === item.gearId)?.price || 160;
         const base = ShopSystem.baseDefinitionFor(item);
         if (!base) return 0;
         const value = Math.max(1, Number(item.value) || 1);
-        return Math.max(1, Math.round(base.price * (value / base.value)));
+        const depth = item.foundAt || GameState.level;
+        const power = ['weapon', 'armor'].includes(item.type) ? BalanceSystem.gearPower(item.type, 'shop', depth) : 60;
+        return Math.max(1, Math.round(BalanceSystem.shopPrice(item.type, depth) * value / power));
     },
     sellPrice: (item) => {
         const estimated = ShopSystem.estimateValue(item);
@@ -2028,7 +2705,7 @@ const ShopSystem = {
             stock.forEach((item, i) => {
                 const div = document.createElement('div');
                 div.className = 'shop-item-row';
-                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color}">${item.icon}</span> <span style="color:${item.qualityColor}">${item.name}</span> <small>(${item.type === 'weapon' || item.type === 'armor' ? 'Poder' : 'Recupera'}: ${item.value})</small></div><div class="shop-item-price" style="color:${item.price > GameState.score ? '#f00' : '#ff0'}">${item.price} G</div><button class="btn-buy" onclick="ShopSystem.buy(${i})">Comprar</button>`;
+                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color}">${item.icon}</span> <span style="color:${item.qualityColor}">${item.name}</span> <small>${EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : `Recupera: ${item.value}`}</small></div><div class="shop-item-price" style="color:${item.price > GameState.score ? '#f00' : '#ff0'}">${item.price} G</div><button class="btn-buy" onclick="ShopSystem.buy(${i})">Comprar</button>`;
                 container.appendChild(div);
             });
         }
@@ -2046,7 +2723,7 @@ const ShopSystem = {
                 const price = ShopSystem.sellPrice(item);
                 const div = document.createElement('div');
                 div.className = 'shop-item-row';
-                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color || '#fff'}">${item.symbol || '?'}</span> <span style="color:${item.qualityColor || '#fff'}">${item.name}</span> <small>(Valor: ${item.value})</small></div><div class="shop-item-price" style="color:#33ff00">${price} G</div><button class="btn-buy" onclick="ShopSystem.sell(${i})" ${price <= 0 ? 'disabled' : ''}>Vender</button>`;
+                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color || '#fff'}">${item.symbol || '?'}</span> <span style="color:${item.qualityColor || '#fff'}">${item.name}</span> <small>${EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : item.type === 'relic' ? 'Un uso · consulta el efecto en la mochila' : `Recupera: ${item.value}`}</small></div><div class="shop-item-price" style="color:#33ff00">${price} G</div><button class="btn-buy" onclick="ShopSystem.sell(${i})" ${price <= 0 ? 'disabled' : ''}>Vender</button>`;
                 container.appendChild(div);
             });
         }
@@ -2066,8 +2743,13 @@ const ShopSystem = {
             symbol: item.icon,
             color: item.color,
             qualityColor: item.qualityColor,
-            buyPrice: item.price
+            gearId: item.gearId,
+            traits: item.traits ? { ...item.traits } : undefined,
+            buyPrice: item.price,
+            foundAt: item.foundAt || GameState.level
         });
+        const discovery = Renderer.itemDiscovery(item);
+        if (discovery) Renderer.recordDiscovery('item', discovery.id, discovery.data);
         stock.splice(idx, 1);
         Utils.log(`Comprado: ${item.name}`, '#ffd700');
         UISystem.updateHUD();
@@ -2092,12 +2774,42 @@ window.ShopSystem = ShopSystem;
 // 10. RENDERER Y UI
 // ============================================================================
 const Renderer = {
-    draw: () => {
-        let html = "";
-        const palette = FloorSystem.getPalette();
+    viewport: null,
+    getViewport: () => {
+        const width = Math.max(36, (DOM.container.clientWidth || CONFIG.GRID.cols * 20 * 0.61 + 24) - 24);
+        const height = Math.max(60, (DOM.container.clientHeight || CONFIG.GRID.rows * 20 + 24) - 24);
+        let minX = GameState.player.x, maxX = minX, minY = GameState.player.y, maxY = minY;
         for (let y = 0; y < CONFIG.GRID.rows; y++) {
             for (let x = 0; x < CONFIG.GRID.cols; x++) {
-                if (GameState.visible[y][x]) Renderer.checkDiscovery(x, y);
+                if (!GameState.seen[y] || !GameState.seen[y][x]) continue;
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+        }
+        minX = Math.max(0, minX - 1); maxX = Math.min(CONFIG.GRID.cols - 1, maxX + 1);
+        minY = Math.max(0, minY - 1); maxY = Math.min(CONFIG.GRID.rows - 1, maxY + 1);
+        const cols = Math.min(maxX - minX + 1, Math.max(3, Math.floor(width / (20 * 0.61))));
+        const rows = Math.min(maxY - minY + 1, Math.max(3, Math.floor(height / 20)));
+        const x = Math.max(minX, Math.min(maxX - cols + 1, GameState.player.x - Math.floor(cols / 2)));
+        const y = Math.max(minY, Math.min(maxY - rows + 1, GameState.player.y - Math.floor(rows / 2)));
+        const fontSize = Math.max(20, Math.min(32, Math.floor(Math.min(width / (cols * 0.61), height / rows))));
+        return { x, y, cols, rows, fontSize };
+    },
+    draw: () => {
+        if (!GameState.map.length) return;
+        const view = Renderer.getViewport();
+        Renderer.viewport = view;
+        // Descubrir sigue dependiendo de la visión real, no del encuadre.
+        for (let y = 0; y < CONFIG.GRID.rows; y++) {
+            for (let x = 0; x < CONFIG.GRID.cols; x++) {
+                if (GameState.visible[y] && GameState.visible[y][x]) Renderer.checkDiscovery(x, y);
+            }
+        }
+        let html = "";
+        const palette = FloorSystem.getPalette();
+        const rangedCells = GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged' ? CombatSystem.rangedCells() : new Set();
+        for (let y = view.y; y < view.y + view.rows; y++) {
+            for (let x = view.x; x < view.x + view.cols; x++) {
                 if (!GameState.seen[y][x]) { html += " "; continue; }
                 let char = GameState.map[y][x]; let color = ""; let isVis = GameState.visible[y][x];
                 if (x === GameState.player.x && y === GameState.player.y) { char = "@"; color = "color:#ff0; font-weight:bold"; } 
@@ -2113,18 +2825,19 @@ const Renderer = {
                         if (shop) { char = "S"; color = "color:#ffd700; font-weight:bold"; }
                         else {
                             let chest = GameState.entities.chests.find(c => c.x === x && c.y === y);
-                            if (chest) {
+                            if (chest && (!chest.isOpen || chest.rewardOptions || !GameState.entities.items.some(item => item.x === x && item.y === y))) {
                                 const frozenVaultChest = chest.specialId === 'FROZEN_VAULT_CHEST';
                                 const magmaFumaroleChest = chest.specialId === 'MAGMA_FUMAROLE_CHEST';
                                 const unstableRiftChest = chest.specialId === 'UNSTABLE_RIFT_CHEST';
                                 const specialRiskChest = frozenVaultChest || magmaFumaroleChest || unstableRiftChest;
-                                char = chest.isOpen ? "_" : (specialRiskChest ? "*" : "=");
+                                const pending = chest.rewardOptions && !chest.rewardClaimed;
+                                char = pending ? '?' : chest.isOpen ? '_' : (specialRiskChest ? '*' : '=');
                                 const closedColor = frozenVaultChest
                                     ? CONFIG.FLOORS.FROZEN.vault.chestColor
                                     : (magmaFumaroleChest
                                         ? CONFIG.FLOORS.MAGMA.fumarole.chestColor
                                         : (unstableRiftChest ? CONFIG.FLOORS.UNSTABLE.rift.chestColor : CONFIG.ENTITIES.chests.colors.closed));
-                                color = `color:${chest.isOpen ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
+                                color = `color:${chest.isOpen && !pending ? CONFIG.ENTITIES.chests.colors.open : closedColor}; font-weight:bold`;
                             }
                             else {
                                 let item = GameState.entities.items.find(i => i.x === x && i.y === y);
@@ -2136,7 +2849,9 @@ const Renderer = {
                     }
                 }
                 if (!color) {
-                    if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
+                    if (x === GameState.stairs.up.x && y === GameState.stairs.up.y) { char = '<'; color = 'color:#e6d39b; font-weight:bold'; }
+                    else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { char = '>'; color = 'color:#e6d39b; font-weight:bold'; }
+                    else if (char === '#') { char = "█"; color = isVis ? `color:${palette.wallVisible}` : `color:${palette.wall}`; }
                     else if (FloorSystem.isHole(x, y)) { char = "░"; color = isVis ? 'color:#24140d; background:#050302' : 'color:#120b08'; }
                     else if (FloorSystem.isCriticalCrack(x, y)) { char = "╬"; color = isVis ? 'color:#ff8a4c' : 'color:#70422d'; }
                     else if (FloorSystem.isCracked(x, y)) { char = "╳"; color = isVis ? 'color:#f0bd7a' : 'color:#5d4532'; }
@@ -2157,9 +2872,23 @@ const Renderer = {
                     }
                     else { char = "."; color = isVis ? `color:${palette.floor}` : `color:${palette.fog}`; }
                 }
-                html += `<span style="${color}">${char}</span>`;
-            } html += "\n";
-        } DOM.container.innerHTML = html;
+                const aim = isVis && rangedCells.has(`${x},${y}`);
+                const selected = aim && x === GameState.ui.rangedTarget?.x && y === GameState.ui.rangedTarget?.y;
+                const inspectable = isVis && GameState.entities.items.some(item => item.x === x && item.y === y && item.type !== 'GOLD');
+                const classes = [aim ? `ranged-aim${selected ? ' ranged-target' : ''}` : '', inspectable ? 'ground-item' : ''].filter(Boolean).join(' ');
+                html += `<span data-map-x="${x}" data-map-y="${y}"${classes ? ` class="${classes}"` : ''}${inspectable ? ' title="Inspeccionar objeto · clic o G"' : ''} style="${color}">${char === '<' ? '&lt;' : char === '>' ? '&gt;' : char}</span>`;
+            }
+            if (y < view.y + view.rows - 1) html += "\n";
+        }
+        DOM.container.style.fontSize = `${view.fontSize}px`;
+        DOM.container.innerHTML = `<div class="map-grid">${html}</div>`;
+        UISystem.renderStairs();
+        const layer = document.getElementById('fx-layer');
+        if (layer && layer.children) {
+            [...layer.children].forEach(el => {
+                if (Number.isFinite(el._worldX)) VisualFX.positionText(el, el._worldX, el._worldY);
+            });
+        }
     },
     checkDiscovery: (x, y) => {
         let id = null, data = null, type = 'item';
@@ -2197,42 +2926,336 @@ const Renderer = {
         else {
             let item = GameState.entities.items.find(i => i.x === x && i.y === y);
             if (item) {
-                if (item.type === 'GOLD') { id = 'GOLD'; data = {symbol:'$', color:'#ffd700', name:'Oro', stats:'Riqueza'}; } 
-                else if (item.type === 'food') { id = 'FOOD'; data = {symbol:'%', color:'#ffaa00', name:'Ración', stats:'Comida'}; } 
-                else if (item.type === 'water') { id = 'WATER'; data = {symbol:'~', color:'#00ffff', name:'Agua', stats:'Bebida'}; } 
-                else if (item.type === 'weapon') { id = 'WEAPON_DROP'; data = {symbol:'!', color:'#ff00ff', name:'Arma', stats:'Ataque'}; } 
-                else if (item.specialId === 'FROZEN_CRAMPONS') { id = 'FROZEN_CRAMPONS'; data = {symbol:']', color:'#8adfff', name:'Arnés polar', stats:'DEF:1 · Hielo/agarre'}; }
-                else if (item.specialId === 'MAGMA_THERMAL') { id = 'MAGMA_THERMAL'; data = {symbol:']', color:'#ff6b35', name:'Malla térmica', stats:'DEF:1 · Calor/sed'}; }
-                else if (item.specialId === 'UNSTABLE_HARNESS') { id = 'UNSTABLE_HARNESS'; data = {symbol:']', color:'#d7a56d', name:'Arnés ligero', stats:'DEF:1 · Caída/equipo'}; }
-                else if (item.type === 'armor') { id = 'ARMOR_DROP'; data = {symbol:']', color:'#4682b4', name:'Malla', stats:'Defensa'}; }
+                const discovery = Renderer.itemDiscovery(item);
+                if (discovery) { id = discovery.id; data = discovery.data; }
             }
             else if (x === GameState.stairs.down.x && y === GameState.stairs.down.y) { id = 'STAIRS_DOWN'; data = {symbol:'>', color:'#fff', name:'Bajada', stats:'Profundidad'}; }
             else if (x === GameState.stairs.up.x && y === GameState.stairs.up.y) { id = 'STAIRS_UP'; data = {symbol:'<', color:'#fff', name:'Subida', stats:'Salida'}; }
         }
         
-        if (id && !GameState.discoveredTypes.has(id)) { 
-            GameState.discoveredTypes.add(id); 
-            Renderer.addToLegend(type, data); 
+        Renderer.recordDiscovery(type, id, data);
+    },
+    itemDiscovery: (item) => {
+        if (!item) return null;
+        const special = {
+            FROZEN_CRAMPONS: { name: 'Botas polares', color: '#8adfff', stats: 'Hielo / agarre / descanso' },
+            MAGMA_THERMAL: { name: 'Malla térmica', color: '#ff6b35', stats: 'DEF:1 · Calor / sed' },
+            UNSTABLE_HARNESS: { name: 'Arnés ligero', color: '#d7a56d', stats: 'DEF:1 · Caída / equipo' }
+        }[item.specialId];
+        if (special) return { id: item.specialId, data: { symbol: item.symbol || ']', ...special } };
+        if (item.gearId) return { id: item.gearId, data: { name: item.name, symbol: item.symbol || item.icon, color: item.color, stats: UISystem.traitSummary(item) } };
+        if (item.type === 'relic') {
+            const relic = InventorySystem.relicDef(item);
+            if (relic) return { id: relic.id, data: { name: relic.name, symbol: '&', color: relic.color, stats: `${relic.effect === 'heal' ? 'Curación' : relic.effect === 'stun' ? 'Aturdimiento' : 'Protección + golpe'} · un uso · ficha en mochila` } };
         }
+        const common = {
+            GOLD: { id: 'GOLD', symbol: '$', color: '#ffd700', name: 'Oro', stats: 'Monedas' },
+            food: { id: 'FOOD', symbol: '%', color: '#ffaa00', name: 'Ración', stats: 'Recupera comida' },
+            water: { id: 'WATER', symbol: '~', color: '#00ffff', name: 'Agua', stats: 'Recupera agua' },
+            weapon: { id: 'WEAPON_DROP', symbol: '!', color: '#ff00ff', name: 'Arma', stats: 'Mejora el ataque' },
+            armor: { id: 'ARMOR_DROP', symbol: ']', color: '#4682b4', name: 'Armadura', stats: 'Mejora la defensa' },
+            relic: { id: 'RELIC_DROP', symbol: '&', color: item.color || '#b48cff', name: 'Reliquia maldita', stats: 'Un uso · poder con coste' }
+        }[item.type];
+        if (!common) return null;
+        const { id, ...data } = common;
+        return { id, data };
     },
-    addToLegend: (type, data) => {
+    recordDiscovery: (type, id, data) => {
+        if (!id || !data || GameState.discoveredTypes.has(id)) return;
+        GameState.discoveredTypes.add(id);
+        Renderer.addToLegend(type, data, id);
+    },
+    addToLegend: (type, data, id) => {
         const panel = document.getElementById(type === 'monster' ? 'legend-monsters' : 'legend-items');
-        const div = document.createElement('div'); div.className = 'legend-item';
-        div.innerHTML = `<div class="legend-symbol" style="color: ${data.color}">${data.symbol}</div><div class="legend-desc"><span class="legend-name">${data.name}</span><span class="legend-stats">${data.stats}</span>${data.lore ? `<span class="legend-lore">${data.lore}</span>` : ''}${data.tactic ? `<span class="legend-tactic">${data.tactic}</span>` : ''}</div>`;
-        panel.appendChild(div);
+        const empty = typeof panel.querySelector === 'function' ? panel.querySelector('.legend-empty') : null;
+        if (empty) empty.remove();
+        const isMonster = type === 'monster';
+        const div = document.createElement(isMonster ? 'button' : 'div');
+        div.className = 'legend-item';
+        if (isMonster) {
+            div.type = 'button';
+            div.title = `Consultar a ${data.name} en el bestiario`;
+            div.onclick = () => UISystem.openBestiary(id);
+        }
+        div.innerHTML = `<span class="legend-symbol" style="color:${data.color}">${data.symbol}</span><span class="legend-desc"><span class="legend-name">${data.name}</span>${!isMonster ? `<span class="legend-stats">${data.stats}</span>` : ''}</span>`;
+        panel.prepend(div);
+        panel.scrollTop = 0;
+        document.getElementById(type === 'monster' ? 'legend-monsters-count' : 'legend-items-count').textContent = panel.children.length;
     },
-    resetLegend: () => { document.getElementById('legend-monsters').innerHTML = '<div class="legend-title">Amenazas</div>'; document.getElementById('legend-items').innerHTML = '<div class="legend-title">Entorno</div>'; }
+    resetLegend: () => {
+        document.getElementById('legend-monsters').innerHTML = '<p class="legend-empty">Las criaturas aparecerán al descubrirlas.</p>';
+        document.getElementById('legend-items').innerHTML = '<p class="legend-empty">Explora para registrar nuevos hallazgos.</p>';
+        document.getElementById('legend-monsters-count').textContent = '0';
+        document.getElementById('legend-items-count').textContent = '0';
+    }
 };
 
 const UISystem = {
+    bestiaryFocus: null,
+    renderStairs: () => {
+        const compass = document.getElementById('stair-compass');
+        compass.innerHTML = '';
+        for (const [kind, symbol, label] of [['up', '<', 'Subida'], ['down', '>', 'Bajada']]) {
+            const stair = GameState.stairs[kind];
+            if (!GameState.seen[stair.y]?.[stair.x] && !GameState.knownStairs[GameState.level]?.[kind]) continue;
+            const dx = stair.x - GameState.player.x, dy = stair.y - GameState.player.y;
+            const distance = Math.max(Math.abs(dx), Math.abs(dy));
+            const arrows = { '-1,-1': '↖', '0,-1': '↑', '1,-1': '↗', '-1,0': '←', '1,0': '→', '-1,1': '↙', '0,1': '↓', '1,1': '↘' };
+            const marker = document.createElement('span'); marker.className = 'stair-marker'; marker.dataset.stair = kind;
+            const name = document.createElement('span'); name.textContent = `${symbol} ${label} · `;
+            const direction = document.createElement('span'); direction.className = 'stair-direction';
+            direction.textContent = distance === 0 ? '◎' : arrows[`${Math.sign(dx)},${Math.sign(dy)}`];
+            const detail = document.createElement('span'); detail.textContent = distance === 0 ? 'aquí [Espacio]' : String(distance);
+            if (distance > 0) {
+                const unit = document.createElement('span'); unit.className = 'stair-distance-unit'; unit.textContent = distance === 1 ? ' casilla' : ' casillas'; detail.appendChild(unit);
+            }
+            marker.appendChild(name); marker.appendChild(direction); marker.appendChild(detail);
+            marker.setAttribute('aria-label', `${label}: ${distance === 0 ? 'aquí, Espacio para usar' : `${direction.textContent}, a ${distance} casillas`}`);
+            marker.title = 'Escalera descubierta. Dirección y distancia en línea recta, no una ruta segura.';
+            compass.appendChild(marker);
+        }
+        compass.className = compass.children.length ? 'stair-compass' : 'hidden';
+    },
+    renderCharacter: () => {
+        const player = GameState.player;
+        const points = player.talentPoints || 0;
+        document.getElementById('character-title').textContent = points > 0 ? `Nivel ${player.level} · elige tu camino` : `Tu personaje · nivel ${player.level}`;
+        document.getElementById('character-points').textContent = points > 0
+            ? `${points} ${points === 1 ? 'punto disponible' : 'puntos disponibles'} · cada mejora cuesta 1`
+            : 'Sin puntos pendientes. Ganas uno cada vez que subes de nivel.';
+        document.getElementById('character-close').textContent = points > 0 ? 'Decidir luego' : 'Volver';
+        const equippedStats = EquipmentSystem.stats();
+        const stats = [
+            ['Vida máxima', String(player.maxHp)],
+            ['Ataque cuerpo a cuerpo', `${equippedStats.attack} · base + arma + accesorios`],
+            ['Defensa total', `${equippedStats.defense} · natural + armadura + accesorios`],
+            ['Velocidad', `${Math.round(ProgressionSystem.speedMultiplier() * 100)}%`],
+            ['Dardo arcano', ProgressionSystem.rank('ranged') > 0 ? `${ProgressionSystem.rangedDamage()} daño base · ${ProgressionSystem.rangedRange()} casillas` : 'Sin aprender']
+        ];
+        const summary = document.getElementById('character-summary'); summary.innerHTML = '';
+        for (const [label, value] of stats) {
+            const row = document.createElement('div');
+            const term = document.createElement('dt'); term.textContent = label;
+            const detail = document.createElement('dd'); detail.textContent = value;
+            row.appendChild(term); row.appendChild(detail); summary.appendChild(row);
+        }
+        const grid = document.getElementById('talent-options'); grid.innerHTML = '';
+        ProgressionSystem.options().forEach((option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button'; button.className = `talent-option${index === GameState.ui.characterIndex ? ' selected' : ''}`;
+            button.disabled = points <= 0 || option.capped;
+            button.dataset.talent = option.id;
+            button.setAttribute('aria-label', `${option.name}, rango ${option.rank}${option.maxRank ? ` de ${option.maxRank}` : ''}. ${option.effect}`);
+            const heading = document.createElement('span'); heading.className = 'talent-heading';
+            const name = document.createElement('span'); name.className = 'talent-name'; name.textContent = `${option.symbol} ${option.name}`;
+            const rank = document.createElement('span'); rank.className = 'talent-rank'; rank.textContent = `Rango ${option.rank}${option.maxRank ? `/${option.maxRank}` : ''}`;
+            heading.appendChild(name); heading.appendChild(rank);
+            const copy = document.createElement('span'); copy.className = 'talent-description'; copy.textContent = option.description;
+            const effect = document.createElement('span'); effect.className = 'talent-effect'; effect.textContent = option.effect;
+            const action = document.createElement('span'); action.className = 'talent-action';
+            action.textContent = option.capped ? 'Máximo alcanzado' : points > 0 ? `[${index + 1}] ${option.id === 'ranged' && option.rank === 0 ? 'Aprender' : 'Mejorar'} · 1 punto` : 'Necesitas un punto';
+            button.appendChild(heading); button.appendChild(copy); button.appendChild(effect); button.appendChild(action);
+            button.onclick = () => ProgressionSystem.choose(option.id);
+            grid.appendChild(button);
+        });
+    },
+    equipmentFocus: null,
+    openEquipment: () => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.MENU, STATE_ENUM.CONTROLS].includes(GameState.current)) return;
+        GameState.ui.equipmentReturnState = GameState.current;
+        UISystem.equipmentFocus = document.activeElement;
+        if (GameState.ui.actionMenuOpen) InventorySystem.closeActionMenu();
+        StateController.change(STATE_ENUM.EQUIPMENT);
+    },
+    closeEquipment: () => {
+        if (GameState.current !== STATE_ENUM.EQUIPMENT) return;
+        StateController.change(GameState.ui.equipmentReturnState);
+        if (UISystem.equipmentFocus && UISystem.equipmentFocus.isConnected) UISystem.equipmentFocus.focus();
+        UISystem.equipmentFocus = null;
+    },
+    traitProperties: (item) => {
+        const traits = item?.traits || {};
+        const properties = [];
+        for (const [key, label] of [['slipResist', 'Resistencia a resbalones'], ['heatResist', 'Resistencia al calor'], ['thirstResist', 'Resiste sed extra por calor'], ['fallDamageResist', 'Resistencia a caídas']]) {
+            if (Number(traits[key]) > 0) properties.push([label, `${Math.round(traits[key] * 100)}%`]);
+        }
+        for (const [key, label] of [['attackBonus', 'Ataque (también dardo)'], ['defenseBonus', 'Defensa adicional'], ['frozenRestHeal', 'Descanso en hielo'], ['magmaRestHeal', 'Descanso en magma']]) {
+            if (Number(traits[key]) > 0) properties.push([label, `+${traits[key]}${key.endsWith('RestHeal') ? ' vida' : ''}`]);
+        }
+        if (traits.initiativeBonus) properties.push(['Iniciativa', `+${Math.round(traits.initiativeBonus * 100)}%`]);
+        if (traits.rangedDamageBonus) properties.push(['Potencia del dardo', `+${traits.rangedDamageBonus}${ProgressionSystem.rank('ranged') ? '' : ' · requiere aprenderlo [N]'}`]);
+        if (traits.retainEquippedOnFall) properties.push(['Conserva equipo al caer', 'Sí']);
+        return properties;
+    },
+    traitSummary: (item) => {
+        const properties = UISystem.traitProperties(item);
+        if (item.type === 'weapon') properties.unshift(['ATK', `+${item.value}`]);
+        if (item.type === 'armor') properties.unshift(['DEF', `+${item.value}`]);
+        return properties.map(([key, value]) => `${key}: ${value}`).join(' · ') || 'Sin efectos especiales';
+    },
+    equipmentInfo: (slot, item = GameState.player.equipment[slot]) => {
+        const definition = CONFIG.EQUIPMENT_SLOTS[slot];
+        const weapon = slot === 'weapon';
+        const value = item ? Number(item.value) || 0 : 0;
+        const totals = EquipmentSystem.stats({ ...GameState.player.equipment, [slot]: item });
+        const properties = weapon
+            ? [['Ataque del arma', `+${value}`], ['Ataque total con accesorios', String(totals.attack)]]
+            : slot === 'armor' ? [['Defensa', `+${value}`], ['Defensa total con accesorios', String(totals.defense)]] : [];
+        properties.push(...UISystem.traitProperties(item));
+        if (!item || !Object.keys(item.traits || {}).length) properties.push(['Efectos especiales', 'Ninguno']);
+        if (slot === 'boots') properties.push(['Hueco', 'Un par · no ocupa armadura']);
+        if (slot === 'ring') properties.push(['Hueco', 'Un anillo · efecto pasivo']);
+        if (item && Number.isFinite(item.buyPrice)) properties.push(['Precio de compra', `${item.buyPrice} oro`]);
+        const quality = item && item.name ? item.name.match(/\[([^\]]+)\]$/) : null;
+        return {
+            label: definition.label,
+            name: item ? item.name : definition.empty,
+            symbol: item?.symbol || definition.symbol,
+            color: item ? item.qualityColor || item.color || '#cfb477' : '#b4a58b',
+            quality: item ? (quality ? quality[1] : (item.specialId ? 'Equipo especial' : 'Equipo actual')) : 'Sin objeto equipado',
+            power: weapon ? `ATK +${value}` : slot === 'armor' ? `DEF +${value}` : item ? UISystem.traitSummary(item) : 'Hueco libre',
+            properties
+        };
+    },
+    renderEquipmentPreview: () => {
+        const grid = document.getElementById('equipped-preview-grid');
+        grid.innerHTML = '';
+        for (const slot of EquipmentSystem.slots()) {
+            const info = UISystem.equipmentInfo(slot);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'gear-preview';
+            button.title = `Consultar ${info.label.toLowerCase()} y propiedades`;
+            const symbol = document.createElement('span');
+            symbol.className = 'legend-symbol'; symbol.textContent = info.symbol; symbol.style.color = info.color;
+            const copy = document.createElement('span'); copy.className = 'gear-preview-copy';
+            for (const [className, value] of [['gear-preview-label', info.label], ['gear-preview-name', info.name], ['gear-preview-power', info.power]]) {
+                const text = document.createElement('span'); text.className = className; text.textContent = value; copy.appendChild(text);
+            }
+            button.appendChild(symbol); button.appendChild(copy);
+            button.onclick = () => UISystem.openEquipment();
+            grid.appendChild(button);
+        }
+    },
+    renderEquipment: () => {
+        const grid = document.getElementById('equipment-grid');
+        grid.innerHTML = '';
+        for (const slot of EquipmentSystem.slots()) {
+            const info = UISystem.equipmentInfo(slot);
+            const card = document.createElement('section'); card.className = 'gear-card';
+            const label = document.createElement('div'); label.className = 'gear-slot'; label.textContent = info.label;
+            const portrait = document.createElement('div'); portrait.className = 'gear-portrait';
+            const symbol = document.createElement('span'); symbol.className = 'legend-symbol'; symbol.textContent = info.symbol; symbol.style.color = info.color;
+            const name = document.createElement('h3'); name.textContent = info.name; name.style.color = info.color;
+            const quality = document.createElement('span'); quality.className = 'gear-quality'; quality.textContent = info.quality;
+            portrait.appendChild(symbol); portrait.appendChild(name); portrait.appendChild(quality);
+            const properties = document.createElement('dl'); properties.className = 'gear-properties';
+            for (const [key, value] of info.properties) {
+                const row = document.createElement('div');
+                const term = document.createElement('dt'); term.textContent = key;
+                const definition = document.createElement('dd'); definition.textContent = value;
+                row.appendChild(term); row.appendChild(definition); properties.appendChild(row);
+            }
+            card.appendChild(label); card.appendChild(portrait); card.appendChild(properties); grid.appendChild(card);
+            if (GameState.player.equipment[slot]) {
+                const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'gear-remove'; remove.textContent = 'Quitar · un turno';
+                remove.disabled = GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize;
+                remove.title = remove.disabled ? 'Necesitas un hueco en la mochila' : 'Guardar esta pieza en la mochila';
+                remove.onclick = () => InventorySystem.unequip(slot); card.appendChild(remove);
+            }
+        }
+    },
+    updateResourceMeters: () => {
+        const hpPercent = GameState.player.maxHp > 0 ? Math.round(GameState.player.hp / GameState.player.maxHp * 100) : 0;
+        const resources = [['hp', hpPercent], ['food', GameState.player.food], ['water', GameState.player.water]];
+        for (const [id, raw] of resources) {
+            const value = Math.max(0, Math.min(100, Number(raw) || 0));
+            const meter = document.getElementById(`${id}-meter`);
+            const fill = document.getElementById(`${id}-fill`);
+            fill.style.width = `${value}%`;
+            meter.ariaValueNow = String(value);
+            meter.className = `resource-meter${value <= 25 ? ' resource-low' : value <= 50 ? ' resource-warning' : ''}`;
+            if (id === 'hp') document.getElementById('hp-percent').textContent = `${value}%`;
+        }
+    },
+    openPanel: (state) => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
+        StateController.change(state);
+    },
+    openBestiary: (id = null) => {
+        if (GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (![STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current)) return;
+        GameState.ui.bestiaryReturnState = GameState.current;
+        GameState.ui.bestiaryId = id;
+        UISystem.bestiaryFocus = document.activeElement;
+        StateController.change(STATE_ENUM.BESTIARY);
+    },
+    closeBestiary: () => {
+        if (GameState.current !== STATE_ENUM.BESTIARY) return;
+        StateController.change(GameState.ui.bestiaryReturnState);
+        const previousFocus = UISystem.bestiaryFocus;
+        if (previousFocus && previousFocus.isConnected) previousFocus.focus();
+        UISystem.bestiaryFocus = null;
+    },
+    discoveredCreatures: () => [...GameState.discoveredTypes].reverse().map(id => CONFIG.ENTITIES.enemies.find(def => def.id === id)).filter(Boolean),
+    renderBestiary: () => {
+        const list = document.getElementById('bestiary-list');
+        const detail = document.getElementById('bestiary-detail');
+        const creatures = UISystem.discoveredCreatures();
+        list.innerHTML = '';
+        if (creatures.length === 0) {
+            detail.innerHTML = '<p class="empty-state">Todavía no has descubierto criaturas. Cuando encuentres una, su historia y sus tácticas aparecerán aquí.</p>';
+            return;
+        }
+        const selected = creatures.find(def => def.id === GameState.ui.bestiaryId) || creatures[0];
+        GameState.ui.bestiaryId = selected.id;
+        creatures.forEach(def => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `bestiary-entry ${def.id === selected.id ? 'selected' : ''}`;
+            button.innerHTML = `<span class="legend-symbol" style="color:${def.color}">${def.symbol}</span><span>${def.name}</span>`;
+            button.onclick = () => { GameState.ui.bestiaryId = def.id; UISystem.renderBestiary(); };
+            list.appendChild(button);
+        });
+        detail.innerHTML = `<div class="bestiary-heading"><span class="legend-symbol" style="color:${selected.color}">${selected.symbol}</span><div><h3>${selected.name}</h3><span class="bestiary-role">${selected.role || ''}</span></div></div><p class="bestiary-copy">${selected.lore || 'No hay historia registrada para esta criatura.'}</p><section class="bestiary-tactic"><h4>CÓMO COMBATIRLA</h4>${selected.tactic || 'Observa su comportamiento antes de atacar.'}</section><p class="muted" style="margin-top:14px">Vida base: ${selected.hp} · Ataque base: ${selected.atk}. Sus atributos varían con la profundidad.</p>`;
+    },
+    renderRewardChoice: () => {
+        const container = document.getElementById('reward-choice-options');
+        if (!container) return;
+        container.innerHTML = '';
+        const choice = GameState.ui.rewardChoice;
+        choice.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `reward-option ${index === choice.index ? 'selected' : ''}`;
+            button.innerHTML = `<span class="reward-option-name" style="color:${option.color}">${option.name}</span><span class="reward-option-detail">${option.detail}</span>`;
+            button.onclick = () => GameLogic.chooseChestReward(index);
+            container.appendChild(button);
+        });
+    },
     updateHUD: () => {
         document.getElementById('char-lvl').innerText = GameState.player.level; document.getElementById('dungeon-lvl').innerText = `-${GameState.level}`;
         document.getElementById('hp-val').innerText = `${GameState.player.hp}/${GameState.player.maxHp}`;
         document.getElementById('food-val').innerText = GameState.player.food; document.getElementById('water-val').innerText = GameState.player.water;
         document.getElementById('score').innerText = GameState.score; document.getElementById('bag-count').innerText = `${GameState.player.inventory.length}/${CONFIG.PLAYER.inventorySize}`;
+        const xpPercent = GameState.player.nextXp > 0 ? Math.min(100, (GameState.player.xp / GameState.player.nextXp) * 100) : 0;
+        const xpFill = document.getElementById('xp-fill');
+        const xpText = document.getElementById('xp-text');
+        if (xpFill) xpFill.style.width = `${xpPercent}%`;
+        if (xpText) xpText.innerText = `${GameState.player.xp} / ${GameState.player.nextXp} XP`;
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
-        document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
+        const equipmentStats = EquipmentSystem.stats();
+        document.getElementById('atk-val').innerText = equipmentStats.baseAttack; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
+        document.getElementById('def-val').textContent = String(equipmentStats.defense - aVal);
+        const talentBadge = document.getElementById('talent-points');
+        talentBadge.textContent = GameState.player.talentPoints > 0 ? `+${GameState.player.talentPoints}` : '';
+        talentBadge.className = GameState.player.talentPoints > 0 ? 'talent-badge' : 'hidden';
+        document.getElementById('character-button').title = GameState.player.talentPoints > 0 ? `${GameState.player.talentPoints} punto(s) para mejorar tu personaje` : 'Consultar atributos y talentos';
         if (document.getElementById('seed-val')) document.getElementById('seed-val').innerText = GameState.seed;
+        UISystem.updateResourceMeters();
+        UISystem.renderEquipmentPreview();
 
         if (!DOM.combatStatus) return;
         const parts = [];
@@ -2243,10 +3266,10 @@ const UISystem = {
         if (FloorSystem.is('MAGMA')) {
             const inFumarole = FloorSystem.isMagmaFumaroleTile(GameState.player.x, GameState.player.y);
             if (inFumarole) {
-                parts.push(`<span style="color:#ff6b35">MAGMA · FUMAROLA · -${FloorSystem.magmaRiskWaterCost()} AGUA/T</span>`);
+                parts.push(`<span style="color:#ff6b35">MAGMA · FUMAROLA · -${Number(FloorSystem.magmaRiskWaterCost().toFixed(2))} AGUA/T</span>`);
             } else {
                 const protectedFromThirst = (Number(FloorSystem.armorTraits().thirstResist) || 0) > 0;
-                parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×2'}</span>`);
+                parts.push(`<span style="color:#ff6b35">MAGMA · SED ${protectedFromThirst ? '↓' : '×1,5'}</span>`);
             }
         }
         if (FloorSystem.is('UNSTABLE')) {
@@ -2260,29 +3283,115 @@ const UISystem = {
         );
         if (primedTroll) parts.push('<span style="color:#ff8c00">RUGIDO · APLASTAR INMINENTE</span>');
         if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack) {
-            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE' };
+            const target = GameState.entities.enemies.find(enemy => enemy.x === GameState.ui.rangedTarget?.x && enemy.y === GameState.ui.rangedTarget?.y);
+            const labels = { quick: 'RÁPIDO', savage: 'SALVAJE', ranged: `DARDO · ${target ? target.name : 'SIN OBJETIVO'} · ENTER: DISPARAR / TAB: CAMBIAR` };
             const label = labels[GameState.player.combat.pendingAttack] || String(GameState.player.combat.pendingAttack).toUpperCase();
-            parts.push(`<span style="color:#00ffff">OBJETIVO: ${label}</span>`);
+            parts.push(`<span style="color:#00ffff">${label}${GameState.player.combat.pendingAttack === 'ranged' ? '' : ' · ELIGE DIRECCIÓN'}</span>`);
         }
         if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
+        if (GameState.player.combat.wardTurns > 0) parts.push(`<span style="color:#66d9ef">PIEDRA · DEF +${GameState.player.combat.wardDefense} · ${GameState.player.combat.wardTurns} RESPUESTAS</span>`);
+        if (GameState.player.combat.wardStrike > 0) parts.push(`<span style="color:#66d9ef">PRÓXIMO IMPACTO · POTENCIA +${GameState.player.combat.wardStrike}</span>`);
+        const stunned = GameState.entities.enemies.filter(enemy => enemy.relicStun > 0 && GameState.visible[enemy.y]?.[enemy.x]);
+        if (stunned.length) parts.push(`<span style="color:#b48cff">ECO · ${stunned.length} ENEMIGO(S) ATURDIDO(S)</span>`);
         if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
         if (GameState.player.combat.cooldowns.area > 0) parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
+        if (ProgressionSystem.rank('ranged') > 0) {
+            const cooldown = GameState.player.combat.cooldowns.ranged || 0;
+            if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged') {
+                parts.push('<button type="button" onclick="fireRangedAttack()">Disparar [Enter]</button><button type="button" onclick="nextRangedTarget()">Otro objetivo [Tab]</button><button type="button" onclick="cancelRangedAttack()">Cancelar [Esc]</button>');
+            } else parts.push(`<button type="button" onclick="startRangedAttack()"${cooldown || GameState.current !== STATE_ENUM.PLAYING ? ' disabled' : ''}>* Dardo [L] · ${cooldown > 0 ? `recarga ${cooldown}` : `listo · ${ProgressionSystem.rangedRange()} casillas`}</button>`);
+        }
         DOM.combatStatus.innerHTML = parts.join('');
     },
     renderInventory: () => {
         const grid = document.getElementById('inv-grid'); grid.innerHTML = "";
         document.getElementById('inv-capacity').innerText = `${GameState.player.inventory.length}/${CONFIG.PLAYER.inventorySize}`;
-        const w = GameState.player.equipment.weapon; const a = GameState.player.equipment.armor;
-        document.getElementById('equip-weapon').innerHTML = `Arma: <span class="${w?'equip-active':''}">${w?w.name:'Puños'}</span>`;
-        document.getElementById('equip-armor').innerHTML = `Armadura: <span class="${a?'equip-active':''}">${a?a.name:'Ropa'}</span>`;
+        for (const slot of EquipmentSystem.slots()) {
+            const info = UISystem.equipmentInfo(slot);
+            document.getElementById(`equip-${slot}`).textContent = `${info.label}: ${info.name}`;
+        }
         for (let i = 0; i < CONFIG.PLAYER.inventorySize; i++) {
-            let div = document.createElement('div'); div.className = "inv-slot";
+            let div = document.createElement('button'); div.type = 'button'; div.className = "inv-slot";
+            div.setAttribute('aria-pressed', String(i === GameState.ui.inventoryIndex));
             if (i === GameState.ui.inventoryIndex) div.classList.add('selected');
             if (i < GameState.player.inventory.length) {
                 let item = GameState.player.inventory[i];
                 div.innerHTML = `<div class="inv-item-symbol" style="color:${item.color}">${item.symbol}</div><div class="inv-item-name" style="color:${item.qualityColor||'#ccc'}">${item.name}</div>`;
-            } else { div.classList.add('empty'); }
+                div.title = item.name; div.setAttribute('aria-label', item.name);
+            } else { div.classList.add('empty'); div.setAttribute('aria-label', 'Hueco vacío'); }
+            div.onclick = () => {
+                if (GameState.ui.actionMenuOpen) return;
+                GameState.ui.inventoryIndex = i; UISystem.renderInventory();
+                document.getElementById('inv-item-detail').lastElementChild?.focus();
+            };
             grid.appendChild(div);
+        }
+        UISystem.renderItemDetail();
+    },
+    itemDescription: (item, ground = false) => {
+        const lines = [];
+        if (item.type === 'relic') {
+            const preview = InventorySystem.relicPreview(item);
+            lines.push(preview.effect, `Coste: ${preview.cost}.`, preview.duration, preview.advice);
+            if (preview.reason) lines.push(preview.reason);
+        } else if (EquipmentSystem.isEquipment(item)) {
+            lines.push(UISystem.traitSummary(item));
+            const current = GameState.player.equipment[item.type];
+            lines.push(`Sustituye: ${current?.name || CONFIG.EQUIPMENT_SLOTS[item.type].empty}.${ground ? ' La pieza anterior queda en el suelo; no necesitas huecos libres.' : ' El objeto anterior vuelve a la mochila.'}`);
+            if (ground && current) lines.push(`Propiedades de lo equipado: ${UISystem.traitSummary(current)}.`);
+            const before = EquipmentSystem.stats();
+            const after = EquipmentSystem.stats({ ...GameState.player.equipment, [item.type]: item });
+            const changes = [['attack', 'Ataque'], ['defense', 'Defensa'], ['speedMultiplier', 'Iniciativa'], ['rangedDamage', 'Dardo']].filter(([key]) => before[key] !== after[key] && (key !== 'rangedDamage' || ProgressionSystem.rank('ranged'))).map(([key, label]) => key === 'speedMultiplier' ? `${label}: ${Math.round(before[key]*100)}% → ${Math.round(after[key]*100)}%` : `${label}: ${before[key]} → ${after[key]}`);
+            lines.push(changes.join(' · ') || 'No cambia tus cifras de combate. Consulta sus protecciones especiales.');
+            lines.push('Equipar consume un turno. Su efecto es pasivo mientras lo llevas puesto.');
+        } else lines.push(`Recupera hasta ${item.value} ${item.type === 'food' ? 'comida' : 'agua'} (ahora: ${Math.max(0, Math.min(item.value, 100 - GameState.player[item.type]))}). Se consume al usarlo y pasa un turno.`);
+        return lines;
+    },
+    renderItemDetail: () => {
+        const panel = document.getElementById('inv-item-detail'); panel.innerHTML = '';
+        const item = GameState.player.inventory[GameState.ui.inventoryIndex];
+        if (!item) { panel.textContent = 'Selecciona un objeto para consultar sus propiedades y cómo usarlo.'; return; }
+        const title = document.createElement('h3'); title.textContent = item.name; panel.appendChild(title);
+        for (const line of UISystem.itemDescription(item)) {
+            const p = document.createElement('p'); p.textContent = line; panel.appendChild(p);
+        }
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Acciones [Enter]'; button.onclick = InventorySystem.openActionMenu; panel.appendChild(button);
+    },
+    renderGround: () => {
+        const items = GroundSystem.visibleItems();
+        const list = document.getElementById('ground-list'); list.innerHTML = '';
+        const detail = document.getElementById('ground-detail'); detail.innerHTML = '';
+        const actions = document.getElementById('ground-actions'); actions.innerHTML = '';
+        const status = document.getElementById('ground-status'); status.textContent = '';
+        const item = items.includes(GameState.ui.groundItem) ? GameState.ui.groundItem : items[0];
+        GameState.ui.groundItem = item || null;
+        if (!item) { detail.textContent = 'No hay objetos visibles en el suelo. Acércate o explora para encontrar otros; la niebla no revela sus propiedades.'; return; }
+        for (const candidate of items) {
+            const button = document.createElement('button'); button.type = 'button';
+            button.className = `ground-choice${candidate === item ? ' selected' : ''}`;
+            button.setAttribute('aria-pressed', String(candidate === item));
+            const distance = GroundSystem.distance(candidate);
+            button.textContent = `${candidate.symbol || '&'} ${candidate.name} · ${distance === 0 ? 'aquí' : `${distance} ${distance === 1 ? 'casilla' : 'casillas'}`}`;
+            button.onclick = () => { GameState.ui.groundItem = candidate; UISystem.renderGround(); DOM.menus.ground.focus(); };
+            list.appendChild(button);
+        }
+        const title = document.createElement('h3'); title.textContent = item.name; detail.appendChild(title);
+        for (const line of UISystem.itemDescription(item, true)) {
+            const p = document.createElement('p'); p.textContent = line; detail.appendChild(p);
+        }
+        const reachable = GroundSystem.canReach(item);
+        const full = GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize;
+        status.textContent = !reachable ? 'Puedes compararlo, pero debes acercarte a una casilla de distancia y tener acceso libre para recoger o equipar.'
+            : full ? 'Mochila llena: puedes equiparlo directamente sin tirar nada de la mochila.'
+            : 'Al alcance · recoger o equipar consume un turno. Dejarlo y comparar es gratis.';
+        if (full && !EquipmentSystem.isEquipment(item) && reachable) status.textContent = 'Mochila llena: necesitas un hueco para recogerlo. Consultarlo no gasta turno.';
+        const pickup = document.createElement('button'); pickup.type = 'button';
+        pickup.textContent = full ? 'Recoger · mochila llena' : 'Recoger · 1 turno'; pickup.disabled = !reachable || full;
+        pickup.onclick = GroundSystem.pickup; actions.appendChild(pickup);
+        if (EquipmentSystem.isEquipment(item)) {
+            const equip = document.createElement('button'); equip.type = 'button'; equip.className = 'btn-primary';
+            equip.textContent = GameState.player.equipment[item.type] ? 'Equipar e intercambiar · 1 turno' : 'Equipar · 1 turno';
+            equip.disabled = !reachable; equip.onclick = GroundSystem.equip; actions.appendChild(equip);
         }
     },
     renderActionMenu: (item) => {
@@ -2290,55 +3399,124 @@ const UISystem = {
         document.getElementById('action-title').innerText = item.name;
         list.innerHTML = "";
         let actions = [];
-        if (['food', 'water', 'weapon', 'armor'].includes(item.type)) actions.push({label: "Usar/Equipar", code: "USE"});
+        const preview = item.type === 'relic' ? InventorySystem.relicPreview(item) : null;
+        const resourceFull = ['food', 'water'].includes(item.type) && GameState.player[item.type] >= 100;
+        const description = document.getElementById('action-description');
+        description.textContent = preview ? `${preview.effect}. Coste: ${preview.cost}. ${preview.duration}. ${preview.reason || preview.advice}` : EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : `Recupera hasta ${item.value}; ahora recuperarías ${Math.max(0, Math.min(item.value, 100 - GameState.player[item.type]))}. Un uso · un turno.${resourceFull ? ' Reserva llena: no se consume.' : ''}`;
+        if (['food', 'water', 'relic'].includes(item.type) || EquipmentSystem.isEquipment(item)) actions.push({label: preview ? 'Invocar · consumir reliquia' : EquipmentSystem.isEquipment(item) ? 'Equipar' : 'Consumir', code: 'USE', disabled: preview ? !preview.canUse : resourceFull});
         actions.push({label: "Tirar", code: "DROP"});
+        actions.push({label: 'Volver · Esc', code: 'CANCEL'});
         GameState.ui.currentActions = actions;
         actions.forEach((act, idx) => {
-            let div = document.createElement('div');
+            let div = document.createElement('button'); div.type = 'button'; div.disabled = Boolean(act.disabled);
             div.className = `action-option ${idx === GameState.ui.actionIndex ? 'selected' : ''}`;
             div.innerText = act.label;
-            div.onclick = () => { if(act.code==='USE') InventorySystem.useItem(GameState.ui.inventoryIndex); else InventorySystem.dropItem(GameState.ui.inventoryIndex); };
+            div.onclick = () => { if (act.disabled) return; if(act.code==='USE') InventorySystem.useItem(GameState.ui.inventoryIndex); else if (act.code === 'DROP') InventorySystem.dropItem(GameState.ui.inventoryIndex); else InventorySystem.closeActionMenu(); };
             list.appendChild(div);
         });
         DOM.menus.action.classList.remove('hidden');
     },
+    expeditionGear: () => `Mejor arma: ${GameState.player.stats.maxWeapon.name} | Mejor malla: ${GameState.player.stats.maxArmor.name} | Botas al finalizar: ${GameState.player.equipment.boots?.name || 'Nada'} | Anillo al finalizar: ${GameState.player.equipment.ring?.name || 'Nada'}`,
     fillEndGameStats: (prefix) => {
         const id = prefix === 'win' ? 'win' : 'death';
         let kills = Object.entries(GameState.player.stats.kills).map(([k,v]) => `${v} ${k}`).join(", ") || "Ninguna";
-        let w = GameState.player.stats.maxWeapon.val > 0 ? `${GameState.player.stats.maxWeapon.name}` : "Nada";
-        let a = GameState.player.stats.maxArmor.val > 0 ? `${GameState.player.stats.maxArmor.name}` : "Nada";
         document.getElementById(`${id}-kills-list`).innerText = kills;
-        document.getElementById(`${id}-best-gear`).innerText = `Arma: ${w} | Malla: ${a}`;
-        if(prefix === 'death') { document.getElementById('final-score').innerText = GameState.score; document.getElementById('final-level').innerText = GameState.maxLevel; } 
-        else { document.getElementById('victory-score').innerText = GameState.score; }
+        document.getElementById(`${id}-best-gear`).innerText = UISystem.expeditionGear();
+        document.getElementById(`${id}-save-status`).textContent = GameState.ui.testMode ? 'Expedición de pruebas: los resultados no se envían al ranking.' : '';
+        Network.setSaveButtons(Boolean(GameState.ui.testMode), GameState.ui.testMode ? 'Modo de pruebas' : 'Guardar puntuación');
+        if (id === 'death') document.getElementById('death-cause').textContent = GameState.deathCause;
+        else document.getElementById('win-level').textContent = GameState.maxLevel;
+        document.getElementById(`${id}-gold`).textContent = `${GameState.score} oro restante · comprar o vender no cambia los puntos`;
+        if(prefix === 'death') { document.getElementById('final-score').innerText = GameState.points || 0; document.getElementById('final-level').innerText = GameState.maxLevel; }
+        else { document.getElementById('victory-score').innerText = GameState.points || 0; }
     }
 };
 
 // ============================================================================
 // 11. CONTROLADOR DE ESTADO
 // ============================================================================
+const MovementInput = {
+    key: null,
+    timer: null,
+    generation: 0,
+    direction: (key) => ({
+        w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1],
+        a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0],
+        q: [-1, -1], e: [1, -1], z: [-1, 1], x: [1, 1]
+    })[key] || null,
+    stop: () => {
+        if (MovementInput.timer !== null) clearTimeout(MovementInput.timer);
+        MovementInput.timer = null;
+        MovementInput.key = null;
+        MovementInput.generation++;
+    },
+    start: (key, dx, dy) => {
+        MovementInput.stop();
+        MovementInput.key = key;
+        const generation = MovementInput.generation;
+        const step = async (first) => {
+            if (generation !== MovementInput.generation || MovementInput.key !== key) return;
+            if (GameState.current !== STATE_ENUM.PLAYING || GameState.ui.floorWarningOpen || GameState.ui.movementLocked || document.hidden || document.activeElement === DOM.log) {
+                MovementInput.stop();
+                return;
+            }
+            const enemyAhead = GameState.entities.enemies.some(enemy => enemy.x === GameState.player.x + dx && enemy.y === GameState.player.y + dy);
+            let moved;
+            try { moved = await GameLogic.movePlayer(dx, dy); }
+            catch (error) { if (generation === MovementInput.generation) MovementInput.stop(); throw error; }
+            if (generation !== MovementInput.generation) return;
+            if (GameState.current !== STATE_ENUM.PLAYING || GameState.ui.floorWarningOpen || (!moved && !enemyAhead)) {
+                MovementInput.stop();
+                return;
+            }
+            MovementInput.timer = setTimeout(() => step(false), first ? CONFIG.INPUT.holdDelay : CONFIG.INPUT.repeatInterval);
+        };
+        step(true);
+    }
+};
+
 const StateController = {
     change: (newState) => {
+        MovementInput.stop();
+        if (newState !== STATE_ENUM.INVENTORY) GameState.ui.actionMenuOpen = false;
         GameState.current = newState;
         Object.values(DOM.menus).forEach(el => el.classList.add('hidden'));
         switch (newState) {
             case STATE_ENUM.CONTROLS: DOM.menus.controls.classList.remove('hidden'); break;
+            case STATE_ENUM.BESTIARY: DOM.menus.bestiary.classList.remove('hidden'); UISystem.renderBestiary(); break;
             case STATE_ENUM.INVENTORY: DOM.menus.inventory.classList.remove('hidden'); UISystem.renderInventory(); break;
+            case STATE_ENUM.INSPECT: DOM.menus.ground.classList.remove('hidden'); UISystem.renderGround(); break;
+            case STATE_ENUM.EQUIPMENT: DOM.menus.equipment.classList.remove('hidden'); UISystem.renderEquipment(); break;
+            case STATE_ENUM.CHARACTER: DOM.menus.character.classList.remove('hidden'); UISystem.renderCharacter(); break;
             case STATE_ENUM.MENU: DOM.menus.main.classList.remove('hidden'); document.getElementById('menu-seed-display').innerText = GameState.seed; Network.fetchScores('menu-leaderboard'); break;
             case STATE_ENUM.SHOP: DOM.menus.shop.classList.remove('hidden'); break;
+            case STATE_ENUM.REWARD_CHOICE: DOM.menus.rewardChoice.classList.remove('hidden'); UISystem.renderRewardChoice(); break;
             case STATE_ENUM.GAMEOVER: DOM.menus.gameOver.classList.remove('hidden'); break;
             case STATE_ENUM.PLAYING: DOM.container.focus(); break;
             case STATE_ENUM.TARGETING: DOM.container.focus(); break;
         }
+        const activeMenu = Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
+        if (activeMenu && typeof activeMenu.focus === 'function') activeMenu.focus();
         UISystem.updateHUD();
     }
 };
 
-document.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
-    if (GameState.ui.movementLocked) return;
+// Reencuadra el último mensaje cuando cambia el ancho o el alto del diario.
+if (typeof ResizeObserver !== 'undefined') {
+    const journalResizeObserver = new ResizeObserver(() => { DOM.log.scrollTop = DOM.log.scrollHeight; });
+    journalResizeObserver.observe(DOM.log);
+    const mapResizeObserver = new ResizeObserver(() => { if (GameState.map.length) Renderer.draw(); });
+    mapResizeObserver.observe(DOM.container);
+}
 
+document.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
+    if (e.repeat) {
+        if (MovementInput.direction(key) && GameState.current === STATE_ENUM.PLAYING && e.target !== DOM.log && (!e.target || e.target.tagName !== 'INPUT')) e.preventDefault();
+        return;
+    }
+    if (!MovementInput.direction(key)) MovementInput.stop();
+    if (GameState.ui.movementLocked) { if (MovementInput.direction(key)) e.preventDefault(); return; }
 
     if (GameState.ui.floorWarningOpen) {
         e.preventDefault();
@@ -2355,6 +3533,92 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
+    if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged' && key === 'tab') {
+        e.preventDefault(); CombatSystem.cycleRangedTarget(e.shiftKey ? -1 : 1); return;
+    }
+    // Tab recorre el diálogo activo; Enter/Espacio respetan los botones nativos.
+    if (key === 'tab') {
+        const modal = GameState.ui.actionMenuOpen ? DOM.menus.action : Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
+        if (modal && typeof modal.querySelectorAll === 'function') {
+            const focusable = [...modal.querySelectorAll('button:not(:disabled), input, summary, [tabindex="0"]')]
+                .filter(el => el.getClientRects().length > 0);
+            const index = focusable.indexOf(document.activeElement);
+            if (focusable.length && (index < 0 || (!e.shiftKey && index === focusable.length - 1) || (e.shiftKey && index === 0))) {
+                e.preventDefault();
+                focusable[e.shiftKey ? focusable.length - 1 : 0].focus();
+            }
+        }
+        return;
+    }
+    if (e.target && ['BUTTON', 'SUMMARY'].includes(e.target.tagName) && ['enter', ' '].includes(key)) return;
+    if (e.target === DOM.log && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'pageup', 'pagedown', 'home', 'end'].includes(key)) return;
+
+    if (GameState.current === STATE_ENUM.INSPECT) {
+        if (['g', 'escape'].includes(key)) { e.preventDefault(); GroundSystem.close(); }
+        else if (['arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) {
+            e.preventDefault(); GroundSystem.select(['arrowup', 'arrowleft'].includes(key) ? -1 : 1); DOM.menus.ground.focus();
+        }
+        return;
+    }
+    if (key === 'g' && [STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY].includes(GameState.current)) {
+        e.preventDefault(); GroundSystem.open(); return;
+    }
+
+    if (GameState.current === STATE_ENUM.CHARACTER) {
+        if (!['n', 'escape', '1', '2', '3', '4', 'enter', ' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) return;
+        e.preventDefault();
+        if (['n', 'escape'].includes(key)) ProgressionSystem.close();
+        else if (['1', '2', '3', '4'].includes(key)) ProgressionSystem.choose(ProgressionSystem.options()[Number(key) - 1].id);
+        else if (['enter', ' '].includes(key)) ProgressionSystem.choose(ProgressionSystem.options()[GameState.ui.characterIndex].id);
+        else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key)) {
+            const direction = ['arrowup', 'arrowleft', 'w', 'a'].includes(key) ? -1 : 1;
+            const options = ProgressionSystem.options();
+            let index = GameState.ui.characterIndex;
+            for (let i = 0; i < options.length; i++) {
+                index = (index + direction + options.length) % options.length;
+                if (!options[index].capped) break;
+            }
+            GameState.ui.characterIndex = index;
+            UISystem.renderCharacter();
+            const card = document.getElementById('talent-options').children[index];
+            if (card && !card.disabled) card.focus();
+            else if (card && typeof card.scrollIntoView === 'function') card.scrollIntoView({ block: 'nearest' });
+        }
+        return;
+    }
+    if (key === 'n' && [STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.EQUIPMENT, STATE_ENUM.MENU, STATE_ENUM.CONTROLS].includes(GameState.current)) {
+        e.preventDefault(); ProgressionSystem.open(); return;
+    }
+
+    if (GameState.current === STATE_ENUM.EQUIPMENT) {
+        if (['o', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeEquipment(); }
+        return;
+    }
+    if (key === 'o' && [STATE_ENUM.PLAYING, STATE_ENUM.INVENTORY, STATE_ENUM.MENU, STATE_ENUM.CONTROLS].includes(GameState.current)) {
+        e.preventDefault(); UISystem.openEquipment(); return;
+    }
+
+    if (GameState.current === STATE_ENUM.BESTIARY) {
+        if (['b', 'escape'].includes(key)) { e.preventDefault(); UISystem.closeBestiary(); }
+        else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+            e.preventDefault();
+            const creatures = UISystem.discoveredCreatures();
+            const index = creatures.findIndex(def => def.id === GameState.ui.bestiaryId);
+            const direction = ['arrowup', 'arrowleft'].includes(key) ? -1 : 1;
+            if (creatures.length) {
+                GameState.ui.bestiaryId = creatures[Math.max(0, Math.min(creatures.length - 1, index + direction))].id;
+                UISystem.renderBestiary();
+                DOM.menus.bestiary.focus();
+            }
+        }
+        return;
+    }
+    if ([STATE_ENUM.PLAYING, STATE_ENUM.CONTROLS, STATE_ENUM.MENU].includes(GameState.current) && key === 'b') {
+        e.preventDefault(); UISystem.openBestiary(); return;
+    }
+
+    if ([STATE_ENUM.PLAYING, STATE_ENUM.TARGETING, STATE_ENUM.REWARD_CHOICE, STATE_ENUM.INVENTORY].includes(GameState.current) && [' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) e.preventDefault();
+
     if ((GameState.current === STATE_ENUM.PLAYING || GameState.current === STATE_ENUM.CONTROLS) && ['i', 'h'].includes(key)) {
         e.preventDefault();
         StateController.change(GameState.current === STATE_ENUM.CONTROLS ? STATE_ENUM.PLAYING : STATE_ENUM.CONTROLS);
@@ -2367,27 +3631,26 @@ document.addEventListener('keydown', (e) => {
         else if (key === ' ') GameLogic.interactAction();
         else if (key === 'r') CombatSystem.startTargeting('quick');
         else if (key === 'f') CombatSystem.startTargeting('savage');
+        else if (key === 'l') { e.preventDefault(); CombatSystem.startTargeting('ranged'); }
         else if (key === 't') { e.preventDefault(); CombatSystem.performAreaAttack(); }
         else if (key === 'c') CombatSystem.performWait();
         else if (key === 'v') CombatSystem.performDefend();
         else {
-            let dx = 0, dy = 0;
-            if (['w','arrowup'].includes(key)) dy = -1;
-            else if (['s','arrowdown'].includes(key)) dy = 1;
-            else if (['a','arrowleft'].includes(key)) dx = -1;
-            else if (['d','arrowright'].includes(key)) dx = 1;
-            else if (key === 'q') { dx = -1; dy = -1; }
-            else if (key === 'e') { dx = 1; dy = -1; }
-            else if (key === 'z') { dx = -1; dy = 1; }
-            else if (key === 'x') { dx = 1; dy = 1; }
-            if (dx !== 0 || dy !== 0) GameLogic.movePlayer(dx, dy);
+            const direction = MovementInput.direction(key);
+            if (direction) { e.preventDefault(); MovementInput.start(key, direction[0], direction[1]); }
         }
     }
     else if (GameState.current === STATE_ENUM.TARGETING) {
-        if (key === 'escape' || key === 'r' || key === 'f') {
+        if (key === 'escape' || key === 'r' || key === 'f' || (key === 'l' && GameState.player.combat.pendingAttack === 'ranged')) {
+            GameState.player.combat.pendingAttack = null;
+            GameState.ui.rangedTarget = null;
             StateController.change(STATE_ENUM.PLAYING);
             Utils.log('Ataque cancelado.', '#aaa');
-            GameState.player.combat.pendingAttack = null;
+            Renderer.draw();
+        } else if (GameState.player.combat.pendingAttack === 'ranged') {
+            if (['enter', ' '].includes(key)) { e.preventDefault(); CombatSystem.fireRanged(); }
+            else if (['arrowup', 'arrowleft', 'w', 'a'].includes(key)) { e.preventDefault(); CombatSystem.cycleRangedTarget(-1); }
+            else if (['arrowdown', 'arrowright', 's', 'd'].includes(key)) { e.preventDefault(); CombatSystem.cycleRangedTarget(1); }
         } else {
             let dx = 0, dy = 0;
             if (['w','arrowup','k'].includes(key)) dy = -1;
@@ -2401,6 +3664,18 @@ document.addEventListener('keydown', (e) => {
             if (dx !== 0 || dy !== 0) CombatSystem.executeAttack(dx, dy);
         }
     }
+    else if (GameState.current === STATE_ENUM.REWARD_CHOICE) {
+        const options = GameState.ui.rewardChoice.options;
+        if (key === 'escape') GameLogic.cancelChestReward();
+        else if (key === 'enter' || key === ' ') GameLogic.chooseChestReward(GameState.ui.rewardChoice.index);
+        else if (['a', 'arrowleft', 'w', 'arrowup'].includes(key)) {
+            GameState.ui.rewardChoice.index = Math.max(0, GameState.ui.rewardChoice.index - 1);
+            UISystem.renderRewardChoice();
+        } else if (['d', 'arrowright', 's', 'arrowdown'].includes(key)) {
+            GameState.ui.rewardChoice.index = Math.min(options.length - 1, GameState.ui.rewardChoice.index + 1);
+            UISystem.renderRewardChoice();
+        }
+    }
     else if (GameState.current === STATE_ENUM.INVENTORY) {
         if (GameState.ui.actionMenuOpen) {
             if (key === 'escape') InventorySystem.closeActionMenu();
@@ -2412,7 +3687,7 @@ document.addEventListener('keydown', (e) => {
             else if (key === 'enter' || key === ' ') InventorySystem.openActionMenu();
             else {
                 let idx = GameState.ui.inventoryIndex;
-                if (['d','arrowright'].includes(key) && idx % 3 < 2) idx++;
+                if (['d','arrowright'].includes(key) && idx % 3 < 2 && idx + 1 < CONFIG.PLAYER.inventorySize) idx++;
                 else if (['a','arrowleft'].includes(key) && idx % 3 > 0) idx--;
                 else if (['s','arrowdown'].includes(key) && idx + 3 < CONFIG.PLAYER.inventorySize) idx += 3;
                 else if (['w','arrowup'].includes(key) && idx - 3 >= 0) idx -= 3;
@@ -2427,7 +3702,48 @@ document.addEventListener('keydown', (e) => {
     else if (GameState.current === STATE_ENUM.GAMEOVER && key === 'i') GameLogic.init();
 });
 
+document.addEventListener('keyup', (e) => {
+    if (e.key.toLowerCase() === MovementInput.key) MovementInput.stop();
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) MovementInput.stop(); });
+document.addEventListener('click', (event) => {
+    const cell = event.target && typeof event.target.closest === 'function' ? event.target.closest('[data-map-x]') : null;
+    if (!cell || !DOM.container.contains(cell)) return;
+    const x = Number(cell.dataset.mapX), y = Number(cell.dataset.mapY);
+    if (GameState.current === STATE_ENUM.TARGETING && GameState.player.combat.pendingAttack === 'ranged') CombatSystem.fireRanged(x, y);
+    else if (GameState.current === STATE_ENUM.PLAYING) {
+        const item = GroundSystem.visibleItems().find(item => item.x === x && item.y === y);
+        if (item) GroundSystem.open(item);
+    }
+});
+if (typeof window.addEventListener === 'function') window.addEventListener('blur', () => MovementInput.stop());
+
 window.setGameState = (s) => StateController.change(s);
+window.openBestiary = (id) => UISystem.openBestiary(id);
+window.closeBestiary = () => UISystem.closeBestiary();
+window.openInventory = () => UISystem.openPanel(STATE_ENUM.INVENTORY);
+window.inspectGround = () => GroundSystem.open();
+window.closeGroundInspection = () => GroundSystem.close();
+window.openEquipment = () => UISystem.openEquipment();
+window.closeEquipment = () => UISystem.closeEquipment();
+window.openCharacter = () => ProgressionSystem.open();
+window.closeCharacter = () => ProgressionSystem.close();
+window.startRangedAttack = () => CombatSystem.startTargeting('ranged');
+window.fireRangedAttack = () => CombatSystem.fireRanged();
+window.nextRangedTarget = () => CombatSystem.cycleRangedTarget();
+window.cancelRangedAttack = () => {
+    if (GameState.current !== STATE_ENUM.TARGETING || GameState.player.combat.pendingAttack !== 'ranged') return;
+    GameState.player.combat.pendingAttack = null; GameState.ui.rangedTarget = null;
+    StateController.change(STATE_ENUM.PLAYING); Renderer.draw();
+};
+window.closeInventory = () => {
+    if (GameState.current !== STATE_ENUM.INVENTORY) return;
+    InventorySystem.closeActionMenu();
+    StateController.change(STATE_ENUM.PLAYING);
+};
+window.openControls = () => UISystem.openPanel(STATE_ENUM.CONTROLS);
+window.openPause = () => UISystem.openPanel(STATE_ENUM.MENU);
+window.restartGame = () => { if (GameState.current === STATE_ENUM.GAMEOVER) GameLogic.init(); };
 window.restartWithSeed = () => { let v = parseInt(document.getElementById('seed-input').value); if(!isNaN(v)) { GameLogic.init(v); StateController.change(STATE_ENUM.PLAYING); } };
 window.saveScore = Network.saveScore;
 window.toggleMenu = () => StateController.change(STATE_ENUM.PLAYING);

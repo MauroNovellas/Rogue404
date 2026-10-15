@@ -1,0 +1,44 @@
+{
+  "respawn": {
+    "original": 4,
+    "afterClearAndReentry": 4,
+    "afterActualKill": 7,
+    "afterActualReentry": 8
+  },
+  "fullChest": {
+    "inventory": 6,
+    "remainingChoice": 0,
+    "acquiredStone": false
+  },
+  "shopWaste": {
+    "floor": 6,
+    "nominal": 126,
+    "recoverableAtEmpty": 100,
+    "price": 500
+  },
+  "healing": {
+    "NORMAL": 2,
+    "FROZEN": 0,
+    "MAGMA": 0,
+    "UNSTABLE": 2
+  },
+  "score": {
+    "killAnyEnemy": 25,
+    "baseGoldPerFloor": 80,
+    "completionPerMaxDepth": 100,
+    "goldAndScoreAreSameVariable": true
+  },
+  "chokepoint": {
+    "seed": 80,
+    "floor": 3,
+    "geometricDistance": 27,
+    "playableDistance": -1,
+    "fixesByRemoving": [
+      {
+        "x": 61,
+        "y": 11,
+        "name": "Cofre"
+      }
+    ]
+  }
+}

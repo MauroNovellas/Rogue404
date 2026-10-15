@@ -10,16 +10,6 @@
         return coreInit(seedInput);
     };
 
-    const coreSaveScore = Network.saveScore.bind(Network);
-    Network.saveScore = async () => {
-        if (GameState.ui.testMode) {
-            Utils.log('MODO TEST: la puntuación no se guardará.', '#ffcc00');
-            return;
-        }
-        return coreSaveScore();
-    };
-    window.saveScore = Network.saveScore;
-
     const jumpToTestFloor = (level) => {
         if (!TEST_LEVELS.has(level)) return;
 
@@ -34,7 +24,7 @@
     };
 
     document.addEventListener('keydown', (event) => {
-        if (event.repeat || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
+        if (event.defaultPrevented || event.repeat || GameState.ui.movementLocked || GameState.ui.floorWarningOpen) return;
         if (GameState.current !== STATE_ENUM.PLAYING) return;
         if (event.target && event.target.tagName === 'INPUT') return;
         if (!['3', '6', '9'].includes(event.key)) return;

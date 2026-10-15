@@ -5,6 +5,8 @@ const vm = require('node:vm');
 
 const sourcePath = path.join(__dirname, '..', 'game.js');
 const source = fs.readFileSync(sourcePath, 'utf8');
+const autoSourcePath = path.join(__dirname, '..', 'autoplayer.js');
+const autoSource = fs.readFileSync(autoSourcePath, 'utf8');
 
 class FakeClassList {
     constructor() { this.values = new Set(); }
@@ -19,6 +21,7 @@ class FakeElement {
         this.id = id;
         this.classList = new FakeClassList();
         this.style = {};
+        this.dataset = {};
         this.children = [];
         this.parentNode = null;
         this.innerHTML = '';
@@ -45,6 +48,13 @@ class FakeElement {
         this.parentNode = null;
     }
     focus() {}
+    setAttribute(name, value) { this[name] = value; }
+    get innerHTML() { return this._innerHTML || ''; }
+    set innerHTML(value) {
+        this.children.forEach(child => { child.parentNode = null; });
+        this.children = [];
+        this._innerHTML = value;
+    }
     get firstElementChild() { return this.children[0] || null; }
     get lastElementChild() { return this.children[this.children.length - 1] || null; }
 }
@@ -78,10 +88,16 @@ const context = {
     document,
     alert: () => {},
     confirm: () => confirmAnswer,
-    setTimeout: () => 1,
+    // Resolver solo las animaciones: ignorar sus callbacks hacía terminar Node
+    // con éxito antes de completar las pruebas asíncronas de caída.
+    setTimeout: (fn, delay) => { if (delay === 90 || delay === 180) fn(); return 1; },
     clearTimeout: () => {},
     fetch: async (url, options = {}) => {
         fetchCalls.push({ url, options });
+        if (options.method === 'POST') {
+            const entry = JSON.parse(options.body);
+            return { ok: true, json: async () => ({ saved: true, entry, rank: 1, total: 1, leaderboard: [entry] }) };
+        }
         return { ok: true, json: async () => [] };
     }
 };
@@ -91,7 +107,7 @@ context.window.confirm = () => confirmAnswer;
 
 vm.createContext(context);
 vm.runInContext(
-    `${source}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, ShopSystem, UISystem, StateController };`,
+    `${source}\n${autoSource}\n;globalThis.__ROGUE__ = { CONFIG, STATE_ENUM, GameState, DOM, Utils, VisualFX, FloorSystem, Network, MapSystem, EntityFactory, GameLogic, CombatSystem, InventorySystem, ShopSystem, Renderer, UISystem, StateController, AutoPlayer: window.AutoPlayer, AutoSimulation: window.AutoSimulation };`,
     context,
     { filename: 'game.js' }
 );
@@ -110,8 +126,11 @@ const {
     CombatSystem,
     InventorySystem,
     ShopSystem,
+    Renderer,
     UISystem,
-    StateController
+    StateController,
+    AutoPlayer,
+    AutoSimulation
 } = context.__ROGUE__;
 
 const tests = [];
@@ -267,15 +286,15 @@ test('el nivel 6 activa Magma, su aviso y la malla térmica', () => {
     FloorSystem.closeWarning();
 });
 
-test('el magma duplica la presión de sed y la malla térmica la reduce', () => {
+test('el magma añade 50% de presión de sed y la malla térmica la reduce', () => {
     freshGame(1605);
     GameState.floor = { type: 'MAGMA' };
 
     GameState.player.equipment.armor = null;
-    assert.equal(FloorSystem.thirstRate(), 3);
+    assert.equal(FloorSystem.thirstRate(), 4);
 
     GameState.player.equipment.armor = { value: 1, traits: { thirstResist: 0.6, heatResist: 0.6, magmaRestHeal: 1 } };
-    assert.equal(FloorSystem.thirstRate(), 4);
+    assert.equal(FloorSystem.thirstRate(), 5);
 });
 
 test('la sed del magma se aplica durante la supervivencia', () => {
@@ -284,10 +303,10 @@ test('la sed del magma se aplica durante la supervivencia', () => {
     GameState.player.equipment.armor = null;
     GameState.player.food = 100;
     GameState.player.water = 10;
-    GameState.moves = 2;
+    GameState.moves = 0;
 
-    GameLogic.processSurvival();
-    assert.equal(GameState.moves, 3);
+    for (let turn = 0; turn < 4; turn++) GameLogic.processSurvival();
+    assert.equal(GameState.moves, 4);
     assert.equal(GameState.player.water, 9);
 });
 
@@ -362,7 +381,7 @@ test('el suelo se agrieta al abandonarlo y retroceder provoca caída con pérdid
 
         await GameLogic.movePlayer(-1, 0);
         assert.equal(GameState.level, 10);
-        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.player.hp, 50);
         assert.equal(GameState.player.inventory.length, 0);
         assert.equal(GameState.player.equipment.weapon, null);
         assert.equal(GameState.player.equipment.armor, null);
@@ -420,7 +439,7 @@ test('un pasillo de una casilla permite ida y vuelta y colapsa al intentar una t
 
         await GameLogic.movePlayer(1, 0);
         assert.equal(GameState.level, 10);
-        assert.equal(GameState.player.hp, 25);
+        assert.equal(GameState.player.hp, 50);
         assert.equal(GameState.persistence[9].includes('HOLE_11,10'), true);
     } finally {
         GameLogic.endTurn = originalEndTurn;
@@ -445,7 +464,7 @@ test('la resistencia a caída se calcula antes de soltar una armadura no retenid
     FloorSystem.fallPlayer();
 
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.hp, 75);
     assert.equal(GameState.player.equipment.armor, null);
     assert.equal(GameState.recoveryDrops[10].length, 1);
 });
@@ -465,7 +484,7 @@ test('el arnés ligero reduce la caída y conserva el equipo puesto', () => {
     FloorSystem.fallPlayer();
 
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.hp, 75);
     assert.equal(GameState.player.equipment.weapon.name, 'Pico');
     assert.equal(GameState.player.equipment.armor.specialId, 'UNSTABLE_HARNESS');
     assert.equal(GameState.player.inventory.length, 0);
@@ -624,8 +643,8 @@ test('un golpe del Goblin roba oro solo si consigue herir', () => {
         GameState.player.hp = 100;
         GameState.player.equipment.armor = { value: 99 };
         CombatSystem.enemyAttack(blocked);
-        assert.equal(GameState.score, 50);
-        assert.equal(blocked.stolenGold, 0);
+        assert.equal(GameState.score, 30, 'La mitigación ya no concede inmunidad completa');
+        assert.equal(blocked.stolenGold, 20);
     } finally {
         Utils.random = originalRandom;
     }
@@ -798,6 +817,99 @@ test('I/H alternan la ayuda sin duplicar acciones', () => {
     assert.equal(GameState.current, STATE_ENUM.PLAYING);
 });
 
+test('el bestiario conserva el lore fuera de la vista de juego y no consume turnos', () => {
+    freshGame(103);
+    GameState.discoveredTypes.clear();
+    const bat = CONFIG.ENTITIES.enemies.find(def => def.id === 'BAT');
+    GameState.discoveredTypes.add(bat.id);
+    Renderer.addToLegend('monster', { ...bat, stats: 'HP:5', lore: bat.lore, tactic: bat.tactic }, bat.id);
+    const entry = elementFor('legend-monsters').lastElementChild;
+    assert.equal(entry.tagName, 'BUTTON');
+    assert.equal(entry.innerHTML.includes(bat.lore), false);
+    assert.equal(entry.innerHTML.includes(bat.tactic), false);
+    const before = JSON.stringify({ player: GameState.player, map: GameState.map, moves: GameState.moves });
+    entry.onclick();
+    assert.equal(GameState.current, STATE_ENUM.BESTIARY);
+    assert.equal(elementFor('bestiary-detail').innerHTML.includes(bat.lore), true);
+    assert.equal(elementFor('bestiary-detail').innerHTML.includes(bat.tactic), true);
+    assert.equal(elementFor('bestiary-list').children.length, 1);
+    keydown('w');
+    keydown(' ');
+    keydown('escape');
+    assert.equal(GameState.current, STATE_ENUM.PLAYING);
+    assert.equal(JSON.stringify({ player: GameState.player, map: GameState.map, moves: GameState.moves }), before);
+});
+
+test('B abre el bestiario desde pausa y vuelve a la pausa', () => {
+    freshGame(104);
+    GameState.discoveredTypes.clear();
+    StateController.change(STATE_ENUM.MENU);
+    keydown('b');
+    assert.equal(GameState.current, STATE_ENUM.BESTIARY);
+    assert.equal(elementFor('bestiary-detail').innerHTML.includes('Todavía no has descubierto'), true);
+    keydown('b');
+    assert.equal(GameState.current, STATE_ENUM.MENU);
+});
+
+test('el registro conserva seis acciones y solo retira la más antigua cuando llega otra', () => {
+    freshGame(105);
+    Utils.resetLog();
+    const originalTimeout = context.setTimeout;
+    const pending = [];
+    context.setTimeout = fn => { pending.push(fn); return pending.length; };
+    try {
+        for (let i = 0; i < 8; i++) Utils.log(`Acción ${i}`);
+        assert.equal(pending.length, 0, 'El registro no debe programar borrados por tiempo');
+        assert.equal(DOM.log.children.length, 6);
+        assert.equal(DOM.log.firstElementChild._logMessage, 'Acción 2');
+        assert.equal(DOM.log.lastElementChild._logMessage, 'Acción 7');
+        Utils.log('Acción 7');
+        assert.equal(DOM.log.children.length, 6);
+        assert.equal(DOM.log.lastElementChild._logRepeat.textContent, '×2');
+        Utils.log('Recogido: <Reliquia de prueba>');
+        assert.equal(DOM.log.lastElementChild.children[1].textContent, 'Recogido: <Reliquia de prueba>');
+    } finally {
+        context.setTimeout = originalTimeout;
+    }
+    freshGame(106);
+    assert.equal(DOM.log.children.length, 1, 'La nueva expedición limpia el registro anterior');
+});
+
+test('los objetos recogidos también se descubren una sola vez en su columna', () => {
+    freshGame(107);
+    GameState.discoveredTypes.clear();
+    Renderer.resetLegend();
+    const item = { type: 'food', name: 'Ración', value: 10, symbol: '%', color: '#ffaa00' };
+    InventorySystem.pickup({ ...item }, -1, -1, -1, true);
+    InventorySystem.pickup({ ...item }, -1, -1, -1, true);
+    assert.equal(GameState.discoveredTypes.has('FOOD'), true);
+    assert.equal(elementFor('legend-items').children.length, 1);
+    assert.equal(elementFor('legend-items-count').textContent, 1);
+    assert.equal(elementFor('legend-items').firstElementChild.innerHTML.includes('%'), true);
+});
+
+test('consultar el registro con las flechas no mueve al aventurero', () => {
+    freshGame(108);
+    const before = JSON.stringify({ x: GameState.player.x, y: GameState.player.y, moves: GameState.moves });
+    keydown('ArrowDown', DOM.log);
+    assert.equal(JSON.stringify({ x: GameState.player.x, y: GameState.player.y, moves: GameState.moves }), before);
+});
+
+test('el oro recogido y el equipo comprado se añaden a los descubrimientos', () => {
+    freshGame(109);
+    GameState.discoveredTypes.clear();
+    Renderer.resetLegend();
+    GameState.entities.items = [{ x: GameState.player.x, y: GameState.player.y, type: 'GOLD', value: 10 }];
+    GameLogic.collectItemsAt(GameState.player.x, GameState.player.y);
+    assert.equal(GameState.discoveredTypes.has('GOLD'), true);
+    GameState.level = 3;
+    GameState.score = 10000;
+    const purchase = ShopSystem.getStock()[0];
+    const discovery = Renderer.itemDiscovery(purchase);
+    ShopSystem.buy(0);
+    assert.equal(GameState.discoveredTypes.has(discovery.id), true);
+});
+
 test('Enter en seed reinicia la seed y no guarda puntuación', () => {
     freshGame(202);
     const seedInput = elementFor('seed-input');
@@ -873,22 +985,23 @@ test('Rápido aplica descoloque y no puede encadenarlo mientras hay inmunidad', 
         CombatSystem.applyDamage(0, 'quick', 0);
         assert.notEqual(enemy._rogueQuickStaggerPending, true);
         GameLogic.updateEnemies();
+        assert.equal(enemy._rogueQuickStaggerImmune, true);
+        GameLogic.updateEnemies();
         assert.equal(enemy._rogueQuickStaggerImmune, false);
     } finally {
         Utils.random = originalRandom;
     }
 });
 
-test('Salvaje consume la acción normal tras su contraataque y GAMEOVER bloquea ataques', () => {
+test('un ataque enemigo no altera el planificador y GAMEOVER bloquea ataques', () => {
     freshGame(606);
     const originalRandom = Utils.random;
     Utils.random = () => 0.5;
     try {
-        const enemy = { name: 'Dummy', atk: 10, energy: 0, _rogueSavageCounterPending: true };
+        const enemy = { name: 'Dummy', atk: 10, energy: 0 };
         GameState.player.hp = 100;
         CombatSystem.enemyAttack(enemy);
-        assert.equal(enemy._rogueSavageCounterPending, false);
-        assert.equal(enemy.energy, -1);
+        assert.equal(enemy.energy, 0);
         assert.equal(GameState.player.hp, 90);
 
         GameState.current = STATE_ENUM.GAMEOVER;
@@ -900,7 +1013,7 @@ test('Salvaje consume la acción normal tras su contraataque y GAMEOVER bloquea 
     }
 });
 
-test('Barrido conserva cinco turnos de enfriamiento justo después de usarlo', () => {
+test('Barrido conserva cuatro turnos de enfriamiento justo después de usarlo', () => {
     freshGame(707);
     const originalUpdateEnemies = GameLogic.updateEnemies;
     const originalSurvival = GameLogic.processSurvival;
@@ -911,7 +1024,7 @@ test('Barrido conserva cinco turnos de enfriamiento justo después de usarlo', (
     try {
         CombatSystem.performAreaAttack();
         assert.equal(GameState.player.combat.cooldowns.area, CONFIG.COMBAT.area.cooldown);
-        assert.equal(GameState.player.combat.cooldowns.area, 5);
+        assert.equal(GameState.player.combat.cooldowns.area, 4);
     } finally {
         GameLogic.updateEnemies = originalUpdateEnemies;
         GameLogic.processSurvival = originalSurvival;
@@ -1066,9 +1179,9 @@ test('vender devuelve el 50% del precio pagado y retira el objeto de la mochila'
 test('los objetos encontrados se valoran por tipo y potencia, no por profundidad actual', () => {
     freshGame(2404);
     GameState.level = 9;
-    const found = { type: 'weapon', name: 'Arma encontrada', value: 3, symbol: '!', color: '#ff00ff' };
-    assert.equal(ShopSystem.estimateValue(found), 200);
-    assert.equal(ShopSystem.sellPrice(found), 100);
+    const found = { type: 'weapon', name: 'Arma encontrada', value: 3, symbol: '!', color: '#ff00ff', foundAt: 3 };
+    assert.equal(ShopSystem.estimateValue(found), 169);
+    assert.equal(ShopSystem.sellPrice(found), 84);
 });
 
 test('una partida nueva limpia todos los stocks persistentes de mercader', () => {
@@ -1133,6 +1246,8 @@ test('el cofre de escarcha nunca usa la trampa normal y entrega equipo mejorado'
         GameLogic.openChest(chestIndex);
         assert.equal(GameState.player.hp, 80);
         assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        assert.equal(GameState.ui.rewardChoice.options.length, 2);
+        GameLogic.chooseChestReward(0);
         assert.equal(GameState.player.inventory.length, 1);
         assert.ok(GameState.player.inventory[0].name.includes('escarcha'));
         assert.ok(['weapon', 'armor'].includes(GameState.player.inventory[0].type));
@@ -1189,7 +1304,7 @@ test('Magma genera una Cámara de Fumarola opcional con cofre especial', () => {
     assert.equal(FloorSystem.isMagmaFumaroleTile(chest.x, chest.y), true);
 });
 
-test('la Cámara de Fumarola cuesta 2 de agua por turno y la malla térmica lo reduce a 1', () => {
+test('la Fumarola cuesta 2 de agua y la malla conserva su reducción fraccional', () => {
     freshGame(2602);
     GameState.floor = { type: 'MAGMA', riskZone: { type: 'MAGMA_FUMAROLE', x1: 10, y1: 10, x2: 15, y2: 15 } };
     GameState.player.x = 12;
@@ -1198,7 +1313,7 @@ test('la Cámara de Fumarola cuesta 2 de agua por turno y la malla térmica lo r
     assert.equal(FloorSystem.magmaRiskWaterCost(), 2);
 
     GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
-    assert.equal(FloorSystem.magmaRiskWaterCost(), 1);
+    assert.equal(FloorSystem.magmaRiskWaterCost(), 0.8);
 
     GameState.player.x = 5;
     GameState.player.y = 5;
@@ -1221,7 +1336,9 @@ test('la supervivencia cobra el agua extra de la Fumarola en cada acción', () =
     GameState.moves = 1;
     GameState.player.equipment.armor = { traits: { heatResist: 0.6, thirstResist: 0.6 } };
     GameLogic.processSurvival();
-    assert.equal(GameState.player.water, 19);
+    assert.equal(GameState.player.water, 20, 'El primer 0,8 se acumula sin redondearlo a 1');
+    GameLogic.processSurvival();
+    assert.equal(GameState.player.water, 19, 'La fracción pendiente se cobra en la acción siguiente');
 });
 
 test('el cofre de brasa evita trampas, da equipo mejorado y persiste abierto', () => {
@@ -1243,6 +1360,7 @@ test('el cofre de brasa evita trampas, da equipo mejorado y persiste abierto', (
         GameLogic.openChest(chestIndex);
         assert.equal(GameState.player.hp, 80);
         assert.equal(chest.isOpen, true);
+        GameLogic.chooseChestReward(0);
         assert.equal(GameState.player.inventory.length, 1);
         assert.ok(GameState.player.inventory[0].name.includes('obsidiana'));
         assert.equal(GameState.player.inventory[0].type, 'weapon');
@@ -1312,7 +1430,7 @@ test('el Pasaje de Falla permite una retirada completa y cae al intentar entrar 
 
     await GameLogic.movePlayer(zone.dx, zone.dy);
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 25);
+    assert.equal(GameState.player.hp, 50);
 });
 
 test('el Cofre de Falla evita trampas, entrega equipo superior y persiste abierto', () => {
@@ -1334,6 +1452,7 @@ test('el Cofre de Falla evita trampas, entrega equipo superior y persiste abiert
         GameLogic.openChest(chestIndex);
         assert.equal(GameState.player.hp, 80);
         assert.equal(GameState.entities.chests[chestIndex].isOpen, true);
+        GameLogic.chooseChestReward(0);
         assert.equal(GameState.player.inventory.length, 1);
         assert.ok(GameState.player.inventory[0].name.includes('falla'));
         assert.equal(GameState.player.inventory[0].type, 'weapon');
@@ -1375,15 +1494,81 @@ test('el arnés protege si fuerzas una tercera entrada al Pasaje de Falla', asyn
     await GameLogic.movePlayer(zone.dx, zone.dy);
 
     assert.equal(GameState.level, 10);
-    assert.equal(GameState.player.hp, 63);
+    assert.equal(GameState.player.hp, 75);
     assert.equal(GameState.player.equipment.weapon.name, 'Hoja de prueba');
     assert.equal(GameState.player.equipment.armor.specialId, 'UNSTABLE_HARNESS');
     assert.equal(GameState.player.inventory.length, 0);
     assert.ok((GameState.recoveryDrops[10] || []).some(item => item.name === 'Ración de prueba'));
 });
 
+
+test('AutoPlayer consume agua antes de seguir explorando cuando la sed es baja', async () => {
+    freshGame(3001);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.player.water = 20;
+    GameState.player.inventory = [{ type: 'water', name: 'Cantimplora prueba', value: 30, symbol: '~', color: '#00ffff' }];
+    const originalEndTurn = GameLogic.endTurn;
+    GameLogic.endTurn = () => {};
+    try {
+        AutoPlayer.reset({ goalDepth: 3 });
+        const decision = await AutoPlayer.step();
+        assert.equal(decision.type, 'USE');
+        assert.equal(decision.reason, 'sed');
+        assert.equal(GameState.player.water, 50);
+        assert.equal(GameState.player.inventory.length, 0);
+    } finally {
+        GameLogic.endTurn = originalEndTurn;
+    }
+});
+
+test('AutoPlayer no calcula rutas hacia casillas que todavía no ha visto', () => {
+    freshGame(3002);
+    GameState.floor = { type: 'NORMAL' };
+    GameState.map = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill('.'));
+    GameState.seen = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(false));
+    GameState.visible = Array.from({ length: CONFIG.GRID.rows }, () => new Array(CONFIG.GRID.cols).fill(false));
+    GameState.entities = { enemies: [], items: [], chests: [], shops: [] };
+    GameState.player.x = 1;
+    GameState.player.y = 1;
+    GameState.seen[1][1] = true;
+    GameState.seen[1][2] = true;
+    GameState.seen[1][3] = true;
+    AutoPlayer.reset({ goalDepth: 3 });
+
+    assert.deepEqual(Array.from(AutoPlayer.findPathToTargets([{ x: 3, y: 1 }]), pos => [pos.x, pos.y]), [[2, 1], [3, 1]]);
+    assert.equal(AutoPlayer.findPathToTargets([{ x: 4, y: 1 }]), null);
+});
+
+test('AutoPlayer valora el equipo ambiental aunque tenga menos defensa base', () => {
+    freshGame(3003);
+    GameState.floor = { type: 'FROZEN' };
+    const normal = { type: 'armor', name: 'Malla pesada', value: 5 };
+    const polar = { type: 'armor', name: 'Arnés polar', value: 1, traits: { slipResist: 0.75, frozenRestHeal: 1 } };
+    assert.ok(AutoPlayer.itemGearScore(polar) > AutoPlayer.itemGearScore(normal));
+});
+
+test('AutoSimulation agrega tasas y causas sin perder el detalle de las runs', () => {
+    const summary = AutoSimulation.aggregate([
+        { success: true, maxDepth: 9, actions: 100, score: 500, kills: 5, hp: 40, food: 50, water: 60, cause: 'Regreso a superficie' },
+        { success: false, maxDepth: 6, actions: 80, score: 200, kills: 2, hp: 0, food: 20, water: 0, cause: 'Sed' }
+    ]);
+    assert.equal(summary.runs, 2);
+    assert.equal(summary.successes, 1);
+    assert.equal(summary.successRate, 0.5);
+    assert.equal(summary.avgMaxDepth, 7.5);
+    assert.equal(summary.causes['Sed'], 1);
+});
+
+test('AutoSimulation puede completar una expedición objetivo de profundidad 1 sin renderizado', async () => {
+    const result = await AutoSimulation.runOne({ seed: 3004, goalDepth: 1, maxActions: 5 });
+    assert.equal(result.success, true);
+    assert.equal(result.maxDepth, 1);
+    assert.equal(result.cause, 'Regreso a superficie');
+});
+
 (async () => {
     let passed = 0;
+    const watchdog = setTimeout(() => { console.error('La suite no ha completado sus pruebas asíncronas.'); process.exit(1); }, 30000);
     for (const { name, fn } of tests) {
         try {
             await fn();
@@ -1393,10 +1578,10 @@ test('el arnés protege si fuerzas una tercera entrada al Pasaje de Falla', asyn
             console.error(`✗ ${name}`);
             console.error(error);
             process.exitCode = 1;
-            break;
         }
     }
 
+    clearTimeout(watchdog);
     if (!process.exitCode) {
         console.log(`\n${passed}/${tests.length} pruebas superadas.`);
     }

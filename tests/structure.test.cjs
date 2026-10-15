@@ -13,7 +13,8 @@ assert.equal(source.includes("type === 'area'"), false, 'No debe volver la rama 
 assert.equal(source.includes('cost: 5'), false, 'No debe reaparecer el coste de Barrido sin consumidor');
 assert.equal(source.includes('messageBuffer'), false, 'No debe reaparecer el buffer de log abandonado');
 assert.equal(source.includes('freePosition'), false, 'No debe reaparecer la liberación de persistencia obsoleta');
-assert.equal(source.includes("if (!['quick', 'savage'].includes(attackType)) return;"), true, 'Targeting debe aceptar solo Rápido y Salvaje');
+assert.equal(source.includes("if (!['quick', 'savage', 'ranged'].includes(attackType)) return;"), true, 'Targeting debe aceptar solo Rápido, Salvaje y Dardo, nunca Barrido');
+assert.equal(source.includes('ProgressionSystem.offerUpgrade();'), true, 'La elección de talento debe integrarse en el cierre del turno');
 
 assert.equal(source.includes("behavior: 'WARDEN'"), true, 'El Trasgo debe conservar su identidad de guardián territorial');
 assert.equal(source.includes('handleTrollAction: (e) =>'), true, 'Debe existir la IA territorial del Trasgo');

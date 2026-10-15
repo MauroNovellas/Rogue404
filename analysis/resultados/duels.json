@@ -1,0 +1,5991 @@
+{
+  "samplesPerCase": 300,
+  "assumptions": "Intercambio adyacente 1v1 con daño, críticos, iniciativa y descolocación reales; IA de fuga/territorio neutralizada; sin curación al subir nivel; sin anillos/botas; no es tasa de éxito humana.",
+  "results": [
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.41,
+        "min": 0,
+        "p10": 2,
+        "median": 4,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.7666666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.7666666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.6933333333333334,
+        "min": 0,
+        "p10": 2,
+        "median": 3,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.456666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.47,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.2,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.41,
+        "min": 0,
+        "p10": 2,
+        "median": 4,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.7666666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.7666666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.6933333333333334,
+        "min": 0,
+        "p10": 2,
+        "median": 3,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.456666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.47,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.2,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.41,
+        "min": 0,
+        "p10": 2,
+        "median": 4,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.7666666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.7666666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.6933333333333334,
+        "min": 0,
+        "p10": 2,
+        "median": 3,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.456666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.47,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "inicio",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.2,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.256666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.066666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.0666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.216666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 5,
+        "max": 6
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.58,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5533333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.07,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 5,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.5066666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5066666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.596666666666667,
+        "min": 0,
+        "p10": 2,
+        "median": 4,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.5366666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.5366666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.1933333333333334,
+        "min": 0,
+        "p10": 1,
+        "median": 3,
+        "p90": 6,
+        "max": 8
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.65,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.08,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.4266666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 6,
+        "max": 10
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7966666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7966666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.3866666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 5,
+        "max": 10
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.57,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.59,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.6833333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 4,
+        "max": 7
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.65,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.17333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.2466666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7966666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7966666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 20.69,
+        "min": 6,
+        "p10": 10,
+        "median": 20,
+        "p90": 32,
+        "max": 51
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.5766666666666667,
+        "min": 2,
+        "p10": 2,
+        "median": 4,
+        "p90": 5,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.5766666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 12.303333333333333,
+        "min": 0,
+        "p10": 6,
+        "median": 11,
+        "p90": 20,
+        "max": 31
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.516666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.5266666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 11.003333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 9,
+        "p90": 21,
+        "max": 36
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3566666666666665,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3566666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 4
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 23.93,
+        "min": 5,
+        "p10": 12,
+        "median": 23,
+        "p90": 38,
+        "max": 62
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.423333333333333,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.4233333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 6
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 17.68,
+        "min": 4,
+        "p10": 7,
+        "median": 17,
+        "p90": 28,
+        "max": 39
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.503333333333333,
+        "min": 3,
+        "p10": 4,
+        "median": 7,
+        "p90": 9,
+        "max": 10
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.52,
+        "min": 1,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 14.62,
+        "min": 0,
+        "p10": 5,
+        "median": 14,
+        "p90": 26,
+        "max": 41
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.0633333333333335,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.0633333333333335,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 19.876666666666665,
+        "min": 0,
+        "p10": 7,
+        "median": 19,
+        "p90": 34,
+        "max": 55
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.433333333333334,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.433333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 11.64,
+        "min": 0,
+        "p10": 0,
+        "median": 10,
+        "p90": 20,
+        "max": 27
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.5633333333333335,
+        "min": 3,
+        "p10": 4,
+        "median": 7,
+        "p90": 9,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.4333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "antes-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 16.716666666666665,
+        "min": 0,
+        "p10": 6,
+        "median": 16,
+        "p90": 29,
+        "max": 45
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.0633333333333335,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.0633333333333335,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.7333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 5,
+        "max": 6
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.43,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.43,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.6233333333333333,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.48333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 2,
+        "max": 7
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.1166666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.11666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.9133333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 4,
+        "max": 7
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.64,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.64,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.12666666666666668,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 4
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.83,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.043333333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.6066666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 3,
+        "max": 6
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.1933333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.19333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.64,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.83,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.8066666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 4,
+        "max": 7
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.1933333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.19333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 10.88,
+        "min": 0,
+        "p10": 6,
+        "median": 9,
+        "p90": 19,
+        "max": 24
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3633333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3633333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.8933333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 6,
+        "p90": 10,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.6933333333333334,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.6066666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.733333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 5,
+        "p90": 10,
+        "max": 23
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.58,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.58,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 11.383333333333333,
+        "min": 0,
+        "p10": 5,
+        "median": 10,
+        "p90": 18,
+        "max": 30
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.64,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.64,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.6466666666666665,
+        "min": 0,
+        "p10": 0,
+        "median": 6,
+        "p90": 9,
+        "max": 19
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.15,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.81,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.406666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 6,
+        "p90": 12,
+        "max": 22
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7566666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7566666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.586666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 7,
+        "p90": 11,
+        "max": 22
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.6733333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.6833333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.21333333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 11
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.1633333333333336,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.02666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "arma-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 6.163333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 7,
+        "p90": 14,
+        "max": 25
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7566666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7566666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.066666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.0666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.58,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5533333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.5066666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5066666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.5366666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.5366666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.65,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.08,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7966666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7966666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.57,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.59,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.65,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.17333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7966666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7966666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.79,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 6,
+        "max": 13
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.5766666666666667,
+        "min": 2,
+        "p10": 2,
+        "median": 4,
+        "p90": 5,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.5766666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.06,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 4,
+        "max": 9
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.516666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.5266666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.98,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 4,
+        "max": 10
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3566666666666665,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3566666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 4
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.9966666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 4,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.423333333333333,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.4233333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 6
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.7233333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 3,
+        "max": 9
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.503333333333333,
+        "min": 3,
+        "p10": 4,
+        "median": 7,
+        "p90": 9,
+        "max": 10
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.52,
+        "min": 1,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.6366666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 3,
+        "max": 8
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.0633333333333335,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.0633333333333335,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.7066666666666668,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 6,
+        "max": 15
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.433333333333334,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.433333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.0066666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 4,
+        "max": 8
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.5633333333333335,
+        "min": 3,
+        "p10": 4,
+        "median": 7,
+        "p90": 9,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.4333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "armadura-cofre-3",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.46,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 6,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.0633333333333335,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.0633333333333335,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.166666666666667,
+        "min": 0,
+        "p10": 2,
+        "median": 5,
+        "p90": 8,
+        "max": 19
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.2933333333333334,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2933333333333332,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.17,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 5,
+        "max": 8
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.6433333333333335,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5466666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.37,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 5,
+        "max": 15
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.5933333333333333,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5933333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.556666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 9,
+        "max": 18
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.3133333333333335,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.3133333333333335,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.216666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 6,
+        "max": 14
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.79,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.6166666666666667,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.63,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 6,
+        "max": 20
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3333333333333335,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 4
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.306666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 10,
+        "max": 21
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.3366666666666664,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3366666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 3,
+        "max": 3
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.1566666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 5,
+        "max": 7
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.803333333333334,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 7,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5433333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.343333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 5,
+        "p90": 10,
+        "max": 30
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3333333333333335,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 4
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 19.386666666666667,
+        "min": 3,
+        "p10": 9,
+        "median": 18,
+        "p90": 31,
+        "max": 50
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.493333333333333,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.493333333333333,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 10.11,
+        "min": 0,
+        "p10": 5,
+        "median": 9,
+        "p90": 17,
+        "max": 27
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.096666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2933333333333332,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 9.853333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 9,
+        "p90": 18,
+        "max": 52
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.2733333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2733333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 4
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 24.186666666666667,
+        "min": 2,
+        "p10": 10,
+        "median": 24,
+        "p90": 39,
+        "max": 67
+      },
+      "turns": {
+        "n": 300,
+        "mean": 5.226666666666667,
+        "min": 3,
+        "p10": 4,
+        "median": 5,
+        "p90": 7,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 4.226666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 17.923333333333332,
+        "min": 2,
+        "p10": 8,
+        "median": 16,
+        "p90": 29,
+        "max": 58
+      },
+      "turns": {
+        "n": 300,
+        "mean": 7.723333333333334,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 11,
+        "max": 12
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.1266666666666665,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 5
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 14.233333333333333,
+        "min": 0,
+        "p10": 5,
+        "median": 13,
+        "p90": 25,
+        "max": 60
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.4966666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.4966666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 4,
+        "max": 6
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 22.53,
+        "min": 5,
+        "p10": 10,
+        "median": 22,
+        "p90": 35,
+        "max": 59
+      },
+      "turns": {
+        "n": 300,
+        "mean": 5.25,
+        "min": 3,
+        "p10": 4,
+        "median": 5,
+        "p90": 7,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.8766666666666665,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 10.05,
+        "min": 0,
+        "p10": 5,
+        "median": 9,
+        "p90": 17,
+        "max": 25
+      },
+      "turns": {
+        "n": 300,
+        "mean": 7.74,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 11,
+        "max": 12
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.2833333333333334,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 19.346666666666668,
+        "min": 0,
+        "p10": 8,
+        "median": 18,
+        "p90": 32,
+        "max": 74
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.4966666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.4966666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 4,
+        "max": 6
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "bump",
+      "wins": 239,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 87.77666666666667,
+        "min": 21,
+        "p10": 48,
+        "median": 90,
+        "p90": 120,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.03,
+        "min": 3,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 10
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 5.4366666666666665,
+        "min": 2,
+        "p10": 4,
+        "median": 5,
+        "p90": 7,
+        "max": 9
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "quick",
+      "wins": 298,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 52.36666666666667,
+        "min": 10,
+        "p10": 27,
+        "median": 49,
+        "p90": 79,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 7.753333333333333,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 11,
+        "max": 12
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.1566666666666667,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 5
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "savage",
+      "wins": 296,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 49.49,
+        "min": 0,
+        "p10": 22,
+        "median": 47,
+        "p90": 78,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.9566666666666666,
+        "min": 1,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.9833333333333334,
+        "min": 0,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 7
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 134,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 105.75,
+        "min": 25,
+        "p10": 69,
+        "median": 120,
+        "p90": 120,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 7.69,
+        "min": 4,
+        "p10": 5,
+        "median": 8,
+        "p90": 10,
+        "max": 15
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 7.796666666666667,
+        "min": 4,
+        "p10": 6,
+        "median": 8,
+        "p90": 10,
+        "max": 14
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 223,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 90.75,
+        "min": 20,
+        "p10": 49,
+        "median": 94,
+        "p90": 120,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 13.793333333333333,
+        "min": 7,
+        "p10": 10,
+        "median": 13,
+        "p90": 18,
+        "max": 23
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 6.45,
+        "min": 3,
+        "p10": 4,
+        "median": 6,
+        "p90": 9,
+        "max": 11
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 257,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 76.94333333333333,
+        "min": 10,
+        "p10": 38,
+        "median": 76,
+        "p90": 120,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.1,
+        "min": 2,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 12
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 5.386666666666667,
+        "min": 1,
+        "p10": 3,
+        "median": 5,
+        "p90": 8,
+        "max": 11
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "bump",
+      "wins": 198,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 96.13,
+        "min": 27,
+        "p10": 56,
+        "median": 101,
+        "p90": 120,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 8.753333333333334,
+        "min": 5,
+        "p10": 6,
+        "median": 9,
+        "p90": 11,
+        "max": 15
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 6.013333333333334,
+        "min": 3,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 10
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 52.59,
+        "min": 10,
+        "p10": 27,
+        "median": 50,
+        "p90": 81,
+        "max": 119
+      },
+      "turns": {
+        "n": 300,
+        "mean": 15.076666666666666,
+        "min": 7,
+        "p10": 10,
+        "median": 15,
+        "p90": 21,
+        "max": 24
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.1533333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 5
+      }
+    },
+    {
+      "stage": "normal-5",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "savage",
+      "wins": 241,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 85.45666666666666,
+        "min": 12,
+        "p10": 46,
+        "median": 87,
+        "p90": 120,
+        "max": 120
+      },
+      "turns": {
+        "n": 300,
+        "mean": 5.903333333333333,
+        "min": 2,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 5.296666666666667,
+        "min": 1,
+        "p10": 3,
+        "median": 5,
+        "p90": 7,
+        "max": 11
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.42,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.42,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.6533333333333333,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.08,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.08,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7866666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7866666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.9733333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.11333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.3066666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.30666666666666664,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7833333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.0033333333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.9733333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.3066666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.30666666666666664,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.4033333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 2,
+        "max": 8
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.006666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.0066666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.14666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 4
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.243333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.31333333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.15666666666666668,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 4
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.3866666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.38666666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.013333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 2
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.54,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.54,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.0033333333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.9166666666666665,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.73,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.0033333333333333335,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7033333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7033333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.20333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 4
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.5233333333333334,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.5466666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.9233333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.26666666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 5
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7033333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7033333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 18.21,
+        "min": 0,
+        "p10": 2,
+        "median": 16,
+        "p90": 38,
+        "max": 75
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.4266666666666667,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.4266666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 9.236666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 8,
+        "p90": 21,
+        "max": 41
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.8933333333333335,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.19,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 8.81,
+        "min": 0,
+        "p10": 0,
+        "median": 7,
+        "p90": 21,
+        "max": 48
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.1433333333333335,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.1433333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 16.513333333333332,
+        "min": 0,
+        "p10": 0,
+        "median": 12,
+        "p90": 41,
+        "max": 76
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.426666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.4266666666666667,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 6
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 8.836666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 7,
+        "p90": 21,
+        "max": 48
+      },
+      "turns": {
+        "n": 300,
+        "mean": 5.163333333333333,
+        "min": 3,
+        "p10": 3,
+        "median": 5,
+        "p90": 7,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.8366666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 8.133333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 6,
+        "p90": 21,
+        "max": 44
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.683333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.6833333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 14.683333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 14,
+        "p90": 29,
+        "max": 55
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.413333333333333,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.9466666666666668,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 1.4133333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 6,
+        "max": 19
+      },
+      "turns": {
+        "n": 300,
+        "mean": 5.173333333333333,
+        "min": 3,
+        "p10": 3,
+        "median": 5,
+        "p90": 7,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.16333333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-6",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 12.663333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 10,
+        "p90": 28,
+        "max": 57
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.683333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.6833333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 9.093333333333334,
+        "min": 0,
+        "p10": 4,
+        "median": 8,
+        "p90": 16,
+        "max": 30
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.5566666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.5566666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.536666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 5,
+        "p90": 8,
+        "max": 12
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.953333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.28,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 9,
+        "max": 19
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.7433333333333334,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.7433333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 7.16,
+        "min": 0,
+        "p10": 0,
+        "median": 6,
+        "p90": 18,
+        "max": 35
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.806666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.8066666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.4,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 12,
+        "max": 32
+      },
+      "turns": {
+        "n": 300,
+        "mean": 7.2,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 9,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.8633333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.326666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 12,
+        "max": 25
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.243333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.243333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 12.66,
+        "min": 0,
+        "p10": 6,
+        "median": 12,
+        "p90": 20,
+        "max": 47
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.816666666666666,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.22,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.816666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 8,
+        "max": 15
+      },
+      "turns": {
+        "n": 300,
+        "mean": 7.193333333333333,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 9,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.6533333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 13.066666666666666,
+        "min": 0,
+        "p10": 4,
+        "median": 12,
+        "p90": 25,
+        "max": 44
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.243333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.243333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 24.053333333333335,
+        "min": 3,
+        "p10": 10,
+        "median": 23,
+        "p90": 40,
+        "max": 60
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.466666666666667,
+        "min": 2,
+        "p10": 3,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.466666666666667,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 12.32,
+        "min": 0,
+        "p10": 5,
+        "median": 11,
+        "p90": 23,
+        "max": 37
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.02,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.26,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 11.28,
+        "min": 0,
+        "p10": 0,
+        "median": 10,
+        "p90": 24,
+        "max": 42
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.16,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.16,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 31.966666666666665,
+        "min": 0,
+        "p10": 8,
+        "median": 30,
+        "p90": 58,
+        "max": 103
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.74,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 9,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 5.74,
+        "min": 2,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 10
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 24.2,
+        "min": 0,
+        "p10": 6,
+        "median": 22,
+        "p90": 43,
+        "max": 81
+      },
+      "turns": {
+        "n": 300,
+        "mean": 10.126666666666667,
+        "min": 4,
+        "p10": 7,
+        "median": 10,
+        "p90": 13,
+        "max": 16
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 4.333333333333333,
+        "min": 1,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 19.163333333333334,
+        "min": 0,
+        "p10": 4,
+        "median": 16,
+        "p90": 39,
+        "max": 70
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.43,
+        "min": 1,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.43,
+        "min": 0,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 7
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 33.803333333333335,
+        "min": 5,
+        "p10": 15,
+        "median": 32,
+        "p90": 54,
+        "max": 99
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.773333333333333,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 9,
+        "max": 11
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.53,
+        "min": 1,
+        "p10": 2,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 10.773333333333333,
+        "min": 0,
+        "p10": 5,
+        "median": 10,
+        "p90": 18,
+        "max": 37
+      },
+      "turns": {
+        "n": 300,
+        "mean": 10.116666666666667,
+        "min": 4,
+        "p10": 7,
+        "median": 10,
+        "p90": 13,
+        "max": 16
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.1233333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 33.14666666666667,
+        "min": 0,
+        "p10": 13,
+        "median": 30,
+        "p90": 58,
+        "max": 97
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.43,
+        "min": 1,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 8
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 3.43,
+        "min": 0,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 7
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "bump",
+      "wins": 276,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 87.34333333333333,
+        "min": 17,
+        "p10": 44,
+        "median": 86,
+        "p90": 136,
+        "max": 140
+      },
+      "turns": {
+        "n": 300,
+        "mean": 5.536666666666667,
+        "min": 3,
+        "p10": 4,
+        "median": 5,
+        "p90": 7,
+        "max": 9
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 4.696666666666666,
+        "min": 2,
+        "p10": 3,
+        "median": 5,
+        "p90": 6,
+        "max": 8
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 48.87,
+        "min": 6,
+        "p10": 21,
+        "median": 47,
+        "p90": 79,
+        "max": 125
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.683333333333334,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 9,
+        "max": 10
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.59,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 45.95,
+        "min": 0,
+        "p10": 16,
+        "median": 40,
+        "p90": 82,
+        "max": 129
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.4366666666666665,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 5,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.4366666666666665,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 4,
+        "max": 6
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 133,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 118.49,
+        "min": 12,
+        "p10": 66,
+        "median": 140,
+        "p90": 140,
+        "max": 140
+      },
+      "turns": {
+        "n": 300,
+        "mean": 8.79,
+        "min": 4,
+        "p10": 6,
+        "median": 8,
+        "p90": 12,
+        "max": 17
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 8.903333333333334,
+        "min": 4,
+        "p10": 6,
+        "median": 9,
+        "p90": 12,
+        "max": 16
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 206,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 104.55333333333333,
+        "min": 10,
+        "p10": 50,
+        "median": 114,
+        "p90": 140,
+        "max": 140
+      },
+      "turns": {
+        "n": 300,
+        "mean": 15.756666666666666,
+        "min": 7,
+        "p10": 11,
+        "median": 15,
+        "p90": 21,
+        "max": 27
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 7.523333333333333,
+        "min": 3,
+        "p10": 5,
+        "median": 7,
+        "p90": 10,
+        "max": 13
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 242,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 88.78333333333333,
+        "min": 4,
+        "p10": 38,
+        "median": 86,
+        "p90": 140,
+        "max": 140
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.843333333333334,
+        "min": 2,
+        "p10": 5,
+        "median": 7,
+        "p90": 9,
+        "max": 13
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 6.23,
+        "min": 1,
+        "p10": 4,
+        "median": 6,
+        "p90": 9,
+        "max": 12
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "bump",
+      "wins": 190,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 111.49666666666667,
+        "min": 21,
+        "p10": 63,
+        "median": 120,
+        "p90": 140,
+        "max": 140
+      },
+      "turns": {
+        "n": 300,
+        "mean": 10.126666666666667,
+        "min": 5,
+        "p10": 7,
+        "median": 10,
+        "p90": 13,
+        "max": 16
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 6.323333333333333,
+        "min": 2,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 11
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 48.92666666666667,
+        "min": 6,
+        "p10": 21,
+        "median": 47,
+        "p90": 78,
+        "max": 127
+      },
+      "turns": {
+        "n": 300,
+        "mean": 17.466666666666665,
+        "min": 7,
+        "p10": 12,
+        "median": 18,
+        "p90": 23,
+        "max": 27
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.6,
+        "min": 1,
+        "p10": 1,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      }
+    },
+    {
+      "stage": "sin-cofres-9",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "savage",
+      "wins": 198,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 106.02,
+        "min": 9,
+        "p10": 58,
+        "median": 113,
+        "p90": 140,
+        "max": 140
+      },
+      "turns": {
+        "n": 300,
+        "mean": 6.263333333333334,
+        "min": 2,
+        "p10": 4,
+        "median": 6,
+        "p90": 9,
+        "max": 12
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 5.943333333333333,
+        "min": 1,
+        "p10": 4,
+        "median": 6,
+        "p90": 8,
+        "max": 11
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.4766666666666666,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.4766666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.6633333333333333,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.0966666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.09666666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.87,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.87,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.0933333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.19,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.3,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.3,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.88,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.03666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.0933333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "BAT",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.3,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.3,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.96,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.96,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.1266666666666665,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.20333333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.3266666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.32666666666666666,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.433333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.4333333333333333,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.8033333333333332,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.68,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.63,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.63,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.4233333333333333,
+        "min": 1,
+        "p10": 2,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.44333333333333336,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.8066666666666666,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "GOBLIN",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.63,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.63,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 7.293333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 4,
+        "p90": 20,
+        "max": 40
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.0633333333333335,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.0633333333333335,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.5033333333333334,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 10,
+        "max": 26
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.3833333333333333,
+        "min": 2,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.9566666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 1,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "strength",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 3.066666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 10,
+        "max": 23
+      },
+      "turns": {
+        "n": 300,
+        "mean": 1.86,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 3
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.86,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 2
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.176666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 16,
+        "max": 45
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.93,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 2.93,
+        "min": 1,
+        "p10": 2,
+        "median": 3,
+        "p90": 4,
+        "max": 5
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.203333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 8,
+        "max": 25
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.523333333333333,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.5166666666666666,
+        "min": 0,
+        "p10": 1,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "resilience",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 2.006666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 8,
+        "max": 19
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3466666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3466666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "bump",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 5.976666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 3,
+        "p90": 17,
+        "max": 47
+      },
+      "turns": {
+        "n": 300,
+        "mean": 3.95,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 5,
+        "max": 6
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.6933333333333334,
+        "min": 0,
+        "p10": 1,
+        "median": 2,
+        "p90": 2,
+        "max": 3
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "quick",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 0.15,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 13
+      },
+      "turns": {
+        "n": 300,
+        "mean": 4.53,
+        "min": 2,
+        "p10": 3,
+        "median": 4,
+        "p90": 6,
+        "max": 7
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 0.03666666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 1
+      }
+    },
+    {
+      "stage": "cofres-9",
+      "enemy": "TROLL",
+      "build": "speed",
+      "style": "savage",
+      "wins": 300,
+      "n": 300,
+      "hpLoss": {
+        "n": 300,
+        "mean": 4.943333333333333,
+        "min": 0,
+        "p10": 0,
+        "median": 2,
+        "p90": 15,
+        "max": 31
+      },
+      "turns": {
+        "n": 300,
+        "mean": 2.3466666666666667,
+        "min": 1,
+        "p10": 1,
+        "median": 2,
+        "p90": 3,
+        "max": 4
+      },
+      "incoming": {
+        "n": 300,
+        "mean": 1.3466666666666667,
+        "min": 0,
+        "p10": 0,
+        "median": 1,
+        "p90": 2,
+        "max": 3
+      }
+    }
+  ]
+}

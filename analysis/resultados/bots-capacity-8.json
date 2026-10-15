@@ -1,0 +1,3741 @@
+{
+  "capacity": 8,
+  "seeds": "1..12",
+  "maxActions": 1800,
+  "caveats": "Los bots compran pero no venden, no usan reliquias y asignan todos los talentos a Fuerza. No representan tasas de éxito de humanos. No hay red.",
+  "results": [
+    {
+      "goalDepth": 6,
+      "profile": "prudent",
+      "summary": {
+        "runs": 12,
+        "successes": 1,
+        "successRate": 0.08333333333333333,
+        "avgMaxDepth": 4.5,
+        "avgActions": 716.1666666666666,
+        "avgScore": 336.8333333333333,
+        "avgKills": 11.833333333333334,
+        "avgHp": 9.083333333333334,
+        "avgFood": 79.75,
+        "avgWater": 79.75,
+        "causes": {
+          "Trasgo Alfa": 4,
+          "Trasgo": 2,
+          "Murciélago Alfa": 3,
+          "Límite de acciones": 1,
+          "Murciélago": 1,
+          "Regreso a superficie": 1
+        }
+      },
+      "runs": [
+        {
+          "seed": 1,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 604,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -12,
+          "maxHp": 110,
+          "food": 81,
+          "water": 67,
+          "score": 326,
+          "kills": 17,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 282,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:27,15",
+              "fingerprint": "3|3:26,14|3:26,15|3:27,15",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 33,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 314,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:34,9",
+              "fingerprint": "3|3:33,9|3:34,9|3:35,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 42,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 349,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:17,16",
+              "fingerprint": "4|4:17,16|4:18,16",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 28,
+                "y": 13,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 377,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:17,16",
+              "fingerprint": "4|4:17,16|4:18,15|4:18,16",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 37,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 456,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:17,7",
+              "fingerprint": "4|4:17,7|4:18,7|4:18,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 51,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 505,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:48,13",
+              "fingerprint": "4|4:48,12|4:48,13|4:49,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 60,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 21,
+            "fullTurns": 273,
+            "turnSamples": 604,
+            "sizeSum": 3444,
+            "maxInventory": 8,
+            "pickups": {
+              "food": 4,
+              "ring": 1,
+              "water": 4,
+              "weapon": 2,
+              "boots": 1
+            },
+            "uses": {
+              "ring": 2,
+              "weapon": 1,
+              "water": 2,
+              "boots": 1,
+              "food": 1
+            },
+            "waste": {
+              "food": 27,
+              "water": 0
+            },
+            "spent": 284,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 2,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 513,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -10,
+          "maxHp": 110,
+          "food": 90,
+          "water": 74,
+          "score": 265,
+          "kills": 13,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 273,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:55,6",
+              "fingerprint": "4|4:54,7|4:55,6|4:55,7",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 35,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 353,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:55,6",
+              "fingerprint": "4|4:54,7|4:55,6|4:55,7",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 18,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 9,
+            "fullTurns": 176,
+            "turnSamples": 513,
+            "sizeSum": 2805,
+            "maxInventory": 8,
+            "pickups": {
+              "food": 5,
+              "weapon": 2,
+              "water": 2,
+              "ring": 2,
+              "boots": 1
+            },
+            "uses": {
+              "weapon": 2,
+              "ring": 1,
+              "boots": 1,
+              "water": 2,
+              "food": 1
+            },
+            "waste": {
+              "food": 19,
+              "water": 6
+            },
+            "spent": 160,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 3,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 439,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -3,
+          "maxHp": 110,
+          "food": 98,
+          "water": 99,
+          "score": 101,
+          "kills": 9,
+          "cause": "Trasgo",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 303,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:15,6",
+              "fingerprint": "3|3:14,6|3:15,6|3:16,6",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 6,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 329,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:15,6",
+              "fingerprint": "3|3:14,6|3:15,6|3:16,6",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 5,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": -1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 2,
+            "fullTurns": 13,
+            "turnSamples": 439,
+            "sizeSum": 1872,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 3,
+              "boots": 4,
+              "food": 4,
+              "weapon": 1
+            },
+            "uses": {
+              "boots": 3,
+              "ring": 1,
+              "weapon": 1,
+              "water": 2,
+              "food": 1
+            },
+            "waste": {
+              "food": 22,
+              "water": 19
+            },
+            "spent": 279,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 4,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 329,
+          "maxDepth": 4,
+          "finalLevel": 4,
+          "hp": -1,
+          "maxHp": 100,
+          "food": 68,
+          "water": 81,
+          "score": 210,
+          "kills": 6,
+          "cause": "Murciélago Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 277,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:8,10",
+              "fingerprint": "4|4:8,10|4:8,9|4:9,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 35,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": 0,
+                "dy": 1
+              }
+            }
+          ],
+          "playerLevel": 1,
+          "talents": {
+            "strength": 0,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 6,
+            "fullTurns": 189,
+            "turnSamples": 329,
+            "sizeSum": 2074,
+            "maxInventory": 8,
+            "pickups": {
+              "food": 3,
+              "water": 4,
+              "ring": 3,
+              "weapon": 1
+            },
+            "uses": {
+              "ring": 2,
+              "weapon": 1,
+              "water": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 13
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 5,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 1017,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -12,
+          "maxHp": 120,
+          "food": 81,
+          "water": 97,
+          "score": 537,
+          "kills": 19,
+          "cause": "Trasgo",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 260,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:64,3",
+              "fingerprint": "3|3:62,5|3:64,3|3:64,4",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 13,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 361,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:64,3",
+              "fingerprint": "3|3:63,4|3:64,3|3:64,4",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 5,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 590,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:64,10",
+              "fingerprint": "3|3:63,10|3:64,10|3:65,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 63,
+                "y": 9,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 635,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,9",
+              "fingerprint": "4|4:22,10|4:23,10|4:23,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 32,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 660,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,9",
+              "fingerprint": "4|4:23,10|4:23,9|4:24,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 33,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 694,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,9",
+              "fingerprint": "4|4:23,10|4:23,9|4:24,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 42,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 794,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:24,9",
+              "fingerprint": "4|4:23,9|4:24,10|4:24,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 52,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 906,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,9",
+              "fingerprint": "4|4:23,9|4:24,10|4:24,9",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 23,
+                "y": 12,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 934,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:50,10",
+              "fingerprint": "5|5:50,10|5:50,11|5:50,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 39,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 966,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:50,11",
+              "fingerprint": "5|5:49,10|5:50,10|5:50,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 30,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            }
+          ],
+          "playerLevel": 3,
+          "talents": {
+            "strength": 2,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 39,
+            "fullTurns": 662,
+            "turnSamples": 1017,
+            "sizeSum": 6878,
+            "maxInventory": 8,
+            "pickups": {
+              "boots": 4,
+              "food": 4,
+              "water": 5,
+              "weapon": 1,
+              "ring": 1,
+              "relic": 1
+            },
+            "uses": {
+              "boots": 3,
+              "weapon": 1,
+              "ring": 1,
+              "water": 5,
+              "food": 2
+            },
+            "waste": {
+              "food": 24,
+              "water": 28
+            },
+            "spent": 78,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 6,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 1800,
+          "maxDepth": 4,
+          "finalLevel": 3,
+          "hp": 54,
+          "maxHp": 100,
+          "food": 86,
+          "water": 76,
+          "score": 205,
+          "kills": 5,
+          "cause": "Límite de acciones",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [],
+          "playerLevel": 1,
+          "talents": {
+            "strength": 0,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 0,
+            "turnSamples": 1800,
+            "sizeSum": 12052,
+            "maxInventory": 7,
+            "pickups": {
+              "water": 4,
+              "food": 3,
+              "ring": 1
+            },
+            "uses": {
+              "ring": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 7,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 235,
+          "maxDepth": 4,
+          "finalLevel": 4,
+          "hp": -4,
+          "maxHp": 100,
+          "food": 77,
+          "water": 97,
+          "score": 240,
+          "kills": 4,
+          "cause": "Murciélago",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [],
+          "playerLevel": 1,
+          "talents": {
+            "strength": 0,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 0,
+            "turnSamples": 235,
+            "sizeSum": 1017,
+            "maxInventory": 7,
+            "pickups": {
+              "water": 2,
+              "food": 5,
+              "boots": 2
+            },
+            "uses": {
+              "boots": 3,
+              "water": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 19
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 8,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 391,
+          "maxDepth": 4,
+          "finalLevel": 4,
+          "hp": -2,
+          "maxHp": 110,
+          "food": 62,
+          "water": 72,
+          "score": 339,
+          "kills": 13,
+          "cause": "Murciélago Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 333,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:37,11",
+              "fingerprint": "4|4:36,10|4:36,11|4:37,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 11,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 4,
+            "fullTurns": 92,
+            "turnSamples": 391,
+            "sizeSum": 2040,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 3,
+              "food": 3,
+              "weapon": 1,
+              "ring": 2,
+              "boots": 2
+            },
+            "uses": {
+              "weapon": 1,
+              "ring": 1,
+              "boots": 2,
+              "water": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 38
+            },
+            "spent": 146,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 9,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 1015,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -14,
+          "maxHp": 110,
+          "food": 81,
+          "water": 68,
+          "score": 725,
+          "kills": 19,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 234,
+              "phase": "DESCEND",
+              "level": 2,
+              "position": "2:15,15",
+              "fingerprint": "2|2:15,15|2:16,14|2:16,15",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 50,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 326,
+              "phase": "DESCEND",
+              "level": 2,
+              "position": "2:15,15",
+              "fingerprint": "2|2:15,15|2:16,14|2:16,15",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 62,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 436,
+              "phase": "DESCEND",
+              "level": 2,
+              "position": "2:15,15",
+              "fingerprint": "2|2:15,15|2:16,14|2:16,15",
+              "occurrences": 3,
+              "escapeTarget": {
+                "x": 64,
+                "y": 9,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 623,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:9,17",
+              "fingerprint": "4|4:10,16|4:9,16|4:9,17",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 20,
+                "y": 15,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 698,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:9,17",
+              "fingerprint": "4|4:10,16|4:9,16|4:9,17",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 40,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 776,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:9,17",
+              "fingerprint": "4|4:10,16|4:9,16|4:9,17",
+              "occurrences": 3,
+              "escapeTarget": {
+                "x": 49,
+                "y": 15,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 864,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:9,17",
+              "fingerprint": "4|4:10,16|4:9,16|4:9,17",
+              "occurrences": 4,
+              "escapeTarget": {
+                "x": 57,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 1008,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:9,17",
+              "fingerprint": "4|4:10,16|4:9,16|4:9,17",
+              "occurrences": 5,
+              "escapeTarget": {
+                "x": 9,
+                "y": 15,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 225,
+            "turnSamples": 1015,
+            "sizeSum": 5214,
+            "maxInventory": 8,
+            "pickups": {
+              "boots": 2,
+              "water": 4,
+              "food": 5,
+              "ring": 3,
+              "weapon": 2
+            },
+            "uses": {
+              "boots": 1,
+              "ring": 1,
+              "weapon": 1,
+              "water": 4,
+              "food": 2
+            },
+            "waste": {
+              "food": 43,
+              "water": 31
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 10,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 1131,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -5,
+          "maxHp": 110,
+          "food": 69,
+          "water": 69,
+          "score": 459,
+          "kills": 15,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 294,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:11,8",
+              "fingerprint": "3|3:11,7|3:11,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 10,
+                "y": 17,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 332,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:11,7",
+              "fingerprint": "3|3:10,8|3:11,7|3:11,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 25,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 389,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:11,7",
+              "fingerprint": "3|3:11,7|3:11,8|3:12,6",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 41,
+                "y": 13,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 463,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:10,2",
+              "fingerprint": "3|3:10,2|3:10,3|3:11,3",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 52,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 610,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:10,3",
+              "fingerprint": "3|3:10,1|3:10,2|3:10,3",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 57,
+                "y": 21,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 760,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:33,13",
+              "fingerprint": "4|4:33,13|4:34,12|4:34,13",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 44,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 790,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:33,13",
+              "fingerprint": "4|4:33,12|4:33,13|4:34,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 46,
+                "y": 17,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 914,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:28,2",
+              "fingerprint": "4|4:28,1|4:28,2|4:28,3",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 59,
+                "y": 5,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 988,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:28,2",
+              "fingerprint": "4|4:28,1|4:28,2|4:28,3",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 65,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 40,
+            "fullTurns": 676,
+            "turnSamples": 1131,
+            "sizeSum": 7672,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 5,
+              "boots": 3,
+              "food": 5,
+              "ring": 2,
+              "relic": 1,
+              "weapon": 1
+            },
+            "uses": {
+              "boots": 3,
+              "ring": 1,
+              "water": 5,
+              "food": 2,
+              "weapon": 1
+            },
+            "waste": {
+              "food": 33,
+              "water": 45
+            },
+            "spent": 136,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 11,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": true,
+          "stuck": false,
+          "actions": 972,
+          "maxDepth": 6,
+          "finalLevel": 1,
+          "hp": 120,
+          "maxHp": 120,
+          "food": 78,
+          "water": 81,
+          "score": 450,
+          "kills": 17,
+          "cause": "Regreso a superficie",
+          "missionLock": true,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 355,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:40,14",
+              "fingerprint": "4|4:39,15|4:40,14|4:40,15",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 38,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 657,
+              "phase": "ASCEND",
+              "level": 6,
+              "position": "6:36,6",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 658,
+              "phase": "ASCEND",
+              "level": 5,
+              "position": "5:25,10",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 698,
+              "phase": "ASCEND",
+              "level": 4,
+              "position": "4:39,17",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 804,
+              "phase": "ASCEND",
+              "level": 3,
+              "position": "3:24,6",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 817,
+              "phase": "ASCEND",
+              "level": 2,
+              "position": "2:9,15",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 846,
+              "phase": "ASCEND",
+              "level": 1,
+              "position": "1:34,9",
+              "reason": "regreso_prioritario"
+            }
+          ],
+          "playerLevel": 3,
+          "talents": {
+            "strength": 2,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 4,
+            "fullTurns": 170,
+            "turnSamples": 972,
+            "sizeSum": 5969,
+            "maxInventory": 8,
+            "pickups": {
+              "weapon": 3,
+              "water": 5,
+              "boots": 3,
+              "food": 3,
+              "ring": 1
+            },
+            "uses": {
+              "weapon": 1,
+              "boots": 1,
+              "ring": 1,
+              "water": 4,
+              "food": 2
+            },
+            "waste": {
+              "food": 7,
+              "water": 41
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 12,
+          "profile": "prudent",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 148,
+          "maxDepth": 2,
+          "finalLevel": 2,
+          "hp": -2,
+          "maxHp": 100,
+          "food": 86,
+          "water": 76,
+          "score": 185,
+          "kills": 5,
+          "cause": "Murciélago Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 58,
+              "phase": "DESCEND",
+              "level": 1,
+              "position": "1:7,13",
+              "fingerprint": "1|1:6,13|1:7,13|1:8,13",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 24,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 1,
+          "talents": {
+            "strength": 0,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 0,
+            "turnSamples": 148,
+            "sizeSum": 282,
+            "maxInventory": 4,
+            "pickups": {
+              "water": 3,
+              "boots": 1,
+              "ring": 1
+            },
+            "uses": {
+              "boots": 1,
+              "ring": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        }
+      ]
+    },
+    {
+      "goalDepth": 6,
+      "profile": "explorer",
+      "summary": {
+        "runs": 12,
+        "successes": 1,
+        "successRate": 0.08333333333333333,
+        "avgMaxDepth": 4.75,
+        "avgActions": 754.75,
+        "avgScore": 442.5833333333333,
+        "avgKills": 13.25,
+        "avgHp": -0.3333333333333333,
+        "avgFood": 73.66666666666667,
+        "avgWater": 75.58333333333333,
+        "causes": {
+          "Trasgo Alfa": 5,
+          "Trasgo": 4,
+          "Límite de acciones": 1,
+          "Regreso a superficie": 1,
+          "Murciélago Alfa": 1
+        }
+      },
+      "runs": [
+        {
+          "seed": 1,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 911,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -5,
+          "maxHp": 110,
+          "food": 65,
+          "water": 68,
+          "score": 685,
+          "kills": 19,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 41,
+              "phase": "DESCEND",
+              "level": 1,
+              "position": "1:25,12",
+              "fingerprint": "1|1:24,12|1:25,11|1:25,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 14,
+                "y": 15,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 420,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:8,17",
+              "fingerprint": "3|3:8,16|3:8,17",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 18,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 466,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:8,17",
+              "fingerprint": "3|3:8,15|3:8,16|3:8,17",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 29,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 514,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:34,9",
+              "fingerprint": "3|3:33,9|3:34,9|3:35,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 30,
+                "y": 15,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 581,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:50,11",
+              "fingerprint": "3|3:49,11|3:50,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 60,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 611,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:56,16",
+              "fingerprint": "3|3:56,16|3:57,16|3:57,17",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 64,
+                "y": 4,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 645,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:56,16",
+              "fingerprint": "3|3:55,15|3:56,16|3:57,16",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 22,
+                "y": 15,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 703,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:17,16",
+              "fingerprint": "4|4:17,16|4:18,16",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 30,
+                "y": 13,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 741,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:38,9",
+              "fingerprint": "4|4:37,9|4:38,10|4:38,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 40,
+                "y": 20,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 778,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:38,10",
+              "fingerprint": "4|4:38,10|4:38,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 47,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 802,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:48,13",
+              "fingerprint": "4|4:47,12|4:48,12|4:48,13",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 41,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 819,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:38,9",
+              "fingerprint": "4|4:38,9|4:39,8|4:39,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 53,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 847,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:48,13",
+              "fingerprint": "4|4:48,12|4:48,13|4:49,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 35,
+                "y": 14,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 885,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:46,7",
+              "fingerprint": "5|5:46,7|5:47,7",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 35,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 65,
+            "fullTurns": 568,
+            "turnSamples": 911,
+            "sizeSum": 5923,
+            "maxInventory": 8,
+            "pickups": {
+              "food": 4,
+              "boots": 4,
+              "water": 4,
+              "weapon": 2
+            },
+            "uses": {
+              "boots": 3,
+              "water": 3,
+              "weapon": 1,
+              "food": 1
+            },
+            "waste": {
+              "food": 12,
+              "water": 2
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 2,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 650,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -17,
+          "maxHp": 110,
+          "food": 92,
+          "water": 88,
+          "score": 286,
+          "kills": 11,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 276,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:22,12",
+              "fingerprint": "3|3:19,12|3:21,12|3:22,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 31,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 347,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:47,5",
+              "fingerprint": "4|4:46,5|4:47,4|4:47,5",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 35,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 383,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:47,4",
+              "fingerprint": "4|4:46,5|4:47,4|4:47,5",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 25,
+                "y": 6,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 438,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:47,4",
+              "fingerprint": "4|4:46,5|4:47,4|4:47,5",
+              "occurrences": 3,
+              "escapeTarget": {
+                "x": 16,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 525,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:46,4",
+              "fingerprint": "4|4:46,4|4:47,4",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 6,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": -1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 17,
+            "fullTurns": 265,
+            "turnSamples": 650,
+            "sizeSum": 3778,
+            "maxInventory": 8,
+            "pickups": {
+              "food": 2,
+              "boots": 3,
+              "water": 4,
+              "weapon": 1,
+              "ring": 1,
+              "armor": 2
+            },
+            "uses": {
+              "boots": 2,
+              "weapon": 1,
+              "ring": 1,
+              "armor": 2,
+              "water": 2,
+              "food": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 10
+            },
+            "spent": 119,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 3,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 425,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -18,
+          "maxHp": 110,
+          "food": 59,
+          "water": 71,
+          "score": 205,
+          "kills": 10,
+          "cause": "Trasgo",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 369,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:32,12",
+              "fingerprint": "5|5:31,12|5:32,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 13,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": 1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 8,
+            "fullTurns": 140,
+            "turnSamples": 425,
+            "sizeSum": 2110,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 2,
+              "boots": 3,
+              "food": 4,
+              "relic": 1
+            },
+            "uses": {
+              "boots": 3,
+              "weapon": 1,
+              "water": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 200,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 4,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 693,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -5,
+          "maxHp": 110,
+          "food": 78,
+          "water": 73,
+          "score": 450,
+          "kills": 12,
+          "cause": "Trasgo",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 84,
+              "phase": "DESCEND",
+              "level": 1,
+              "position": "1:15,12",
+              "fingerprint": "1|1:15,12|1:16,12|1:16,13",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 47,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 170,
+              "phase": "DESCEND",
+              "level": 1,
+              "position": "1:15,12",
+              "fingerprint": "1|1:15,12|1:16,12|1:16,13",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 54,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 254,
+              "phase": "DESCEND",
+              "level": 1,
+              "position": "1:15,12",
+              "fingerprint": "1|1:15,12|1:16,12|1:16,13",
+              "occurrences": 3,
+              "escapeTarget": {
+                "x": 63,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 510,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:8,10",
+              "fingerprint": "4|4:8,10|4:8,9|4:9,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 35,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 657,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:61,13",
+              "fingerprint": "4|4:61,13|4:61,14",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 59,
+                "y": 3,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": -1
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 9,
+            "fullTurns": 172,
+            "turnSamples": 693,
+            "sizeSum": 3494,
+            "maxInventory": 8,
+            "pickups": {
+              "food": 4,
+              "water": 4,
+              "ring": 3,
+              "weapon": 2,
+              "boots": 1
+            },
+            "uses": {
+              "water": 2,
+              "ring": 2,
+              "weapon": 2,
+              "boots": 1,
+              "food": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 5,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 861,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -15,
+          "maxHp": 120,
+          "food": 69,
+          "water": 68,
+          "score": 403,
+          "kills": 18,
+          "cause": "Trasgo",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 230,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:51,5",
+              "fingerprint": "3|3:51,5|3:52,4|3:52,6",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 13,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 331,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:64,3",
+              "fingerprint": "3|3:63,4|3:64,3|3:64,4",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 5,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 445,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:64,4",
+              "fingerprint": "3|3:64,3|3:64,4|3:64,5",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 5,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 576,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:65,10",
+              "fingerprint": "3|3:64,10|3:64,9|3:65,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 63,
+                "y": 9,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 628,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:28,8",
+              "fingerprint": "4|4:27,8|4:28,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 33,
+                "y": 13,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 642,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:34,12",
+              "fingerprint": "4|4:33,12|4:33,13|4:34,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 43,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 711,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:28,8",
+              "fingerprint": "4|4:27,8|4:28,8|4:29,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 54,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 751,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:57,17",
+              "fingerprint": "4|4:56,16|4:56,17|4:57,17",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 34,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 788,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:34,12",
+              "fingerprint": "4|4:33,13|4:34,12|4:35,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 23,
+                "y": 12,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 3,
+          "talents": {
+            "strength": 2,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 36,
+            "fullTurns": 604,
+            "turnSamples": 861,
+            "sizeSum": 5796,
+            "maxInventory": 8,
+            "pickups": {
+              "boots": 4,
+              "food": 5,
+              "water": 3,
+              "weapon": 1,
+              "ring": 1,
+              "armor": 1
+            },
+            "uses": {
+              "boots": 3,
+              "weapon": 1,
+              "ring": 1,
+              "armor": 2,
+              "water": 3,
+              "food": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 267,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 6,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 1800,
+          "maxDepth": 4,
+          "finalLevel": 4,
+          "hp": 48,
+          "maxHp": 100,
+          "food": 85,
+          "water": 75,
+          "score": 37,
+          "kills": 5,
+          "cause": "Límite de acciones",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [],
+          "playerLevel": 1,
+          "talents": {
+            "strength": 0,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 2,
+            "turnSamples": 1800,
+            "sizeSum": 12069,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 4,
+              "food": 3,
+              "ring": 1
+            },
+            "uses": {
+              "ring": 1,
+              "armor": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 168,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 7,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 636,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -26,
+          "maxHp": 110,
+          "food": 94,
+          "water": 74,
+          "score": 605,
+          "kills": 15,
+          "cause": "Trasgo",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 199,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:61,11",
+              "fingerprint": "3|3:61,11|3:62,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 37,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 235,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:48,20",
+              "fingerprint": "3|3:47,19|3:48,19|3:48,20",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 28,
+                "y": 7,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 348,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:62,11",
+              "fingerprint": "3|3:61,10|3:61,11|3:62,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 29,
+                "y": 17,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 385,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:26,18",
+              "fingerprint": "3|3:25,19|3:26,17|3:26,18",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 30,
+                "y": 15,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 420,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:42,15",
+              "fingerprint": "4|4:41,14|4:42,14|4:42,15",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 29,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 449,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:36,15",
+              "fingerprint": "4|4:36,14|4:36,15|4:36,16",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 20,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 501,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:42,15",
+              "fingerprint": "4|4:41,16|4:42,14|4:42,15",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 9,
+                "y": 11,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 608,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:61,9",
+              "fingerprint": "4|4:60,9|4:61,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 62,
+                "y": 3,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 627,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:66,10",
+              "fingerprint": "4|4:65,10|4:65,9|4:66,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 64,
+                "y": 9,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 45,
+            "fullTurns": 439,
+            "turnSamples": 636,
+            "sizeSum": 4313,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 5,
+              "food": 5,
+              "weapon": 1,
+              "ring": 2
+            },
+            "uses": {
+              "weapon": 1,
+              "ring": 1,
+              "water": 2,
+              "food": 1
+            },
+            "waste": {
+              "food": 23,
+              "water": 4
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 8,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 349,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -19,
+          "maxHp": 110,
+          "food": 66,
+          "water": 94,
+          "score": 660,
+          "kills": 15,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 39,
+            "turnSamples": 349,
+            "sizeSum": 1462,
+            "maxInventory": 8,
+            "pickups": {
+              "water": 5,
+              "ring": 1,
+              "food": 3,
+              "weapon": 1,
+              "relic": 1,
+              "boots": 1
+            },
+            "uses": {
+              "ring": 1,
+              "weapon": 1,
+              "boots": 1,
+              "water": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 4
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 9,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 409,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -9,
+          "maxHp": 110,
+          "food": 60,
+          "water": 84,
+          "score": 505,
+          "kills": 13,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 362,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:10,8",
+              "fingerprint": "4|4:10,8|4:10,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 10,
+                "y": 18,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 398,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:10,9",
+              "fingerprint": "4|4:10,10|4:10,8|4:10,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 21,
+                "y": 15,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "cofre",
+                "dx": 0,
+                "dy": 1
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 10,
+            "fullTurns": 64,
+            "turnSamples": 409,
+            "sizeSum": 1933,
+            "maxInventory": 8,
+            "pickups": {
+              "boots": 2,
+              "water": 4,
+              "food": 4,
+              "ring": 1,
+              "weapon": 1
+            },
+            "uses": {
+              "boots": 1,
+              "ring": 1,
+              "weapon": 1,
+              "water": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 2
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 10,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 829,
+          "maxDepth": 5,
+          "finalLevel": 5,
+          "hp": -5,
+          "maxHp": 110,
+          "food": 74,
+          "water": 73,
+          "score": 670,
+          "kills": 12,
+          "cause": "Trasgo Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 265,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:10,7",
+              "fingerprint": "3|3:10,7|3:10,8|3:10,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 10,
+                "y": 18,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 298,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:10,8",
+              "fingerprint": "3|3:10,11|3:10,8|3:10,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 25,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 361,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:11,7",
+              "fingerprint": "3|3:11,7|3:11,8|3:12,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 40,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 436,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:11,8",
+              "fingerprint": "3|3:11,7|3:11,8|3:11,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 53,
+                "y": 15,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 519,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:11,7",
+              "fingerprint": "3|3:11,7|3:11,8|3:12,7",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 9,
+                "y": 15,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 542,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:30,5",
+              "fingerprint": "4|4:30,5|4:31,5",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 44,
+                "y": 8,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 592,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:33,13",
+              "fingerprint": "4|4:33,12|4:33,13|4:34,12",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 54,
+                "y": 6,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 651,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:31,5",
+              "fingerprint": "4|4:30,5|4:31,5|4:32,6",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 63,
+                "y": 4,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 721,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:31,5",
+              "fingerprint": "4|4:30,5|4:31,5|4:32,6",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 54,
+                "y": 9,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 2,
+          "talents": {
+            "strength": 1,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 57,
+            "fullTurns": 503,
+            "turnSamples": 829,
+            "sizeSum": 5576,
+            "maxInventory": 8,
+            "pickups": {
+              "boots": 3,
+              "water": 5,
+              "food": 3,
+              "ring": 2,
+              "relic": 1,
+              "weapon": 1
+            },
+            "uses": {
+              "boots": 1,
+              "ring": 1,
+              "water": 3,
+              "food": 1,
+              "weapon": 1
+            },
+            "waste": {
+              "food": 9,
+              "water": 0
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 11,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": true,
+          "stuck": false,
+          "actions": 1357,
+          "maxDepth": 6,
+          "finalLevel": 1,
+          "hp": 68,
+          "maxHp": 120,
+          "food": 55,
+          "water": 61,
+          "score": 620,
+          "kills": 24,
+          "cause": "Regreso a superficie",
+          "missionLock": true,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 271,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:28,1",
+              "fingerprint": "3|3:27,1|3:28,1|3:28,2",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 26,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 305,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:28,2",
+              "fingerprint": "3|3:28,1|3:28,2|3:28,3",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 17,
+                "y": 14,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 371,
+              "phase": "DESCEND",
+              "level": 3,
+              "position": "3:28,1",
+              "fingerprint": "3|3:27,1|3:28,1|3:28,2",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 24,
+                "y": 6,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 399,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:22,10",
+              "fingerprint": "4|4:22,10|4:23,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 38,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "frontera",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 474,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,10",
+              "fingerprint": "4|4:22,10|4:23,10|4:24,9",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 59,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 526,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:61,6",
+              "fingerprint": "4|4:60,7|4:61,6|4:61,7",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 13,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 0,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 608,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,10",
+              "fingerprint": "4|4:22,9|4:23,10|4:24,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 4,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 653,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,10",
+              "fingerprint": "4|4:22,10|4:23,10|4:24,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 18,
+                "y": 17,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 679,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,10",
+              "fingerprint": "4|4:22,10|4:23,10|4:24,10",
+              "occurrences": 2,
+              "escapeTarget": {
+                "x": 27,
+                "y": 17,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 723,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:23,10",
+              "fingerprint": "4|4:22,10|4:23,10|4:24,10",
+              "occurrences": 3,
+              "escapeTarget": {
+                "x": 36,
+                "y": 16,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 761,
+              "phase": "DESCEND",
+              "level": 4,
+              "position": "4:40,14",
+              "fingerprint": "4|4:39,14|4:39,15|4:40,14",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 39,
+                "y": 17,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 786,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:51,10",
+              "fingerprint": "5|5:50,11|5:51,10|5:52,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 39,
+                "y": 9,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 816,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:51,10",
+              "fingerprint": "5|5:50,9|5:51,10|5:52,10",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 30,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 851,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:26,8",
+              "fingerprint": "5|5:26,7|5:26,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 60,
+                "y": 13,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 901,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:51,10",
+              "fingerprint": "5|5:50,10|5:51,10|5:52,11",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 19,
+                "y": 9,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": 1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 960,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:26,8",
+              "fingerprint": "5|5:25,8|5:26,7|5:26,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 10,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 0,
+                "dy": 1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 993,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:13,7",
+              "fingerprint": "5|5:12,8|5:13,7|5:14,8",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 1,
+                "y": 10,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": -1
+              }
+            },
+            {
+              "type": "BREAK_LOOP",
+              "action": 1014,
+              "phase": "DESCEND",
+              "level": 5,
+              "position": "5:2,7",
+              "fingerprint": "5|5:1,8|5:2,7|5:3,7",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 25,
+                "y": 10,
+                "reason": "escalera_abajo"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "objeto",
+                "dx": -1,
+                "dy": 0
+              }
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 1039,
+              "phase": "ASCEND",
+              "level": 6,
+              "position": "6:36,6",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 1041,
+              "phase": "ASCEND",
+              "level": 5,
+              "position": "5:25,10",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 1088,
+              "phase": "ASCEND",
+              "level": 4,
+              "position": "4:39,17",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 1196,
+              "phase": "ASCEND",
+              "level": 3,
+              "position": "3:24,6",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 1210,
+              "phase": "ASCEND",
+              "level": 2,
+              "position": "2:9,15",
+              "reason": "regreso_prioritario"
+            },
+            {
+              "type": "MISSION_LOCK",
+              "action": 1233,
+              "phase": "ASCEND",
+              "level": 1,
+              "position": "1:34,9",
+              "reason": "regreso_prioritario"
+            }
+          ],
+          "playerLevel": 3,
+          "talents": {
+            "strength": 2,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 79,
+            "fullTurns": 1106,
+            "turnSamples": 1357,
+            "sizeSum": 9839,
+            "maxInventory": 8,
+            "pickups": {
+              "weapon": 2,
+              "water": 9,
+              "boots": 2,
+              "food": 3
+            },
+            "uses": {
+              "weapon": 1,
+              "boots": 3,
+              "water": 4,
+              "food": 2
+            },
+            "waste": {
+              "food": 0,
+              "water": 1
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        },
+        {
+          "seed": 12,
+          "profile": "explorer",
+          "goalDepth": 6,
+          "success": false,
+          "stuck": false,
+          "actions": 137,
+          "maxDepth": 2,
+          "finalLevel": 2,
+          "hp": -1,
+          "maxHp": 100,
+          "food": 87,
+          "water": 78,
+          "score": 185,
+          "kills": 5,
+          "cause": "Murciélago Alfa",
+          "missionLock": false,
+          "searchRecoveries": 0,
+          "searchRecoverySteps": 0,
+          "navigationEvents": [
+            {
+              "type": "BREAK_LOOP",
+              "action": 55,
+              "phase": "DESCEND",
+              "level": 1,
+              "position": "1:7,13",
+              "fingerprint": "1|1:6,13|1:7,13|1:8,13",
+              "occurrences": 1,
+              "escapeTarget": {
+                "x": 24,
+                "y": 12,
+                "reason": "frontera_alternativa"
+              },
+              "previous": {
+                "type": "MOVE",
+                "target": "escalera_abajo",
+                "dx": 1,
+                "dy": 0
+              }
+            }
+          ],
+          "playerLevel": 1,
+          "talents": {
+            "strength": 0,
+            "resilience": 0,
+            "speed": 0,
+            "ranged": 0
+          },
+          "metrics": {
+            "blockedPickups": 0,
+            "fullTurns": 0,
+            "turnSamples": 137,
+            "sizeSum": 236,
+            "maxInventory": 3,
+            "pickups": {
+              "boots": 1,
+              "water": 3,
+              "ring": 1
+            },
+            "uses": {
+              "boots": 1,
+              "ring": 1
+            },
+            "waste": {
+              "food": 0,
+              "water": 0
+            },
+            "spent": 0,
+            "falls": 0
+          }
+        }
+      ]
+    }
+  ]
+}

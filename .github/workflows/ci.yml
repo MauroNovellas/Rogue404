@@ -25,6 +25,12 @@ jobs:
         run: |
           node --check game.js
           node --check dev-tools.js
+          node --check autoplayer.js
+          node --check autoplayer-profiles.js
+          node --check autoplayer-navigation.js
+          node --check autoplayer-mission.js
+          node --check autoplayer-audit.js
+          node --check autoplayer-audit-1.2.js
 
       - name: PHP syntax
         run: php -l rogue_api.php
@@ -32,8 +38,47 @@ jobs:
       - name: Score JSON validity
         run: python3 -m json.tool rogue_scores.json >/dev/null
 
+      - name: Real PHP score storage and concurrency
+        run: node tests/score-api.test.cjs
+
+      - name: Target selection, stair memory and score confirmations
+        run: node tests/targeting-scores.test.cjs
+
       - name: Structural regression guards
         run: node tests/structure.test.cjs
 
+      - name: Dungeon generation and connectivity
+        run: node tests/map-generation.test.cjs
+
       - name: Gameplay regression tests
         run: node tests/regression.test.cjs
+
+      - name: Interface and held movement tests
+        run: node tests/interface.test.cjs
+
+      - name: Ground inspection, direct swaps and discovery order
+        run: node tests/ground-inspection.test.cjs
+
+      - name: Relic effects and accessory equipment
+        run: node tests/relics-accessories.test.cjs
+
+      - name: Balance, persistence, routes and economy
+        run: node tests/balance.test.cjs
+
+      - name: Character progression and ranged combat
+        run: node tests/progression.test.cjs
+
+      - name: AutoPlayer profile tests
+        run: node tests/autoplayer-profiles.test.cjs
+
+      - name: AutoPlayer navigation tests
+        run: node tests/autoplayer-navigation.test.cjs
+
+      - name: AutoPlayer mission tests
+        run: node tests/autoplayer-mission.test.cjs
+
+      - name: AutoPlayer audit tests
+        run: node tests/autoplayer-audit.test.cjs
+
+      - name: AutoPlayer audit 1.2 tests
+        run: node tests/autoplayer-audit-1.2.test.cjs
