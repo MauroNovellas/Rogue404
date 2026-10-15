@@ -35,7 +35,7 @@ test('la ficha muestra arma, calidad, ataque y precio reales, o huecos vacíos',
     assert.equal(info.quality, 'ÉPICO');
     assert.equal(info.power, 'ATK +7');
     const props = Object.fromEntries(info.properties);
-    assert.equal(props['Ataque base + arma'], '10');
+    assert.equal(props['Ataque total con accesorios'], '10');
     assert.equal(props['Precio de compra'], '200 oro');
     assert.equal(props['Efectos especiales'], 'Ninguno');
 });
@@ -60,7 +60,7 @@ test('O abre equipo desde la mochila y regresa sin consumir turnos', () => {
     const moves = h.GameState.moves;
     h.emit('keydown', 'o');
     assert.equal(h.GameState.current, h.STATE_ENUM.EQUIPMENT);
-    assert.equal(h.elements.get('equipment-grid').children.length, 2);
+    assert.equal(h.elements.get('equipment-grid').children.length, 4);
     h.emit('keydown', 'Escape');
     assert.equal(h.GameState.current, h.STATE_ENUM.INVENTORY);
     assert.equal(h.GameState.moves, moves);

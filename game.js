@@ -84,6 +84,20 @@ const CONFIG = {
         speed: { name: 'Velocidad', symbol: '»', initiative: 0.15, maxRank: 3 },
         ranged: { name: 'Dardo arcano', symbol: '*', damage: 2, baseRange: 3, maxRank: 5 }
     },
+    EQUIPMENT_SLOTS: {
+        weapon: { label: 'Arma', symbol: '!', empty: 'Puños' },
+        armor: { label: 'Armadura', symbol: ']', empty: 'Ropa' },
+        boots: { label: 'Botas', symbol: '}', empty: 'Sin botas' },
+        ring: { label: 'Anillo', symbol: 'o', empty: 'Sin anillo' }
+    },
+    ACCESSORIES: [
+        { id: 'LIGHT_BOOTS', type: 'boots', name: 'Botas del caminante', symbol: '}', color: '#c9b281', price: 160, traits: { initiativeBonus: 0.10 } },
+        { id: 'ROCK_BOOTS', type: 'boots', name: 'Botas de roca', symbol: '}', color: '#d7a56d', price: 140, traits: { fallDamageResist: 0.25 } },
+        { id: 'ASH_BOOTS', type: 'boots', name: 'Botas de ceniza', symbol: '}', color: '#ffb347', price: 180, traits: { heatResist: 0.5, thirstResist: 0.35 } },
+        { id: 'FORCE_RING', type: 'ring', name: 'Anillo de fuerza', symbol: 'o', color: '#ff9b80', price: 180, traits: { attackBonus: 1 } },
+        { id: 'GUARD_RING', type: 'ring', name: 'Anillo del guardián', symbol: 'o', color: '#8adfff', price: 180, traits: { defenseBonus: 1 } },
+        { id: 'ECHO_RING', type: 'ring', name: 'Anillo del eco arcano', symbol: 'o', color: '#b48cff', price: 180, traits: { rangedDamageBonus: 2 } }
+    ],
     COMBAT: {
         variability: 0.2, critChance: 0.10, critMult: 1.5, baseWeaponVal: 2, baseArmorVal: 1,
         // Configuración de Habilidades
@@ -116,9 +130,9 @@ const CONFIG = {
         items: { foodChance: 0.4, drinkChance: 0.5, foodRestore: 40, drinkRestore: 30 },
         chests: { spawnChance: 0.3, minPerLevel: 1, trapChance: 0.15, trapDmg: 15, relicChance: 0.08, colors: { closed: '#DAA520', open: '#555' } },
         relics: [
-            { id: 'BLOOD_CHALICE', name: 'Caliz de Sangre', color: '#ff3355', effect: 'heal', heal: 35, foodCost: 12, waterCost: 8, lore: 'Cura mucho, pero acelera el hambre y la sed.' },
-            { id: 'ECHO_BELL', name: 'Campana Hueca', color: '#b48cff', effect: 'stun', energyDrain: 1.5, lore: 'Aturde enemigos visibles; despierta lo que duerme.' },
-            { id: 'WARD_STONE', name: 'Piedra de Guardia', color: '#66d9ef', effect: 'guard', shieldBonus: 2, waterCost: 10, lore: 'Refuerza tu defensa y carga el siguiente golpe.' }
+            { id: 'BLOOD_CHALICE', name: 'Cáliz de Sangre', color: '#ff3355', effect: 'heal', heal: 35, foodCost: 12, waterCost: 8, lore: 'Una vida prestada exige alimento y agua a cambio.' },
+            { id: 'ECHO_BELL', name: 'Campana Hueca', color: '#b48cff', effect: 'stun', stunTurns: 2, lore: 'Su tañido rompe el ritmo de quienes lo escuchan.' },
+            { id: 'WARD_STONE', name: 'Piedra de Guardia', color: '#66d9ef', effect: 'guard', shieldBonus: 3, turns: 3, strikeBonus: 2, waterCost: 10, lore: 'Un juramento tallado en piedra protege a su portador.' }
         ],
         shops: {
             levels: [3, 6, 9, 12], priceMultiplier: 1.0, sellMultiplier: 0.5,
@@ -154,11 +168,12 @@ const GameState = {
         x: 0, y: 0, hp: 0, maxHp: 0, food: 0, water: 0,
         level: 1, xp: 0, nextXp: 0, baseAtk: 0,
         talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
-        inventory: [], equipment: { weapon: null, armor: null },
+        inventory: [], equipment: { weapon: null, armor: null, boots: null, ring: null },
         stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
         combat: {
             isDefending: false,
             waitBonus: 0,
+            wardTurns: 0, wardDefense: 0, wardStrike: 0,
             cooldowns: { area: 0, ranged: 0 },
             pendingAttack: null
         }
@@ -261,6 +276,37 @@ const Utils = {
         if (newValue < 1) newValue = 1;
         let tier = CONFIG.VARIANCE.tiers.find(t => multiplier <= t.threshold) || CONFIG.VARIANCE.tiers[CONFIG.VARIANCE.tiers.length - 1];
         return { value: newValue, label: tier.label, color: tier.color, multiplier: multiplier };
+    }
+};
+
+// Propiedades permanentes del equipo. Las resistencias se combinan sin sumar inmunidades.
+const EquipmentSystem = {
+    slots: () => Object.keys(CONFIG.EQUIPMENT_SLOTS),
+    isEquipment: (item) => Boolean(item && Object.hasOwn(CONFIG.EQUIPMENT_SLOTS, item.type)),
+    traits: (equipment = GameState.player.equipment) => {
+        const result = {};
+        for (const slot of EquipmentSystem.slots()) {
+            for (const [key, value] of Object.entries(equipment[slot]?.traits || {})) {
+                if (typeof value === 'boolean') result[key] = Boolean(result[key] || value);
+                else if (Number.isFinite(value)) {
+                    if (key.endsWith('Resist')) result[key] = 1 - (1 - (result[key] || 0)) * (1 - Math.max(0, Math.min(1, value)));
+                    else if (key.endsWith('RestHeal')) result[key] = Math.max(result[key] || 0, value);
+                    else result[key] = (result[key] || 0) + value;
+                }
+            }
+        }
+        return result;
+    },
+    stats: (equipment = GameState.player.equipment) => {
+        const traits = EquipmentSystem.traits(equipment);
+        const baseAttack = GameState.player.baseAtk + (traits.attackBonus || 0);
+        return {
+            baseAttack,
+            attack: baseAttack + (Number(equipment.weapon?.value) || 0),
+            defense: ProgressionSystem.defense() + (Number(equipment.armor?.value) || 0) + (traits.defenseBonus || 0),
+            speedMultiplier: 1 + ProgressionSystem.rank('speed') * CONFIG.PROGRESSION.speed.initiative + (traits.initiativeBonus || 0),
+            rangedDamage: baseAttack + ProgressionSystem.rank('ranged') * CONFIG.PROGRESSION.ranged.damage + (traits.rangedDamageBonus || 0)
+        };
     }
 };
 
@@ -473,10 +519,7 @@ const FloorSystem = {
     isFrozenVaultTile: (x, y) => FloorSystem.is('FROZEN') && FloorSystem.isRiskZoneTile(x, y, 'FROZEN_VAULT'),
     isMagmaFumaroleTile: (x, y) => FloorSystem.is('MAGMA') && FloorSystem.isRiskZoneTile(x, y, 'MAGMA_FUMAROLE'),
     isUnstableRiftTile: (x, y) => FloorSystem.is('UNSTABLE') && FloorSystem.isRiskZoneTile(x, y, 'UNSTABLE_RIFT'),
-    armorTraits: () => {
-        const armor = GameState.player.equipment.armor;
-        return armor && armor.traits ? armor.traits : {};
-    },
+    armorTraits: () => EquipmentSystem.traits(),
     slipChance: () => {
         if (!FloorSystem.is('FROZEN')) return 0;
         const config = CONFIG.FLOORS.FROZEN;
@@ -645,10 +688,10 @@ const FloorSystem = {
         const hpLoss = FloorSystem.fallHpLoss();
         const itemsToScatter = [...GameState.player.inventory];
         if (!keepEquipped) {
-            if (GameState.player.equipment.weapon) itemsToScatter.push(GameState.player.equipment.weapon);
-            if (GameState.player.equipment.armor) itemsToScatter.push(GameState.player.equipment.armor);
-            GameState.player.equipment.weapon = null;
-            GameState.player.equipment.armor = null;
+            EquipmentSystem.slots().forEach(slot => {
+                if (GameState.player.equipment[slot]) itemsToScatter.push(GameState.player.equipment[slot]);
+                GameState.player.equipment[slot] = null;
+            });
         }
         GameState.player.inventory = [];
 
@@ -742,7 +785,7 @@ const Network = {
         }
         const runId = GameState.runId;
         const killsStr = Object.entries(GameState.player.stats.kills).map(([k, v]) => `${v} ${k}`).join(', ') || 'Ninguna';
-        const gearStr = `Arma: ${GameState.player.stats.maxWeapon.name} | Malla: ${GameState.player.stats.maxArmor.name}`;
+        const gearStr = UISystem.expeditionGear();
 
         Network.isSaving = true;
         Network.setSaveButtons(true, 'Guardando…');
@@ -831,7 +874,7 @@ const MapSystem = {
             const stairs = ['descending', 'start'].includes(GameState.entryMethod) ? GameState.stairs.up : GameState.stairs.down;
             GameState.player.x = stairs.x; GameState.player.y = stairs.y;
         }
-        GameState.player.combat = { isDefending: false, waitBonus: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null };
+        GameState.player.combat = { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null };
         GameState.ui.rangedTarget = null;
         MapSystem.updateFog(); Renderer.draw(); UISystem.updateHUD();
         Utils.log(`Profundidad -${GameState.level}`, "#fff");
@@ -996,6 +1039,14 @@ const EntityFactory = {
                 isOpen: MapSystem.isTaken(chestKey)
             });
         }
+        // Un accesorio por planta; posición y modelo se regeneran con la misma semilla.
+        const accessoryType = GameState.level % 2 ? 'boots' : 'ring';
+        const candidates = CONFIG.ACCESSORIES.filter(item => item.type === accessoryType);
+        const definition = candidates[GameState.level <= 2 ? 0 : Math.floor(Utils.random() * candidates.length)];
+        const accessoryPos = EntityFactory.getEmptyPos();
+        if (accessoryPos && !MapSystem.isTaken(accessoryPos.x, accessoryPos.y)) {
+            GameState.entities.items.push(EntityFactory.createAccessoryItem(definition, accessoryPos));
+        }
     },
     spawnRiskReward: () => {
         const zone = GameState.floor.riskZone;
@@ -1048,11 +1099,11 @@ const EntityFactory = {
             GameState.entities.items.push({
                 x: pos.x,
                 y: pos.y,
-                type: 'armor',
+                type: 'boots',
                 specialId: 'FROZEN_CRAMPONS',
-                name: 'Arnés polar con crampones',
-                value: 1,
-                symbol: ']',
+                name: 'Botas polares con crampones',
+                value: 0,
+                symbol: '}',
                 color: '#8adfff',
                 qualityColor: '#bdefff',
                 traits: { slipResist: 0.75, frozenRestHeal: 1 }
@@ -1119,9 +1170,14 @@ const EntityFactory = {
         let v = Utils.applyVariance(baseVal);
         GameState.entities.items.push({ x: pos.x, y: pos.y, type: type, name: `${baseName} [${v.label}]`, value: v.value, qualityColor: v.color, symbol: symbol, color: color });
     },
-    createRelicItem: (pos) => {
+    createAccessoryItem: (definition, pos = {}) => ({
+        ...pos, type: definition.type, gearId: definition.id, name: definition.name,
+        value: 0, symbol: definition.symbol, color: definition.color,
+        qualityColor: definition.color, traits: { ...definition.traits }
+    }),
+    createRelicItem: (pos, relicId = null) => {
         const relics = CONFIG.ENTITIES.relics;
-        const relic = relics[Math.floor(Utils.random() * relics.length)];
+        const relic = relics.find(candidate => candidate.id === relicId) || relics[Math.floor(Utils.random() * relics.length)];
         GameState.entities.items.push({
             x: pos.x, y: pos.y,
             type: 'relic',
@@ -1175,9 +1231,9 @@ const ProgressionSystem = {
     focus: null,
     rank: (id) => Math.max(0, Number(GameState.player.talents?.[id]) || 0),
     defense: () => ProgressionSystem.rank('resilience') * CONFIG.PROGRESSION.resilience.defense,
-    speedMultiplier: () => 1 + ProgressionSystem.rank('speed') * CONFIG.PROGRESSION.speed.initiative,
+    speedMultiplier: () => EquipmentSystem.stats().speedMultiplier,
     rangedRange: () => ProgressionSystem.rank('ranged') > 0 ? CONFIG.PROGRESSION.ranged.baseRange + ProgressionSystem.rank('ranged') : 0,
-    rangedDamage: () => GameState.player.baseAtk + ProgressionSystem.rank('ranged') * CONFIG.PROGRESSION.ranged.damage,
+    rangedDamage: () => EquipmentSystem.stats().rangedDamage,
     options: () => Object.entries(CONFIG.PROGRESSION).map(([id, definition]) => {
         const rank = ProgressionSystem.rank(id);
         let description, effect;
@@ -1290,8 +1346,8 @@ const GameLogic = {
             ...GameState.player, hp: pConf.startHP, maxHp: pConf.startHP, food: pConf.startFood, water: pConf.startWater,
             level: 1, xp: 0, nextXp: pConf.leveling.baseXp, baseAtk: pConf.baseAtk, inventory: [],
             talentPoints: 0, talents: { strength: 0, resilience: 0, speed: 0, ranged: 0 },
-            equipment: { weapon: null, armor: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
-            combat: { isDefending: false, waitBonus: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null }
+            equipment: { weapon: null, armor: null, boots: null, ring: null }, stats: { kills: {}, maxWeapon: {val:0, name:'Nada'}, maxArmor: {val:0, name:'Nada'} },
+            combat: { isDefending: false, waitBonus: 0, wardTurns: 0, wardDefense: 0, wardStrike: 0, cooldowns: { area: 0, ranged: 0 }, pendingAttack: null }
         };
         GameState.persistence = {}; GameState.knownStairs = {}; GameState.shopStocks = {}; GameState.recoveryDrops = {}; GameState.recoveryDropSeq = 0; GameState.discoveredTypes.clear(); Renderer.resetLegend();
         MapSystem.initLevel();
@@ -1316,6 +1372,10 @@ const GameLogic = {
 
         // Defender cubre únicamente la respuesta enemiga del turno actual.
         GameState.player.combat.isDefending = false;
+        if (GameState.player.combat.wardTurns > 0 && --GameState.player.combat.wardTurns === 0) {
+            GameState.player.combat.wardDefense = 0;
+            Utils.log(`La protección de la piedra termina.${GameState.player.combat.wardStrike > 0 ? ' El golpe cargado se conserva hasta acertar o cambiar de planta.' : ''}`, '#66d9ef');
+        }
         GameLogic.processSurvival();
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
 
@@ -1455,6 +1515,7 @@ const GameLogic = {
 
         GameState.entities.enemies.forEach(e => {
             e.tookDamage = false; 
+            if (e.relicStun > 0) { e.relicStun--; e._trollPressurePrimed = false; return; }
             let dist = Math.max(Math.abs(GameState.player.x - e.x), Math.abs(GameState.player.y - e.y));
             if (e.isSleeping) { if (dist <= 3) { e.isSleeping = false; Utils.log(`${e.name} despierta!`, "#ff8800"); } else { if(e.hp < e.maxHp && Utils.random() < 0.1) e.hp++; return; } }
             
@@ -1876,9 +1937,17 @@ const GameLogic = {
             { kind: 'water', name: 'Cantimplora llena', detail: `+${CONFIG.ENTITIES.items.drinkRestore + 10} agua`, color: '#00ffff' },
             { kind: 'weapon', name: 'Arma rara', detail: `ATK +${CONFIG.COMBAT.baseWeaponVal + GameState.level}`, color: '#ff00ff' },
             { kind: 'armor', name: 'Malla rara', detail: `DEF +${CONFIG.COMBAT.baseArmorVal + GameState.level}`, color: '#4682b4' },
-            { kind: 'relic', name: 'Reliquia maldita', detail: 'Poder único · coste oculto', color: '#b48cff' },
+            { kind: 'relic', name: 'Reliquia de un uso', detail: 'Consulta efecto y coste en la mochila antes de invocarla', color: '#b48cff' },
             { kind: 'gold', name: 'Bolsa de oro', detail: '+75 oro', color: '#ffd700' }
         ];
+        for (const type of ['boots', 'ring']) {
+            const candidates = CONFIG.ACCESSORIES.filter(item => item.type === type);
+            const definition = candidates[Math.floor(Utils.random() * candidates.length)];
+            options.push({ kind: type, gearId: definition.id, name: definition.name, detail: UISystem.traitSummary(definition), color: definition.color });
+        }
+        const relic = CONFIG.ENTITIES.relics[Math.floor(Utils.random() * CONFIG.ENTITIES.relics.length)];
+        const relicOption = options.find(option => option.kind === 'relic');
+        Object.assign(relicOption, { relicId: relic.id, name: relic.name, detail: InventorySystem.relicPreview({ relicId: relic.id }).effect + ' · un uso', color: relic.color });
         const firstIndex = Math.min(options.length - 1, Math.floor(Utils.random() * options.length));
         const secondOffset = 1 + Math.floor(Utils.random() * (options.length - 1));
         const first = options[firstIndex];
@@ -1894,8 +1963,12 @@ const GameLogic = {
             GameState.score += 75;
             Utils.log('Eliges la bolsa y recoges 75 de oro.', reward.color);
         } else if (reward.kind === 'relic') {
-            EntityFactory.createRelicItem({ x: 0, y: 0 });
+            EntityFactory.createRelicItem({ x: 0, y: 0 }, reward.relicId);
             InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
+        } else if (reward.kind === 'boots' || reward.kind === 'ring') {
+            const definition = CONFIG.ACCESSORIES.find(item => item.id === reward.gearId);
+            if (!definition) return;
+            InventorySystem.pickup(EntityFactory.createAccessoryItem(definition), -1, -1, -1, true);
         } else if (reward.kind === 'food') {
             EntityFactory.createSmartItem({ x: 0, y: 0 }, 'food', CONFIG.ENTITIES.items.foodRestore + 10, 'Ración reforzada', '%', reward.color);
             InventorySystem.pickup(GameState.entities.items.pop(), -1, -1, -1, true);
@@ -2042,7 +2115,7 @@ const CombatSystem = {
         GameState.player.combat.waitBonus = 0; GameState.player.combat.isDefending = false;
         StateController.change(STATE_ENUM.PLAYING);
         GameState.player.combat.cooldowns.ranged = CONFIG.COMBAT.ranged.cooldown + 1;
-        CombatSystem.applyDamage(GameState.entities.enemies.indexOf(target), 'ranged', bonus);
+        CombatSystem.applyDamage(GameState.entities.enemies.indexOf(target), 'ranged', bonus + CombatSystem.consumeWardStrike());
         VisualFX.floatText(GameState.player.x, GameState.player.y, '* DARDO', '#8fcbd6');
         GameLogic.endTurn(true);
         return true;
@@ -2072,12 +2145,12 @@ const CombatSystem = {
         // [FIX] Guardamos la referencia porque si muere, el índice cambia
         let targetEnemy = GameState.entities.enemies[enemyIdx];
 
-        CombatSystem.applyDamage(enemyIdx, type, bonusDmg);
+        CombatSystem.applyDamage(enemyIdx, type, bonusDmg + CombatSystem.consumeWardStrike());
         
         if (type === 'savage') {
              // Usamos la referencia guardada para verificar vida
              if (targetEnemy && targetEnemy.hp > 0) {
-                 Utils.log("¡El ataque salvaje provoca un contraataque!", "#fa0");
+                 Utils.log(targetEnemy.relicStun > 0 ? 'El aturdimiento impide el contraataque.' : '¡El ataque salvaje provoca un contraataque!', '#fa0');
                  CombatSystem.enemyAttack(targetEnemy);
              }
         }
@@ -2085,6 +2158,11 @@ const CombatSystem = {
         GameLogic.endTurn(true);
     },
 
+    consumeWardStrike: () => {
+        const bonus = GameState.player.combat.wardStrike || 0;
+        GameState.player.combat.wardStrike = 0;
+        return bonus;
+    },
     applyDamage: (enemyIdx, type, bonus) => {
         let e = GameState.entities.enemies[enemyIdx];
         if (!e) return;
@@ -2093,8 +2171,7 @@ const CombatSystem = {
         if (e.isSleeping) { e.isSleeping = false; Utils.log(`¡${e.name} despierta!`, "#fa0"); }
 
         let conf = CONFIG.COMBAT[type];
-        let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
-        let baseDmg = (type === 'ranged' ? ProgressionSystem.rangedDamage() : GameState.player.baseAtk + weaponVal) + bonus;
+        let baseDmg = (type === 'ranged' ? ProgressionSystem.rangedDamage() : EquipmentSystem.stats().attack) + bonus;
 
         baseDmg = Math.floor(baseDmg * conf.dmgMult);
 
@@ -2166,13 +2243,15 @@ const CombatSystem = {
 
         const dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
         let hit = false;
+        let wardBonus = 0;
 
         dirs.forEach(d => {
             let ex = GameState.player.x + d[0];
             let ey = GameState.player.y + d[1];
             let idx = GameState.entities.enemies.findIndex(e => e.x === ex && e.y === ey);
             if (idx !== -1) {
-                CombatSystem.applyDamage(idx, 'area', 0);
+                if (!hit) wardBonus = CombatSystem.consumeWardStrike();
+                CombatSystem.applyDamage(idx, 'area', wardBonus);
                 hit = true;
             }
         });
@@ -2195,8 +2274,7 @@ const CombatSystem = {
     bumpAttack: (enemy) => {
         if (!enemy) return;
 
-        let weaponVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0;
-        let baseDmg = GameState.player.baseAtk + weaponVal;
+        let baseDmg = EquipmentSystem.stats().attack + CombatSystem.consumeWardStrike();
 
         // Bump es decente pero no tan fuerte como un ataque especial
         let finalDmg = Math.max(1, Math.round(baseDmg * 0.9 + Utils.random() * 2));
@@ -2228,9 +2306,10 @@ const CombatSystem = {
 
     enemyAttack: (e) => {
         if (GameState.current === STATE_ENUM.GAMEOVER) return;
+        if (e.relicStun > 0) { e._rogueSavageCounterPending = false; return; }
         const isSavageCounter = Boolean(e && e._rogueSavageCounterPending);
 
-        let armorVal = ProgressionSystem.defense() + (GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0);
+        let armorVal = EquipmentSystem.stats().defense + (GameState.player.combat.wardTurns > 0 ? GameState.player.combat.wardDefense || 0 : 0);
         if (GameState.player.combat.isDefending) {
             armorVal = Math.floor((armorVal + 2) * CONFIG.COMBAT.defend.defMult);
         }
@@ -2272,6 +2351,35 @@ const CombatSystem = {
 // ============================================================================
 const InventorySystem = {
     relicDef: (item) => CONFIG.ENTITIES.relics.find(relic => relic.id === item.relicId) || null,
+    relicPreview: (item) => {
+        const relic = InventorySystem.relicDef(item);
+        if (!relic) return { canUse: false, reason: 'Reliquia desconocida.', effect: 'Sin efecto conocido', cost: '—', duration: '—', advice: '' };
+        const player = GameState.player;
+        const cost = [[relic.foodCost, 'comida'], [relic.waterCost, 'agua']]
+            .filter(([amount]) => amount > 0).map(([amount, resource]) => `${amount} ${resource}`).join(' + ') || 'Sin coste de comida ni agua';
+        const preview = { canUse: true, reason: '', cost, duration: 'Un uso · consume un turno', advice: '' };
+        if (relic.effect === 'heal') {
+            preview.heal = Math.max(relic.heal, Math.ceil(player.maxHp * 0.35));
+            preview.effect = `Cura hasta ${preview.heal} vida (ahora: ${Math.max(0, Math.min(preview.heal, player.maxHp - player.hp))})`;
+            preview.advice = 'Para recuperarte antes de un combate. Escala con tu vida máxima; no sustituye la comida ni el agua.';
+            if (player.hp >= player.maxHp) preview.reason = 'Ya tienes toda la vida: no se consume.';
+        } else if (relic.effect === 'stun') {
+            const targets = GameState.entities.enemies.filter(enemy => GameState.visible[enemy.y]?.[enemy.x]);
+            preview.effect = `Impide actuar a todos los enemigos visibles (${targets.length} ahora)`;
+            preview.duration += ` · ${relic.stunTurns} respuestas enemigas, incluida la invocación`;
+            preview.advice = 'Invoca para romper un cerco o un rugido y ganar una acción libre para huir o atacar. No afecta a enemigos fuera de tu visión.';
+            if (!targets.length) preview.reason = 'No hay enemigos visibles: no se consume.';
+        } else if (relic.effect === 'guard') {
+            preview.effect = `+${relic.shieldBonus} defensa y +${relic.strikeBonus} potencia al próximo ataque que acierte`;
+            preview.duration += ` · defensa: ${relic.turns} respuestas, incluida la invocación`;
+            preview.advice = 'Para entrar en una pelea o resistir varios ataques. Caminar no borra la carga; esta dura hasta acertar o cambiar de planta. El daño varía según el ataque.';
+            if (player.combat.wardTurns > 0 || player.combat.wardStrike > 0) preview.reason = 'Ya tienes una protección o un golpe cargado de esta piedra: no se consume.';
+        }
+        if (player.food < (relic.foodCost || 0) || player.water < (relic.waterCost || 0)) preview.reason = 'No tienes reservas suficientes para pagar el coste.';
+        preview.canUse = !preview.reason;
+        if (preview.canUse && (player.food === relic.foodCost || player.water === relic.waterCost)) preview.advice += ' Atención: el coste agotará una reserva y la supervivencia se resuelve al terminar el turno.';
+        return preview;
+    },
     pickup: (item, arrIndex, x, y, forced = false) => {
         if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) {
             Utils.log('¡Mochila llena!', '#f00');
@@ -2305,19 +2413,23 @@ const InventorySystem = {
     },
     executeAction: () => {
         const actions = GameState.ui.currentActions; const selectedAction = actions[GameState.ui.actionIndex]; const itemIdx = GameState.ui.inventoryIndex;
+        if (!selectedAction || selectedAction.disabled) return;
         if (selectedAction.code === 'USE') InventorySystem.useItem(itemIdx); else if (selectedAction.code === 'DROP') InventorySystem.dropItem(itemIdx);
+        else if (selectedAction.code === 'CANCEL') InventorySystem.closeActionMenu();
     },
     useRelic: (item) => {
         const relic = InventorySystem.relicDef(item);
         if (!relic) return false;
+        const preview = InventorySystem.relicPreview(item);
+        if (!preview.canUse) { Utils.log(preview.reason, '#d7a56d'); return false; }
 
         if (relic.effect === 'heal') {
             const before = GameState.player.hp;
-            GameState.player.hp = Math.min(GameState.player.maxHp, GameState.player.hp + relic.heal);
+            GameState.player.hp = Math.min(GameState.player.maxHp, GameState.player.hp + preview.heal);
             GameState.player.food = Math.max(0, GameState.player.food - (relic.foodCost || 0));
             GameState.player.water = Math.max(0, GameState.player.water - (relic.waterCost || 0));
             const healed = GameState.player.hp - before;
-            Utils.log(`${relic.name}: recuperas ${healed} HP, pero el cuerpo paga el precio.`, relic.color);
+            Utils.log(`${relic.name}: +${healed} vida · -${relic.foodCost} comida · -${relic.waterCost} agua. Se consume.`, relic.color);
             VisualFX.floatText(GameState.player.x, GameState.player.y, `+${healed} HP`, relic.color, 'pickup');
             return true;
         }
@@ -2327,22 +2439,21 @@ const InventorySystem = {
             GameState.entities.enemies.forEach(enemy => {
                 const visible = GameState.visible[enemy.y] && GameState.visible[enemy.y][enemy.x];
                 if (visible) {
-                    enemy.energy = Math.min(enemy.energy || 0, -Math.max(0.5, relic.energyDrain || 1));
+                    enemy.relicStun = Math.max(enemy.relicStun || 0, relic.stunTurns);
                     enemy._trollPressurePrimed = false;
+                    enemy.isSleeping = false;
                     affected++;
                     VisualFX.floatText(enemy.x, enemy.y, '¡ECO!', relic.color);
                 }
-                enemy.isSleeping = false;
             });
-            Utils.log(`${relic.name}: ${affected || 'ningun'} enemigo visible queda desorientado.`, relic.color);
+            Utils.log(`${relic.name}: ${affected} enemigo(s) sin actuar durante ${relic.stunTurns} respuestas, incluida esta. Se consume.`, relic.color);
             return true;
         }
 
         if (relic.effect === 'guard') {
-            GameState.player.combat.isDefending = true;
-            GameState.player.combat.waitBonus += relic.shieldBonus || 0;
+            Object.assign(GameState.player.combat, { wardTurns: relic.turns, wardDefense: relic.shieldBonus, wardStrike: relic.strikeBonus });
             GameState.player.water = Math.max(0, GameState.player.water - (relic.waterCost || 0));
-            Utils.log(`${relic.name}: adoptas una guardia ritual y cargas el golpe.`, relic.color);
+            Utils.log(`${relic.name}: +${relic.shieldBonus} defensa durante ${relic.turns} respuestas y próximo ataque +${relic.strikeBonus} potencia · -${relic.waterCost} agua. Se consume.`, relic.color);
             VisualFX.floatText(GameState.player.x, GameState.player.y, 'GUARDIA', relic.color, 'pickup');
             return true;
         }
@@ -2351,17 +2462,14 @@ const InventorySystem = {
     },
     useItem: (idx) => {
         let item = GameState.player.inventory[idx]; let consumed = false;
+        if (!item) return;
         if (item.type === 'food') { GameState.player.food = Math.min(GameState.player.food + item.value, 100); Utils.log(`Comes ${item.name}`, "#fa0"); consumed = true; }
         else if (item.type === 'water') { GameState.player.water = Math.min(GameState.player.water + item.value, 100); Utils.log(`Bebes ${item.name}`, "#0ff"); consumed = true; }
-        else if (item.type === 'weapon') {
-            let old = GameState.player.equipment.weapon; GameState.player.equipment.weapon = item;
-            if (item.value > GameState.player.stats.maxWeapon.val) GameState.player.stats.maxWeapon = {name: item.name, val: item.value};
-            Utils.log(`Equipas ${item.name}`, "#f0f"); consumed = true;
-            if(old) GameState.player.inventory.push(old);
-        } else if (item.type === 'armor') {
-            let old = GameState.player.equipment.armor; GameState.player.equipment.armor = item;
-            if (item.value > GameState.player.stats.maxArmor.val) GameState.player.stats.maxArmor = {name: item.name, val: item.value};
-            Utils.log(`Vistes ${item.name}`, "#468"); consumed = true;
+        else if (EquipmentSystem.isEquipment(item)) {
+            let old = GameState.player.equipment[item.type]; GameState.player.equipment[item.type] = item;
+            const statKey = item.type === 'weapon' ? 'maxWeapon' : item.type === 'armor' ? 'maxArmor' : null;
+            if (statKey && item.value > GameState.player.stats[statKey].val) GameState.player.stats[statKey] = {name: item.name, val: item.value};
+            Utils.log(`Equipas ${item.name} · ${UISystem.traitSummary(item)}`, item.color || '#cfb477'); consumed = true;
             if(old) GameState.player.inventory.push(old);
         } else if (item.type === 'relic') {
             consumed = InventorySystem.useRelic(item);
@@ -2371,6 +2479,7 @@ const InventorySystem = {
             InventorySystem.closeActionMenu(); 
             UISystem.updateHUD();
             GameLogic.endTurn(true); 
+            if (GameState.current === STATE_ENUM.INVENTORY) UISystem.renderInventory();
         }
     },
     dropItem: (idx) => {
@@ -2384,12 +2493,23 @@ const InventorySystem = {
         Renderer.draw();
         GameLogic.endTurn(true);
     },
+    unequip: (slot) => {
+        if (GameState.current !== STATE_ENUM.EQUIPMENT || !EquipmentSystem.slots().includes(slot)) return false;
+        const item = GameState.player.equipment[slot];
+        if (!item) return false;
+        if (GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize) { Utils.log('Necesitas un hueco en la mochila para quitarte esa pieza.', '#d7a56d'); return false; }
+        GameState.player.inventory.push(item); GameState.player.equipment[slot] = null;
+        Utils.log(`Guardas ${item.name} en la mochila.`, '#cfb477');
+        GameLogic.endTurn(true); UISystem.renderEquipment(); UISystem.updateHUD();
+        return true;
+    },
     openActionMenu: () => {
         if (GameState.ui.inventoryIndex >= GameState.player.inventory.length) return;
         GameState.ui.actionMenuOpen = true; GameState.ui.actionIndex = 0;
         UISystem.renderActionMenu(GameState.player.inventory[GameState.ui.inventoryIndex]);
+        DOM.menus.action.focus();
     },
-    closeActionMenu: () => { GameState.ui.actionMenuOpen = false; DOM.menus.action.classList.add('hidden'); UISystem.renderInventory(); }
+    closeActionMenu: () => { GameState.ui.actionMenuOpen = false; DOM.menus.action.classList.add('hidden'); UISystem.renderInventory(); DOM.menus.inventory.focus(); }
 };
 
 const ShopSystem = {
@@ -2398,7 +2518,7 @@ const ShopSystem = {
         const tier = (GameState.level / 3) - 1;
         const priceMult = CONFIG.ENTITIES.shops.priceMultiplier * Math.pow(4, tier);
         const powerMult = Math.pow(2, tier);
-        return CONFIG.ENTITIES.shops.inventory.map(baseItem => {
+        const stock = CONFIG.ENTITIES.shops.inventory.map(baseItem => {
             const variance = Utils.applyVariance(baseItem.value);
             const finalVal = Math.floor(variance.value * powerMult);
             const finalPrice = Math.floor(baseItem.price * priceMult * variance.multiplier);
@@ -2410,6 +2530,12 @@ const ShopSystem = {
                 qualityColor: variance.color
             };
         });
+        for (const type of ['boots', 'ring']) {
+            const candidates = CONFIG.ACCESSORIES.filter(item => item.type === type);
+            const definition = candidates[Math.floor(Utils.random() * candidates.length)];
+            stock.push({ ...EntityFactory.createAccessoryItem(definition), icon: definition.symbol, price: Math.floor(definition.price * priceMult) });
+        }
+        return stock;
     },
     getStock: () => {
         const key = ShopSystem.stockKey();
@@ -2425,6 +2551,8 @@ const ShopSystem = {
     estimateValue: (item) => {
         if (!item) return 0;
         if (Number.isFinite(item.buyPrice) && item.buyPrice > 0) return Math.round(item.buyPrice);
+        if (item.type === 'relic') return 80;
+        if (item.type === 'boots' || item.type === 'ring') return CONFIG.ACCESSORIES.find(definition => definition.id === item.gearId)?.price || 160;
         const base = ShopSystem.baseDefinitionFor(item);
         if (!base) return 0;
         const value = Math.max(1, Number(item.value) || 1);
@@ -2450,7 +2578,7 @@ const ShopSystem = {
             stock.forEach((item, i) => {
                 const div = document.createElement('div');
                 div.className = 'shop-item-row';
-                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color}">${item.icon}</span> <span style="color:${item.qualityColor}">${item.name}</span> <small>(${item.type === 'weapon' || item.type === 'armor' ? 'Poder' : 'Recupera'}: ${item.value})</small></div><div class="shop-item-price" style="color:${item.price > GameState.score ? '#f00' : '#ff0'}">${item.price} G</div><button class="btn-buy" onclick="ShopSystem.buy(${i})">Comprar</button>`;
+                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color}">${item.icon}</span> <span style="color:${item.qualityColor}">${item.name}</span> <small>${EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : `Recupera: ${item.value}`}</small></div><div class="shop-item-price" style="color:${item.price > GameState.score ? '#f00' : '#ff0'}">${item.price} G</div><button class="btn-buy" onclick="ShopSystem.buy(${i})">Comprar</button>`;
                 container.appendChild(div);
             });
         }
@@ -2468,7 +2596,7 @@ const ShopSystem = {
                 const price = ShopSystem.sellPrice(item);
                 const div = document.createElement('div');
                 div.className = 'shop-item-row';
-                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color || '#fff'}">${item.symbol || '?'}</span> <span style="color:${item.qualityColor || '#fff'}">${item.name}</span> <small>(Valor: ${item.value})</small></div><div class="shop-item-price" style="color:#33ff00">${price} G</div><button class="btn-buy" onclick="ShopSystem.sell(${i})" ${price <= 0 ? 'disabled' : ''}>Vender</button>`;
+                div.innerHTML = `<div class="shop-item-info"><span style="color:${item.color || '#fff'}">${item.symbol || '?'}</span> <span style="color:${item.qualityColor || '#fff'}">${item.name}</span> <small>${EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : item.type === 'relic' ? 'Un uso · consulta el efecto en la mochila' : `Recupera: ${item.value}`}</small></div><div class="shop-item-price" style="color:#33ff00">${price} G</div><button class="btn-buy" onclick="ShopSystem.sell(${i})" ${price <= 0 ? 'disabled' : ''}>Vender</button>`;
                 container.appendChild(div);
             });
         }
@@ -2488,6 +2616,8 @@ const ShopSystem = {
             symbol: item.icon,
             color: item.color,
             qualityColor: item.qualityColor,
+            gearId: item.gearId,
+            traits: item.traits ? { ...item.traits } : undefined,
             buyPrice: item.price
         });
         const discovery = Renderer.itemDiscovery(item);
@@ -2677,11 +2807,16 @@ const Renderer = {
     itemDiscovery: (item) => {
         if (!item) return null;
         const special = {
-            FROZEN_CRAMPONS: { name: 'Arnés polar', color: '#8adfff', stats: 'DEF:1 · Hielo / agarre' },
+            FROZEN_CRAMPONS: { name: 'Botas polares', color: '#8adfff', stats: 'Hielo / agarre / descanso' },
             MAGMA_THERMAL: { name: 'Malla térmica', color: '#ff6b35', stats: 'DEF:1 · Calor / sed' },
             UNSTABLE_HARNESS: { name: 'Arnés ligero', color: '#d7a56d', stats: 'DEF:1 · Caída / equipo' }
         }[item.specialId];
-        if (special) return { id: item.specialId, data: { symbol: ']', ...special } };
+        if (special) return { id: item.specialId, data: { symbol: item.symbol || ']', ...special } };
+        if (item.gearId) return { id: item.gearId, data: { name: item.name, symbol: item.symbol || item.icon, color: item.color, stats: UISystem.traitSummary(item) } };
+        if (item.type === 'relic') {
+            const relic = InventorySystem.relicDef(item);
+            if (relic) return { id: relic.id, data: { name: relic.name, symbol: '&', color: relic.color, stats: `${relic.effect === 'heal' ? 'Curación' : relic.effect === 'stun' ? 'Aturdimiento' : 'Protección + golpe'} · un uso · ficha en mochila` } };
+        }
         const common = {
             GOLD: { id: 'GOLD', symbol: '$', color: '#ffd700', name: 'Oro', stats: 'Monedas' },
             food: { id: 'FOOD', symbol: '%', color: '#ffaa00', name: 'Ración', stats: 'Recupera comida' },
@@ -2749,12 +2884,11 @@ const UISystem = {
             ? `${points} ${points === 1 ? 'punto disponible' : 'puntos disponibles'} · cada mejora cuesta 1`
             : 'Sin puntos pendientes. Ganas uno cada vez que subes de nivel.';
         document.getElementById('character-close').textContent = points > 0 ? 'Decidir luego' : 'Volver';
-        const armor = Number(player.equipment.armor?.value) || 0;
-        const weapon = Number(player.equipment.weapon?.value) || 0;
+        const equippedStats = EquipmentSystem.stats();
         const stats = [
             ['Vida máxima', String(player.maxHp)],
-            ['Ataque cuerpo a cuerpo', `${player.baseAtk + weapon} (${player.baseAtk} + ${weapon} arma)`],
-            ['Defensa total', `${ProgressionSystem.defense() + armor} (${ProgressionSystem.defense()} + ${armor} armadura)`],
+            ['Ataque cuerpo a cuerpo', `${equippedStats.attack} · base + arma + accesorios`],
+            ['Defensa total', `${equippedStats.defense} · natural + armadura + accesorios`],
             ['Velocidad', `${Math.round(ProgressionSystem.speedMultiplier() * 100)}%`],
             ['Dardo arcano', ProgressionSystem.rank('ranged') > 0 ? `${ProgressionSystem.rangedDamage()} daño base · ${ProgressionSystem.rangedRange()} casillas` : 'Sin aprender']
         ];
@@ -2800,43 +2934,54 @@ const UISystem = {
         if (UISystem.equipmentFocus && UISystem.equipmentFocus.isConnected) UISystem.equipmentFocus.focus();
         UISystem.equipmentFocus = null;
     },
-    equipmentInfo: (slot) => {
-        const item = GameState.player.equipment[slot];
+    traitProperties: (item) => {
+        const traits = item?.traits || {};
+        const properties = [];
+        for (const [key, label] of [['slipResist', 'Resistencia a resbalones'], ['heatResist', 'Resistencia al calor'], ['thirstResist', 'Resiste sed extra por calor'], ['fallDamageResist', 'Resistencia a caídas']]) {
+            if (Number(traits[key]) > 0) properties.push([label, `${Math.round(traits[key] * 100)}%`]);
+        }
+        for (const [key, label] of [['attackBonus', 'Ataque (también dardo)'], ['defenseBonus', 'Defensa adicional'], ['frozenRestHeal', 'Descanso en hielo'], ['magmaRestHeal', 'Descanso en magma']]) {
+            if (Number(traits[key]) > 0) properties.push([label, `+${traits[key]}${key.endsWith('RestHeal') ? ' vida' : ''}`]);
+        }
+        if (traits.initiativeBonus) properties.push(['Iniciativa', `+${Math.round(traits.initiativeBonus * 100)}%`]);
+        if (traits.rangedDamageBonus) properties.push(['Potencia del dardo', `+${traits.rangedDamageBonus}${ProgressionSystem.rank('ranged') ? '' : ' · requiere aprenderlo [N]'}`]);
+        if (traits.retainEquippedOnFall) properties.push(['Conserva equipo al caer', 'Sí']);
+        return properties;
+    },
+    traitSummary: (item) => {
+        const properties = UISystem.traitProperties(item);
+        if (item.type === 'weapon') properties.unshift(['ATK', `+${item.value}`]);
+        if (item.type === 'armor') properties.unshift(['DEF', `+${item.value}`]);
+        return properties.map(([key, value]) => `${key}: ${value}`).join(' · ') || 'Sin efectos especiales';
+    },
+    equipmentInfo: (slot, item = GameState.player.equipment[slot]) => {
+        const definition = CONFIG.EQUIPMENT_SLOTS[slot];
         const weapon = slot === 'weapon';
         const value = item ? Number(item.value) || 0 : 0;
+        const totals = EquipmentSystem.stats({ ...GameState.player.equipment, [slot]: item });
         const properties = weapon
-            ? [['Ataque del arma', `+${value}`], ['Ataque base + arma', String(GameState.player.baseAtk + value)]]
-            : [['Defensa', `+${value}`], ['Defensa natural + armadura', String(ProgressionSystem.defense() + value)]];
-        const traits = item && item.traits ? item.traits : {};
-        const percentages = [
-            ['slipResist', 'Resistencia a resbalones'],
-            ['heatResist', 'Resistencia al calor'],
-            ['thirstResist', 'Resiste sed extra por calor'],
-            ['fallDamageResist', 'Resistencia a caídas']
-        ];
-        percentages.forEach(([key, label]) => {
-            if (Number(traits[key]) > 0) properties.push([label, `${Math.round(traits[key] * 100)}%`]);
-        });
-        if (Number(traits.frozenRestHeal) > 0) properties.push(['Descanso en hielo', `+${traits.frozenRestHeal} vida`]);
-        if (Number(traits.magmaRestHeal) > 0) properties.push(['Descanso en magma', `+${traits.magmaRestHeal} vida`]);
-        if (traits.retainEquippedOnFall) properties.push(['Conserva equipo al caer', 'Sí']);
-        if (Object.keys(traits).length === 0) properties.push(['Efectos especiales', 'Ninguno']);
+            ? [['Ataque del arma', `+${value}`], ['Ataque total con accesorios', String(totals.attack)]]
+            : slot === 'armor' ? [['Defensa', `+${value}`], ['Defensa total con accesorios', String(totals.defense)]] : [];
+        properties.push(...UISystem.traitProperties(item));
+        if (!item || !Object.keys(item.traits || {}).length) properties.push(['Efectos especiales', 'Ninguno']);
+        if (slot === 'boots') properties.push(['Hueco', 'Un par · no ocupa armadura']);
+        if (slot === 'ring') properties.push(['Hueco', 'Un anillo · efecto pasivo']);
         if (item && Number.isFinite(item.buyPrice)) properties.push(['Precio de compra', `${item.buyPrice} oro`]);
         const quality = item && item.name ? item.name.match(/\[([^\]]+)\]$/) : null;
         return {
-            label: weapon ? 'Arma' : 'Armadura',
-            name: item ? item.name : (weapon ? 'Puños' : 'Ropa'),
-            symbol: item ? item.symbol || (weapon ? '!' : ']') : (weapon ? '!' : ']'),
+            label: definition.label,
+            name: item ? item.name : definition.empty,
+            symbol: item?.symbol || definition.symbol,
             color: item ? item.qualityColor || item.color || '#cfb477' : '#b4a58b',
             quality: item ? (quality ? quality[1] : (item.specialId ? 'Equipo especial' : 'Equipo actual')) : 'Sin objeto equipado',
-            power: `${weapon ? 'ATK' : 'DEF'} +${value}`,
+            power: weapon ? `ATK +${value}` : slot === 'armor' ? `DEF +${value}` : item ? UISystem.traitSummary(item) : 'Hueco libre',
             properties
         };
     },
     renderEquipmentPreview: () => {
         const grid = document.getElementById('equipped-preview-grid');
         grid.innerHTML = '';
-        for (const slot of ['weapon', 'armor']) {
+        for (const slot of EquipmentSystem.slots()) {
             const info = UISystem.equipmentInfo(slot);
             const button = document.createElement('button');
             button.type = 'button';
@@ -2856,7 +3001,7 @@ const UISystem = {
     renderEquipment: () => {
         const grid = document.getElementById('equipment-grid');
         grid.innerHTML = '';
-        for (const slot of ['weapon', 'armor']) {
+        for (const slot of EquipmentSystem.slots()) {
             const info = UISystem.equipmentInfo(slot);
             const card = document.createElement('section'); card.className = 'gear-card';
             const label = document.createElement('div'); label.className = 'gear-slot'; label.textContent = info.label;
@@ -2873,6 +3018,12 @@ const UISystem = {
                 row.appendChild(term); row.appendChild(definition); properties.appendChild(row);
             }
             card.appendChild(label); card.appendChild(portrait); card.appendChild(properties); grid.appendChild(card);
+            if (GameState.player.equipment[slot]) {
+                const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'gear-remove'; remove.textContent = 'Quitar · un turno';
+                remove.disabled = GameState.player.inventory.length >= CONFIG.PLAYER.inventorySize;
+                remove.title = remove.disabled ? 'Necesitas un hueco en la mochila' : 'Guardar esta pieza en la mochila';
+                remove.onclick = () => InventorySystem.unequip(slot); card.appendChild(remove);
+            }
         }
     },
     updateResourceMeters: () => {
@@ -2954,8 +3105,9 @@ const UISystem = {
         if (xpFill) xpFill.style.width = `${xpPercent}%`;
         if (xpText) xpText.innerText = `${GameState.player.xp} / ${GameState.player.nextXp} XP`;
         let wVal = GameState.player.equipment.weapon ? GameState.player.equipment.weapon.value : 0; let aVal = GameState.player.equipment.armor ? GameState.player.equipment.armor.value : 0;
-        document.getElementById('atk-val').innerText = GameState.player.baseAtk; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
-        document.getElementById('def-val').textContent = String(ProgressionSystem.defense());
+        const equipmentStats = EquipmentSystem.stats();
+        document.getElementById('atk-val').innerText = equipmentStats.baseAttack; document.getElementById('weapon-bonus').innerText = `(+${wVal})`; document.getElementById('armor-bonus').innerText = `(+${aVal})`;
+        document.getElementById('def-val').textContent = String(equipmentStats.defense - aVal);
         const talentBadge = document.getElementById('talent-points');
         talentBadge.textContent = GameState.player.talentPoints > 0 ? `+${GameState.player.talentPoints}` : '';
         talentBadge.className = GameState.player.talentPoints > 0 ? 'talent-badge' : 'hidden';
@@ -2996,6 +3148,10 @@ const UISystem = {
             parts.push(`<span style="color:#00ffff">${label}${GameState.player.combat.pendingAttack === 'ranged' ? '' : ' · ELIGE DIRECCIÓN'}</span>`);
         }
         if (GameState.player.combat.isDefending) parts.push('<span style="color:#6fa8dc">DEFENSA</span>');
+        if (GameState.player.combat.wardTurns > 0) parts.push(`<span style="color:#66d9ef">PIEDRA · DEF +${GameState.player.combat.wardDefense} · ${GameState.player.combat.wardTurns} RESPUESTAS</span>`);
+        if (GameState.player.combat.wardStrike > 0) parts.push(`<span style="color:#66d9ef">PRÓXIMO IMPACTO · POTENCIA +${GameState.player.combat.wardStrike}</span>`);
+        const stunned = GameState.entities.enemies.filter(enemy => enemy.relicStun > 0 && GameState.visible[enemy.y]?.[enemy.x]);
+        if (stunned.length) parts.push(`<span style="color:#b48cff">ECO · ${stunned.length} ENEMIGO(S) ATURDIDO(S)</span>`);
         if (GameState.player.combat.waitBonus > 0) parts.push(`<span style="color:#ddd">CARGADO +${GameState.player.combat.waitBonus}</span>`);
         if (GameState.player.combat.cooldowns.area > 0) parts.push(`<span style="color:#999">BARRIDO: ${GameState.player.combat.cooldowns.area}</span>`);
         if (ProgressionSystem.rank('ranged') > 0) {
@@ -3009,43 +3165,80 @@ const UISystem = {
     renderInventory: () => {
         const grid = document.getElementById('inv-grid'); grid.innerHTML = "";
         document.getElementById('inv-capacity').innerText = `${GameState.player.inventory.length}/${CONFIG.PLAYER.inventorySize}`;
-        const w = GameState.player.equipment.weapon; const a = GameState.player.equipment.armor;
-        document.getElementById('equip-weapon').innerHTML = `Arma: <span class="${w?'equip-active':''}">${w?w.name:'Puños'}</span>`;
-        document.getElementById('equip-armor').innerHTML = `Armadura: <span class="${a?'equip-active':''}">${a?a.name:'Ropa'}</span>`;
+        for (const slot of EquipmentSystem.slots()) {
+            const info = UISystem.equipmentInfo(slot);
+            document.getElementById(`equip-${slot}`).textContent = `${info.label}: ${info.name}`;
+        }
         for (let i = 0; i < CONFIG.PLAYER.inventorySize; i++) {
-            let div = document.createElement('div'); div.className = "inv-slot";
+            let div = document.createElement('button'); div.type = 'button'; div.className = "inv-slot";
+            div.setAttribute('aria-pressed', String(i === GameState.ui.inventoryIndex));
             if (i === GameState.ui.inventoryIndex) div.classList.add('selected');
             if (i < GameState.player.inventory.length) {
                 let item = GameState.player.inventory[i];
                 div.innerHTML = `<div class="inv-item-symbol" style="color:${item.color}">${item.symbol}</div><div class="inv-item-name" style="color:${item.qualityColor||'#ccc'}">${item.name}</div>`;
-            } else { div.classList.add('empty'); }
+                div.title = item.name; div.setAttribute('aria-label', item.name);
+            } else { div.classList.add('empty'); div.setAttribute('aria-label', 'Hueco vacío'); }
+            div.onclick = () => {
+                if (GameState.ui.actionMenuOpen) return;
+                GameState.ui.inventoryIndex = i; UISystem.renderInventory();
+                document.getElementById('inv-item-detail').lastElementChild?.focus();
+            };
             grid.appendChild(div);
         }
+        UISystem.renderItemDetail();
+    },
+    renderItemDetail: () => {
+        const panel = document.getElementById('inv-item-detail'); panel.innerHTML = '';
+        const item = GameState.player.inventory[GameState.ui.inventoryIndex];
+        if (!item) { panel.textContent = 'Selecciona un objeto para consultar sus propiedades y cómo usarlo.'; return; }
+        const title = document.createElement('h3'); title.textContent = item.name; panel.appendChild(title);
+        const lines = [];
+        if (item.type === 'relic') {
+            const preview = InventorySystem.relicPreview(item);
+            lines.push(preview.effect, `Coste: ${preview.cost}.`, preview.duration, preview.advice);
+            if (preview.reason) lines.push(preview.reason);
+        } else if (EquipmentSystem.isEquipment(item)) {
+            lines.push(UISystem.traitSummary(item));
+            const current = GameState.player.equipment[item.type];
+            lines.push(`Sustituye: ${current?.name || CONFIG.EQUIPMENT_SLOTS[item.type].empty}. El objeto anterior vuelve a la mochila.`);
+            const before = EquipmentSystem.stats();
+            const after = EquipmentSystem.stats({ ...GameState.player.equipment, [item.type]: item });
+            const changes = [['attack', 'Ataque'], ['defense', 'Defensa'], ['speedMultiplier', 'Iniciativa'], ['rangedDamage', 'Dardo']].filter(([key]) => before[key] !== after[key] && (key !== 'rangedDamage' || ProgressionSystem.rank('ranged'))).map(([key, label]) => key === 'speedMultiplier' ? `${label}: ${Math.round(before[key]*100)}% → ${Math.round(after[key]*100)}%` : `${label}: ${before[key]} → ${after[key]}`);
+            lines.push(changes.join(' · ') || 'No cambia tus cifras de combate. Consulta sus protecciones especiales.');
+            lines.push('Equipar consume un turno. Su efecto es pasivo mientras lo llevas puesto.');
+        } else lines.push(`Recupera hasta ${item.value} ${item.type === 'food' ? 'comida' : 'agua'}. Se consume al usarlo y pasa un turno.`);
+        for (const line of lines) {
+            const p = document.createElement('p'); p.textContent = line; panel.appendChild(p);
+        }
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Acciones [Enter]'; button.onclick = InventorySystem.openActionMenu; panel.appendChild(button);
     },
     renderActionMenu: (item) => {
         const list = document.getElementById('action-list');
         document.getElementById('action-title').innerText = item.name;
         list.innerHTML = "";
         let actions = [];
-        if (['food', 'water', 'weapon', 'armor', 'relic'].includes(item.type)) actions.push({label: item.type === 'relic' ? "Invocar" : "Usar/Equipar", code: "USE"});
+        const preview = item.type === 'relic' ? InventorySystem.relicPreview(item) : null;
+        const description = document.getElementById('action-description');
+        description.textContent = preview ? `${preview.effect}. Coste: ${preview.cost}. ${preview.duration}. ${preview.reason || preview.advice}` : EquipmentSystem.isEquipment(item) ? UISystem.traitSummary(item) : `Recupera ${item.value}. Un uso · un turno.`;
+        if (['food', 'water', 'relic'].includes(item.type) || EquipmentSystem.isEquipment(item)) actions.push({label: preview ? 'Invocar · consumir reliquia' : EquipmentSystem.isEquipment(item) ? 'Equipar' : 'Consumir', code: 'USE', disabled: preview ? !preview.canUse : false});
         actions.push({label: "Tirar", code: "DROP"});
+        actions.push({label: 'Volver · Esc', code: 'CANCEL'});
         GameState.ui.currentActions = actions;
         actions.forEach((act, idx) => {
-            let div = document.createElement('div');
+            let div = document.createElement('button'); div.type = 'button'; div.disabled = Boolean(act.disabled);
             div.className = `action-option ${idx === GameState.ui.actionIndex ? 'selected' : ''}`;
             div.innerText = act.label;
-            div.onclick = () => { if(act.code==='USE') InventorySystem.useItem(GameState.ui.inventoryIndex); else InventorySystem.dropItem(GameState.ui.inventoryIndex); };
+            div.onclick = () => { if (act.disabled) return; if(act.code==='USE') InventorySystem.useItem(GameState.ui.inventoryIndex); else if (act.code === 'DROP') InventorySystem.dropItem(GameState.ui.inventoryIndex); else InventorySystem.closeActionMenu(); };
             list.appendChild(div);
         });
         DOM.menus.action.classList.remove('hidden');
     },
+    expeditionGear: () => `Mejor arma: ${GameState.player.stats.maxWeapon.name} | Mejor malla: ${GameState.player.stats.maxArmor.name} | Botas al finalizar: ${GameState.player.equipment.boots?.name || 'Nada'} | Anillo al finalizar: ${GameState.player.equipment.ring?.name || 'Nada'}`,
     fillEndGameStats: (prefix) => {
         const id = prefix === 'win' ? 'win' : 'death';
         let kills = Object.entries(GameState.player.stats.kills).map(([k,v]) => `${v} ${k}`).join(", ") || "Ninguna";
-        let w = GameState.player.stats.maxWeapon.val > 0 ? `${GameState.player.stats.maxWeapon.name}` : "Nada";
-        let a = GameState.player.stats.maxArmor.val > 0 ? `${GameState.player.stats.maxArmor.name}` : "Nada";
         document.getElementById(`${id}-kills-list`).innerText = kills;
-        document.getElementById(`${id}-best-gear`).innerText = `Arma: ${w} | Malla: ${a}`;
+        document.getElementById(`${id}-best-gear`).innerText = UISystem.expeditionGear();
         document.getElementById(`${id}-save-status`).textContent = GameState.ui.testMode ? 'Expedición de pruebas: los resultados no se envían al ranking.' : '';
         Network.setSaveButtons(Boolean(GameState.ui.testMode), GameState.ui.testMode ? 'Modo de pruebas' : 'Guardar puntuación');
         if (id === 'death') document.getElementById('death-cause').textContent = GameState.deathCause;
@@ -3101,6 +3294,7 @@ const MovementInput = {
 const StateController = {
     change: (newState) => {
         MovementInput.stop();
+        if (newState !== STATE_ENUM.INVENTORY) GameState.ui.actionMenuOpen = false;
         GameState.current = newState;
         Object.values(DOM.menus).forEach(el => el.classList.add('hidden'));
         switch (newState) {
@@ -3159,7 +3353,7 @@ document.addEventListener('keydown', (e) => {
     }
     // Tab recorre el diálogo activo; Enter/Espacio respetan los botones nativos.
     if (key === 'tab') {
-        const modal = Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
+        const modal = GameState.ui.actionMenuOpen ? DOM.menus.action : Object.values(DOM.menus).find(menu => !menu.classList.contains('hidden'));
         if (modal && typeof modal.querySelectorAll === 'function') {
             const focusable = [...modal.querySelectorAll('button:not(:disabled), input, summary, [tabindex="0"]')]
                 .filter(el => el.getClientRects().length > 0);

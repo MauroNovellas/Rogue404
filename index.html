@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Dungeon Not Found</title>
-    <link rel="stylesheet" href="/404/style.css?v=targeting-scores-2">
+    <link rel="stylesheet" href="/404/style.css?v=relics-accessories-3">
 </head>
 <body>
 
@@ -115,25 +115,29 @@
         <header class="dialog-header"><div><span class="dialog-eyebrow">EQUIPO DEL AVENTURERO</span><h2>Mochila <span id="inv-capacity" class="muted">0/6</span></h2></div><button type="button" onclick="closeInventory()" aria-label="Cerrar mochila">×</button></header>
         <div class="dialog-body">
         <div id="inv-grid" class="inv-grid"></div>
+        <section id="inv-item-detail" class="item-detail" aria-live="polite" aria-label="Objeto seleccionado"></section>
         <div class="equipment-section">
             <div class="equipment-link"><span>Equipo actual</span><button type="button" onclick="openEquipment()">Ver propiedades <kbd>O</kbd></button></div>
             <div id="equip-weapon">Arma: <span class="w">Puños</span></div>
             <div id="equip-armor">Armadura: <span class="w">Ropa</span></div>
+            <div id="equip-boots">Botas: Sin botas</div>
+            <div id="equip-ring">Anillo: Sin anillo</div>
         </div>
         </div>
         <footer class="dialog-footer"><div class="inv-help">
             <span class="key-hint">FLECHAS</span> Navegar &nbsp; 
             <span class="key-hint">ENTER</span> Acciones &nbsp; 
         </div><button type="button" onclick="closeInventory()">Volver <kbd>M</kbd></button></footer>
-        <div id="action-menu" class="hidden">
+        <div id="action-menu" class="hidden" role="dialog" aria-modal="true" aria-labelledby="action-title" tabindex="-1">
             <div id="action-title" class="action-title">Objeto</div>
+            <p id="action-description" class="action-description"></p>
             <div id="action-list"></div>
         </div>
     </div>
 
     <div id="equipment-menu" class="ui-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="equipment-title" tabindex="-1">
         <header class="dialog-header"><div><span class="dialog-eyebrow">FICHA DEL AVENTURERO</span><h2 id="equipment-title">Equipo actual</h2></div><button type="button" onclick="closeEquipment()" aria-label="Cerrar equipo">×</button></header>
-        <div class="dialog-body"><div id="equipment-grid" class="equipment-grid"></div><p class="control-hint">Equipa los objetos desde la mochila. Aquí puedes consultar el arma y la armadura que llevas puestos.</p><button type="button" onclick="openCharacter()">Atributos y talentos <kbd>N</kbd></button></div>
+        <div class="dialog-body"><div id="equipment-grid" class="equipment-grid"></div><p class="control-hint">Cuatro huecos: arma, armadura, un par de botas y un anillo. Equipa desde la mochila; los accesorios actúan solos mientras los llevas puestos. Las resistencias se combinan, no se suman. Equipar o quitar una pieza consume un turno.</p><button type="button" onclick="openCharacter()">Atributos y talentos <kbd>N</kbd></button></div>
         <footer class="dialog-footer"><span class="muted">O / Esc · volver</span><button type="button" onclick="closeEquipment()">Volver</button></footer>
     </div>
 
@@ -176,7 +180,7 @@
         <div class="dialog-body">
             <p class="result-cause">Causa: <span id="death-cause">Desconocida</span></p>
             <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="final-level">1</strong></div><div><span>Oro final</span><strong id="final-score">0</strong></div></div>
-            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span></p><p><strong>Mejor equipo:</strong> <span id="death-best-gear">Ninguno</span></p></details>
+            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="death-kills-list">Ninguna</span></p><p><strong>Equipo de la expedición:</strong> <span id="death-best-gear">Ninguno</span></p></details>
             <label for="player-name">Tu nombre en el ranking</label>
             <div class="save-row"><input type="text" id="player-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="death-save-button" onclick="saveScore()">Guardar puntuación</button></div>
             <p id="death-save-status" class="save-status" role="status"></p>
@@ -192,7 +196,7 @@
         <div class="dialog-body">
             <p id="victory-message" class="result-cause">Has escapado de la mazmorra.</p>
             <div class="result-stats"><div><span>Profundidad alcanzada</span><strong id="win-level">1</strong></div><div><span>Puntuación total</span><strong id="victory-score">0</strong></div></div>
-            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span></p><p><strong>Mejor equipo:</strong> <span id="win-best-gear">Ninguno</span></p></details>
+            <details class="stat-box"><summary>Detalles de la expedición</summary><p><strong>Bajas:</strong> <span id="win-kills-list">Ninguna</span></p><p><strong>Equipo de la expedición:</strong> <span id="win-best-gear">Ninguno</span></p></details>
             <label for="winner-name">Tu nombre en el ranking</label>
             <div class="save-row"><input type="text" id="winner-name" placeholder="Hasta 5 letras" maxlength="5" autocomplete="nickname"><button id="win-save-button" onclick="saveScore()">Guardar puntuación</button></div>
             <p id="win-save-status" class="save-status" role="status"></p>
@@ -203,10 +207,10 @@
         <footer class="dialog-footer"><span class="muted">I · nueva partida</span><button class="btn-primary" onclick="restartGame()">Volver a jugar</button></footer>
     </div>
 
-    <script src="/404/game.js?v=targeting-scores-2"></script>
+    <script src="/404/game.js?v=relics-accessories-3"></script>
     <script src="/404/dev-tools.js?v=targeting-scores-2"></script>
-    <script src="/404/autoplayer.js"></script>
-    <script src="/404/autoplayer-profiles.js"></script>
+    <script src="/404/autoplayer.js?v=relics-accessories-3"></script>
+    <script src="/404/autoplayer-profiles.js?v=relics-accessories-3"></script>
     <script src="/404/autoplayer-navigation.js"></script>
     <script src="/404/autoplayer-mission.js"></script>
     <script src="/404/autoplayer-audit.js"></script>

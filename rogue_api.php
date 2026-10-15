@@ -49,7 +49,7 @@ if ($method === 'POST') {
         'seed' => (int)($input['seed'] ?? 0),
         'cause' => cleanText($input['cause'] ?? 'Desconocido', 20),
         'kills' => cleanText($input['kills'] ?? 'Ninguno', 100),
-        'equipment' => cleanText($input['equipment'] ?? 'Nada', 50),
+        'equipment' => cleanText($input['equipment'] ?? 'Nada', 240),
         'date' => date('d/m/y')
     ];
 

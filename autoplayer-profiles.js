@@ -88,7 +88,7 @@
     ].includes(chest.specialId));
 
     const environmentalBonus = (item) => {
-        if (!item || item.type !== 'armor') return 0;
+        if (!item || !['armor', 'boots', 'ring'].includes(item.type)) return 0;
         const traits = item.traits || {};
         if (FloorSystem.is('FROZEN')) {
             return (Number(traits.slipResist) || 0) * 20 + (Number(traits.frozenRestHeal) || 0) * 4;
@@ -127,7 +127,7 @@
         let preferred = [];
         if (focus === 'gold') preferred = items.filter(item => item.type === 'GOLD');
         if (focus === 'resources') preferred = items.filter(item => item.type === 'food' || item.type === 'water');
-        if (focus === 'gear') preferred = items.filter(item => item.type === 'weapon' || item.type === 'armor');
+        if (focus === 'gear') preferred = items.filter(item => ['weapon', 'armor', 'boots', 'ring'].includes(item.type));
         return preferred.length > 0 ? preferred : items;
     };
 

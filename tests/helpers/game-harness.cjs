@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const source = fs.readFileSync(path.join(__dirname, '..', '..', 'game.js'), 'utf8')
     .replace(/GameLogic\.init\(\);\s*$/, '');
 
-module.exports = function harness() {
+module.exports = function harness({ renderInventory = false } = {}) {
     const elements = new Map(), listeners = new Map(), timers = new Map();
     let timerId = 0;
     const document = { hidden: false };
@@ -46,11 +46,11 @@ module.exports = function harness() {
     };
     context.window = context;
     vm.createContext(context);
-    vm.runInContext(`${source}\n;globalThis.core = { CONFIG, GameState, STATE_ENUM, DOM, MovementInput, ProgressionSystem, CombatSystem, GameLogic, MapSystem, FloorSystem, Renderer, UISystem, StateController, Utils, InventorySystem, Network };`, context);
+    vm.runInContext(`${source}\n;globalThis.core = { CONFIG, GameState, STATE_ENUM, DOM, MovementInput, ProgressionSystem, EquipmentSystem, EntityFactory, ShopSystem, CombatSystem, GameLogic, MapSystem, FloorSystem, Renderer, UISystem, StateController, Utils, InventorySystem, Network };`, context);
     const core = context.core;
     core.GameState.current = core.STATE_ENUM.PLAYING;
     Object.assign(core.GameState.player, { hp: 100, maxHp: 100, food: 100, water: 100, baseAtk: 3, x: 20, y: 12, xp: 0, nextXp: 100 });
-    core.UISystem.renderInventory = () => {};
+    if (!renderInventory) core.UISystem.renderInventory = () => {};
     const emit = (type, key, extra = {}) => {
         const event = { key, target: document.activeElement, repeat: false, preventDefault() { this.defaultPrevented = true; }, ...extra };
         for (const fn of listeners.get(type) || []) fn(event);

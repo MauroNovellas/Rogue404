@@ -100,7 +100,7 @@ test('Resistencia se suma a la armadura y participa en Defender', () => {
     h.UISystem.updateHUD();
     assert.equal(h.elements.get('def-val').textContent, '2');
     const properties = Object.fromEntries(h.UISystem.equipmentInfo('armor').properties);
-    assert.equal(properties['Defensa natural + armadura'], '4');
+    assert.equal(properties['Defensa total con accesorios'], '4');
 });
 
 test('la defensa natural no elimina los peligros de supervivencia', () => {

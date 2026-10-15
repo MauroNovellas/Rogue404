@@ -138,10 +138,12 @@
             .filter(move => !AutoPlayer.memory.attemptedUnknown.has(`${GameState.player.x},${GameState.player.y}->${move.x},${move.y}`)),
 
         itemGearScore: (item) => {
-            if (!item || (item.type !== 'weapon' && item.type !== 'armor')) return -Infinity;
+            if (!item || !['weapon', 'armor', 'boots', 'ring'].includes(item.type)) return -Infinity;
             let score = Number(item.value) || 0;
             const traits = item.traits || {};
-            if (item.type === 'armor') {
+            score += (Number(traits.attackBonus) || 0) + (Number(traits.defenseBonus) || 0) + (Number(traits.initiativeBonus) || 0) * 20;
+            if ((GameState.player.talents?.ranged || 0) > 0) score += Number(traits.rangedDamageBonus) || 0;
+            if (['armor', 'boots', 'ring'].includes(item.type)) {
                 if (FloorSystem.is('FROZEN')) score += (Number(traits.slipResist) || 0) * 20 + (Number(traits.frozenRestHeal) || 0) * 4;
                 if (FloorSystem.is('MAGMA')) score += (Number(traits.heatResist) || 0) * 12 + (Number(traits.thirstResist) || 0) * 12 + (Number(traits.magmaRestHeal) || 0) * 4;
                 if (FloorSystem.is('UNSTABLE')) score += (Number(traits.fallDamageResist) || 0) * 18 + (traits.retainEquippedOnFall ? 8 : 0);
@@ -175,7 +177,7 @@
             let bestIndex = -1;
             let bestGain = 0.01;
             GameState.player.inventory.forEach((item, index) => {
-                if (item.type !== 'weapon' && item.type !== 'armor') return;
+                if (!['weapon', 'armor', 'boots', 'ring'].includes(item.type)) return;
                 const current = GameState.player.equipment[item.type];
                 const gain = AutoPlayer.itemGearScore(item) - AutoPlayer.itemGearScore(current);
                 if (gain > bestGain) { bestGain = gain; bestIndex = index; }
@@ -276,7 +278,7 @@
             if (index === -1) {
                 let bestGain = 0.5;
                 stock.forEach((item, itemIndex) => {
-                    if (!affordable(item) || (item.type !== 'weapon' && item.type !== 'armor')) return;
+                    if (!affordable(item) || !['weapon', 'armor', 'boots', 'ring'].includes(item.type)) return;
                     const current = GameState.player.equipment[item.type];
                     const gain = AutoPlayer.itemGearScore(item) - AutoPlayer.itemGearScore(current);
                     if (gain > bestGain) { bestGain = gain; index = itemIndex; }

@@ -56,6 +56,9 @@ jobs:
       - name: Interface and held movement tests
         run: node tests/interface.test.cjs
 
+      - name: Relic effects and accessory equipment
+        run: node tests/relics-accessories.test.cjs
+
       - name: Character progression and ranged combat
         run: node tests/progression.test.cjs
 
